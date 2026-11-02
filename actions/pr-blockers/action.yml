@@ -31,7 +31,7 @@ inputs:
   collection-check-name:
     description: >-
       Exact GitHub check name of this collection job, if known. Only proven optional checks may
-      be excluded from assurance; required or unverifiable self-checks remain unknown.
+      be excluded from assurance; known unsatisfied required checks fail, unverifiable requirements remain unknown.
     required: false
     default: ""
 

@@ -3,7 +3,8 @@
 set -euo pipefail
 
 # Must match tests exercised by scripts/run-cert-gate.sh and .github/workflows/cert-gate.yml
-readonly CERT_GATE_FILTER='FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Certification|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Adaptation.GenerationSafety|FullyQualifiedName~AstMutationEngineTests'
+# GitHub evidence and credential suites use deterministic in-memory HTTP responses, never live APIs.
+readonly CERT_GATE_FILTER='FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Certification|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Adaptation.GenerationSafety|FullyQualifiedName~AstMutationEngineTests|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubBlockersBrickTests|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubReadAccessTests|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests'
 
 # The expected test count is derived at RUNTIME from `dotnet test --list-tests` (see
 # cert_gate_expected_count below); there is no hardcoded total to keep in sync. A previous

@@ -49,15 +49,27 @@ internal static class ReleaseEvidence
         for (var i = 0; i < answer.Blockers.Count; i++)
         {
             var blocker = answer.Blockers[i];
-            // A caller may identify this collection job. Its pending state cannot be assumed optional when policy
-            // is unreadable; nor can requiring the collection job itself produce a passing collection decision.
+            var unsettled = IsUnsettledCiBlocker(pr, blocker);
+            var provenUnmet = IsProvenUnmetCiBlocker(pr, blocker);
+            // A caller may identify this collection job. A proven required pending job is currently
+            // unmet; unreadable policy/provider/CI leaves the circular requirement unknown.
             if (!string.IsNullOrWhiteSpace(collectionCheckName) && blocker.Reason.Contains(BlockerAnalysis.Quote(collectionCheckName), StringComparison.Ordinal)
-                && IsUnsettledCiBlocker(pr, blocker)
+                && unsettled
                 && pr?.Ci?.Checks?.Any(c => c.Name == collectionCheckName && c.Status != "completed") == true
                 && (pr.Protection.RequiredChecks is null || pr.Protection.RequiredChecks.Contains(collectionCheckName, StringComparer.Ordinal)))
-                Add("collection-check", "unknown", "The collection job is pending and its requirement is circular or could not be established.", blocker.Evidence);
+                Add("collection-check", provenUnmet ? "fail" : "unknown",
+                    provenUnmet
+                        ? "The required collection check is pending; its circular requirement is currently unmet."
+                        : "The collection job is pending and its requirement is circular or could not be established.", blocker.Evidence);
+            else if (IsUnverifiedOriginCiBlocker(pr, blocker))
+                Add("blocker-" + (i + 1), "unknown", "The legacy verdict reports: " + blocker.Reason
+                    + " Its app/provider identity was not verified against the required check; this does not establish a failed requirement.", blocker.Evidence);
+            else if (MissingRequiredCheckName(pr, blocker) is { } missing && !IsCompleteCi(pr?.Ci))
+                Add("blocker-" + (i + 1), "unknown", "The required check " + BlockerAnalysis.Quote(missing)
+                    + " was not observed in incomplete CI results; this does not establish whether it reported.", blocker.Evidence);
             else
-                Add("blocker-" + (i + 1), IsUnsettledCiBlocker(pr, blocker) ? "unknown" : "fail", blocker.Reason, blocker.Evidence);
+                Add("blocker-" + (i + 1), unsettled && !provenUnmet ? "unknown" : "fail",
+                    blocker.Reason, blocker.Evidence);
         }
         for (var i = 0; i < answer.Unknowns.Count; i++)
             Add("unavailable-" + (i + 1), "unknown", answer.Unknowns[i].What + ": " + answer.Unknowns[i].Why);
@@ -124,13 +136,23 @@ internal static class ReleaseEvidence
                     var knownFailure = checks.Any(c => c.Status == "completed" && c.Conclusion is
                         "failure" or "timed_out" or "cancelled" or "action_required" or "startup_failure" or "stale")
                         || statuses.Any(s => s.State is "failure" or "error");
-                    var status = knownFailure ? "fail" : isCollection || absent ? "unknown" : allPassed ? "pass" : "unknown";
+                    var originKnown = pr.Protection.RequiredCheckOriginsKnown;
+                    var complete = IsCompleteCi(pr.Ci);
+                    var pending = checks.Any(c => IsKnownPendingState(c.Status))
+                        || statuses.Any(s => string.Equals(s.State, "pending", StringComparison.OrdinalIgnoreCase));
+                    var status = !originKnown ? "unknown" : knownFailure ? "fail" : !complete ? "unknown"
+                        : absent || pending ? "fail" : isCollection ? "unknown" : allPassed ? "pass" : "unknown";
                     var links = checks.Select(c => BlockerAnalysis.Link(c.Url) ?? commit)
                         .Concat(statuses.Select(s => BlockerAnalysis.Link(s.Url) ?? commit)).DefaultIfEmpty(commit).Distinct(StringComparer.Ordinal).ToArray();
                     Add("required-check-" + (findings.Count + 1), status,
-                        isCollection && !knownFailure ? "Required collection check " + BlockerAnalysis.Quote(name) + " is circular; it must complete outside this snapshot."
+                        !originKnown ? "Observations named " + BlockerAnalysis.Quote(name) + " could not be bound to the required app/provider; their conclusions do not establish satisfaction or failure of that requirement."
+                            : absent && !complete ? "The required check " + BlockerAnalysis.Quote(name) + " was not observed in incomplete CI results; this does not establish whether it reported."
+                            : !complete && !knownFailure ? "CI results for required check " + BlockerAnalysis.Quote(name) + " were incomplete; satisfaction could not be established."
+                            : isCollection && !knownFailure ? "Required collection check " + BlockerAnalysis.Quote(name)
+                                + (absent || pending ? " is circular and currently unmet; it must complete outside this snapshot." : " is circular; it must complete outside this snapshot.")
                             : absent ? "Required check " + BlockerAnalysis.Quote(name) + " has not reported on the observed head."
-                            : "Observed required check " + BlockerAnalysis.Quote(name) + (allPassed ? " has a passing conclusion." : knownFailure ? " has a failed or conflicting conclusion." : " is pending or has no recognized passing conclusion."), links);
+                            : pending && !knownFailure ? "Required check " + BlockerAnalysis.Quote(name) + " is pending; its requirement is currently unmet."
+                            : "Observed required check " + BlockerAnalysis.Quote(name) + (allPassed ? " has a passing conclusion." : knownFailure ? " has a failed or conflicting conclusion." : " has no recognized passing conclusion."), links);
                 }
             }
         }
@@ -152,21 +174,78 @@ internal static class ReleaseEvidence
     private static bool IsCommitSha(string? value) => value is { Length: 40 }
         && value.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
 
+    private static bool IsCompleteCi(CiFacts? ci) => ci is { Checks: { } checks, Statuses: { } statuses, ChecksReadComplete: true }
+        && ci.ChecksReported == checks.Count && ci.StatusesReported == statuses.Count;
+
+    private static bool IsKnownPendingState(string? state) => state?.ToLowerInvariant()
+        is "queued" or "in_progress" or "waiting" or "pending" or "requested";
+
+    private static string PendingCheckReason(CheckFact check)
+    {
+        var status = check.Status is "queued" or "in_progress" or "waiting" or "pending" or "requested"
+            ? check.Status.Replace('_', ' ') : BlockerAnalysis.Quote(check.Status);
+        return $"The check {BlockerAnalysis.Quote(check.Name)} is still {status}.";
+    }
+
+    private static string? MissingRequiredCheckName(PullRequestFacts? pr, Blocker blocker) =>
+        pr is { Ci: { } ci } ? pr.Protection.RequiredChecks?.FirstOrDefault(name => blocker.Reason ==
+            $"The required check {BlockerAnalysis.Quote(name)} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}.") : null;
+
+    private static bool IsProvenUnmetCiBlocker(PullRequestFacts? pr, Blocker blocker)
+    {
+        if (pr is null || !pr.Protection.RequiredCheckOriginsKnown || pr.Protection.RequiredChecks is not { } required
+            || !IsCompleteCi(pr.Ci))
+            return false;
+        if (MissingRequiredCheckName(pr, blocker) is not null)
+            return true;
+        var ci = pr.Ci!;
+        return ci.Checks!.Any(c => required.Contains(c.Name, StringComparer.Ordinal)
+                && IsKnownPendingState(c.Status) && blocker.Reason == PendingCheckReason(c))
+            || ci.Statuses!.Any(s => required.Contains(s.Context, StringComparer.Ordinal)
+                && string.Equals(s.State, "pending", StringComparison.OrdinalIgnoreCase)
+                && blocker.Reason == $"The status {BlockerAnalysis.Quote(s.Context)} is still pending.");
+    }
+
+    private static bool IsUnverifiedOriginCiBlocker(PullRequestFacts? pr, Blocker blocker)
+    {
+        if (pr is null || pr.Protection.RequiredCheckOriginsKnown
+            || pr.Protection.RequiredChecks is not { } required || pr.Ci is not { } ci)
+            return false;
+
+        // The legacy verdict deliberately keeps its name-only check semantics. Only exact CI
+        // reason shapes are downgraded here; unrelated blockers remain independently established.
+        foreach (var check in ci.Checks ?? [])
+        {
+            if (required.Contains(check.Name, StringComparer.Ordinal)
+                && string.Equals(check.Status, "completed", StringComparison.OrdinalIgnoreCase) && check.Conclusion is { } conclusion
+                && blocker.Reason == $"The check {BlockerAnalysis.Quote(check.Name)} concluded {conclusion.Replace('_', ' ')}.")
+                return true;
+        }
+        foreach (var status in ci.Statuses ?? [])
+        {
+            var state = status.State?.ToLowerInvariant();
+            if (state is not ("failure" or "error"))
+                continue;
+            var reason = $"The status {BlockerAnalysis.Quote(status.Context)} reported {state}"
+                + (string.IsNullOrWhiteSpace(status.Description) ? "." : $": {BlockerAnalysis.Quote(status.Description)}.");
+            if (required.Contains(status.Context, StringComparer.Ordinal) && blocker.Reason == reason)
+                return true;
+        }
+        return false;
+    }
+
     private static bool IsUnsettledCiBlocker(PullRequestFacts? pr, Blocker blocker)
     {
         if (pr?.Ci is not { } ci)
             return false;
         foreach (var check in ci.Checks ?? [])
         {
-            var status = check.Status is "queued" or "in_progress" or "waiting" or "pending" or "requested"
-                ? check.Status.Replace('_', ' ') : BlockerAnalysis.Quote(check.Status);
-            if (check.Status != "completed" && blocker.Reason == $"The check {BlockerAnalysis.Quote(check.Name)} is still {status}.")
+            if (check.Status != "completed" && blocker.Reason == PendingCheckReason(check))
                 return true;
         }
         if (ci.Statuses?.Any(s => s.State == "pending" && blocker.Reason == $"The status {BlockerAnalysis.Quote(s.Context)} is still pending.") == true)
             return true;
-        return pr.Protection.RequiredChecks?.Any(name => blocker.Reason ==
-            $"The required check {BlockerAnalysis.Quote(name)} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}.") == true;
+        return MissingRequiredCheckName(pr, blocker) is not null;
     }
 
     internal static string Render(ReleaseEvidencePack pack)

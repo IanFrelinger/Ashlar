@@ -131,8 +131,9 @@ jobs:
           collection-check-name: Post-CI evidence
 ```
 
-Avoid requiring the evidence job as one of the very checks it waits for. A required self-check remains
-circular/unknown; a supplied name alone never waives policy. A trigger after CI also does not freeze
+Avoid requiring the evidence job as one of the very checks it waits for. A provably required, pending
+self-check is circular and unsatisfied (`fail`); unverifiable requirements remain `unknown`. A supplied
+name alone never waives policy. A trigger after CI also does not freeze
 external state or solve all required-workflow/ruleset policy cases.
 
 ## Credentials, privacy, and integrity

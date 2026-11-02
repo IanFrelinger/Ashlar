@@ -65,6 +65,15 @@ internal static class BlockerAnalysis
         else
             verdict = UnknownVerdict;
 
+        // A previously clean summary is not a current positive when the final PR read
+        // changed or could not establish the same inputs. Preserve confirmed blockers
+        // and the legacy policy-readability behavior on stable snapshots.
+        if (verdict == Ready && snapshot.CollectionConsistency is "changed" or "unknown")
+        {
+            unknowns.Add(new Unknown("Collection freshness", "The final pull-request read changed or could not verify the initial head, base and mergeability facts; collect again."));
+            verdict = UnknownVerdict;
+        }
+
         var evidence = new List<string> { snapshot.Target.WebUrl };
         evidence.AddRange(blockers.Select(b => b.Evidence));
         evidence.AddRange(notes.Where(n => n.Evidence is not null).Select(n => n.Evidence!));

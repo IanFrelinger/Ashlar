@@ -9,13 +9,14 @@ internal sealed record StatusFact(string Context, string State, string? Url, str
 
 internal sealed record ReviewFact(string User, string State, string? Url, DateTimeOffset? SubmittedAt, string? CommitSha = null);
 
-/// <summary>CI on one commit: check runs and legacy commit statuses, with what could not be read.</summary>
+/// <summary>CI on one commit: check runs and legacy commit statuses. Counts and completed pagination establish completeness.</summary>
 internal sealed record CiFacts(
     string Sha,
     IReadOnlyList<CheckFact>? Checks,
     int ChecksReported,
     IReadOnlyList<StatusFact>? Statuses,
-    int StatusesReported);
+    int StatusesReported,
+    bool ChecksReadComplete = true);
 
 /// <summary>
 /// What the base branch requires: branch protection and repository rulesets. Each part is <see langword="null"/> when

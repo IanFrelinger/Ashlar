@@ -615,11 +615,11 @@ public sealed class GitHubBlockersBrickTests
     }
 
     [Fact]
-    public void Pending_required_checks_cannot_pass()
+    public void Fully_observed_pending_required_checks_are_currently_unmet()
     {
         var pack = Pack(OpenPr(ci: Ci(checks: [new CheckFact("build", "queued", null, null),
             new CheckFact("build", "completed", "success", null)]), protection: new ProtectionFacts(["build"], 0)));
-        pack.Assurance.Should().Be("unknown");
+        pack.Assurance.Should().Be("fail");
     }
 
     [Fact]
@@ -659,14 +659,14 @@ public sealed class GitHubBlockersBrickTests
     }
 
     [Fact]
-    public void An_optional_collection_check_is_a_note_but_a_required_one_is_circular_unknown()
+    public void An_optional_collection_check_is_a_note_but_a_required_pending_one_is_circular_and_unmet()
     {
         var ci = Ci(checks: [new CheckFact("collect", "in_progress", null, Pr + "/checks")]);
         var optional = Pack(OpenPr(ci: ci, protection: new ProtectionFacts([], 0)), collectionCheckName: "collect");
         optional.Assurance.Should().Be("pass");
         var required = Pack(OpenPr(ci: ci, protection: new ProtectionFacts(["collect"], 0)), collectionCheckName: "collect");
         required.Verdict.Should().Be("blocked", "legacy verdict remains unchanged");
-        required.Assurance.Should().Be("unknown");
+        required.Assurance.Should().Be("fail");
     }
 
     [Fact]
@@ -719,8 +719,8 @@ public sealed class GitHubBlockersBrickTests
         var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
         output.Get<string>("assurance").Should().Be("pass");
         var pack = JsonSerializer.SerializeToElement(output.Get<object>("evidencePack"));
-        pack.GetProperty("brickVersion").GetString().Should().Be("1.3.0");
-        pack.GetProperty("ashlarVersion").GetString().Should().NotBe("1.3.0");
+        pack.GetProperty("brickVersion").GetString().Should().Be("1.3.1");
+        pack.GetProperty("ashlarVersion").GetString().Should().NotBe("1.3.1");
     }
 
     [Theory]

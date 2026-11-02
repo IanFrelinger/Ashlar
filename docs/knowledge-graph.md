@@ -19,8 +19,8 @@ remembered to update — staleness here is a red build.
 | of those, operator-facing (not test-only) | 157 |
 | missing from `docs/Configuration.md` | 17 |
 | **mentioned in no document at all** | **0** |
-| test files declaring xUnit facts | 837 |
-| declared facts | 5502 |
+| test files declaring xUnit facts | 839 |
+| declared facts | 5533 |
 | workflows | 62 |
 
 ## Namespaces cert-gate selects
@@ -28,6 +28,10 @@ remembered to update — staleness here is a red build.
 Read from `scripts/cert-gate-config.sh`, so this cannot drift from the filter itself.
 
 - `Ashlar.Tests.Infrastructure.Tests.Adaptation.GenerationSafety`
+- `Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubBlockersBrickTests`
+- `Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests`
+- `Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests`
+- `Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubReadAccessTests`
 - `Ashlar.Tests.Infrastructure.Tests.Certification`
 - `AstMutationEngineTests`
 

@@ -33,7 +33,7 @@ internal sealed class GitHubBlockerReader
         if (facts is null || facts.Closed || facts.Merged)
             return new BlockerSnapshot(target, facts, null, unknowns);
         var final = await RereadAsync(target).ConfigureAwait(false);
-        var consistency = final is null ? "unknown"
+        var consistency = final is null || !ValidPullMetadata(final, target) ? "unknown"
             : !string.Equals(final.Head?.Sha, facts.HeadSha, StringComparison.OrdinalIgnoreCase)
               || !string.Equals(final.Base?.Sha, facts.BaseSha, StringComparison.OrdinalIgnoreCase)
               || !string.Equals(final.Base?.Ref, facts.BaseRef, StringComparison.Ordinal)
@@ -65,19 +65,33 @@ internal sealed class GitHubBlockerReader
             pr = await RereadAsync(t).ConfigureAwait(false) ?? pr;
         }
 
+        // These are API-owned identity fields, not display text authored by a PR contributor.
+        // Keep collecting known facts, but never turn a malformed or mismatched identity into
+        // passing evidence. Use the requested canonical URL throughout, including legacy links.
+        if (!ValidPullMetadata(pr, t))
+            unknowns.Add(new Unknown("Pull-request metadata", "GitHub returned malformed or mismatched PR identity metadata; its source URL or branch references could not be verified."));
+        if (string.IsNullOrWhiteSpace(pr.Head?.Sha) || string.IsNullOrWhiteSpace(pr.Base?.Ref))
+        {
+            unknowns.Add(new Unknown("Pull-request identity", "The mergeability re-read returned an incomplete head or base reference."));
+            return null;
+        }
+
         var closed = pr.State.Value == ItemState.Closed;
         if (pr.Merged || closed)
         {
-            return new PullRequestFacts(pr.HtmlUrl, pr.Title, closed, pr.Merged, pr.Draft, pr.Mergeable,
+            return new PullRequestFacts(t.WebUrl, pr.Title, closed, pr.Merged, pr.Draft, pr.Mergeable,
                 pr.MergeableState?.StringValue, pr.Base.Ref, Array.Empty<ReviewFact>(), null, new ProtectionFacts(Array.Empty<string>(), 0), pr.Head?.Sha, pr.Base?.Sha);
         }
 
         var reviews = await Try(() => _client.PullRequest.Review.GetAll(t.Owner, t.Repo, t.Number), "Reviews", unknowns).ConfigureAwait(false);
-        var ci = await ReadCiAsync(t, pr.Head.Sha, unknowns).ConfigureAwait(false);
+        var repositoryId = pr.Base.Repository is { Id: > 0 } repository
+            && string.Equals(repository.FullName, t.Owner + "/" + t.Repo, StringComparison.OrdinalIgnoreCase)
+                ? repository.Id : (long?)null;
+        var ci = await ReadCiAsync(t, pr.Head.Sha, unknowns, repositoryId).ConfigureAwait(false);
         var protection = await ReadProtectionAsync(t, pr.Base.Ref, pr.Head.Sha).ConfigureAwait(false);
 
         return new PullRequestFacts(
-            pr.HtmlUrl,
+            t.WebUrl,
             pr.Title,
             closed,
             pr.Merged,
@@ -89,6 +103,29 @@ internal sealed class GitHubBlockerReader
             ci,
             protection, pr.Head.Sha, pr.Base.Sha);
     }
+
+    private static bool ValidPullMetadata(PullRequest pr, GitHubTarget target) =>
+        pr.Number == target.Number
+        && !string.IsNullOrWhiteSpace(pr.HtmlUrl)
+        && !pr.HtmlUrl.Any(char.IsControl)
+        && GitHubTarget.TryParse(pr.HtmlUrl, out var reported, out _)
+        && reported!.Kind == GitHubTargetKind.PullRequest
+        && string.Equals(reported.Owner, target.Owner, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(reported.Repo, target.Repo, StringComparison.OrdinalIgnoreCase)
+        && reported.Number == target.Number
+        && (pr.Head?.Ref is null || ValidBranchRef(pr.Head.Ref))
+        && pr.Base?.Ref is { } baseRef && ValidBranchRef(baseRef)
+        && (pr.Base.Repository?.FullName is not { } baseRepository
+            || string.Equals(baseRepository, target.Owner + "/" + target.Repo, StringComparison.OrdinalIgnoreCase));
+
+    private static bool ValidBranchRef(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && !value.Any(c => char.IsControl(c) || char.IsWhiteSpace(c) || "~^:?*[\\".Contains(c))
+        && !value.Contains("..", StringComparison.Ordinal)
+        && !value.Contains("@{", StringComparison.Ordinal)
+        && !value.Contains("//", StringComparison.Ordinal)
+        && value != "@" && value[0] != '/' && value[^1] is not '/' and not '.'
+        && value.Split('/').All(part => part[0] != '.' && !part.EndsWith(".lock", StringComparison.Ordinal));
 
     /// <summary>A failed re-read keeps the first read's answer, whose unknown mergeability is already reported.</summary>
     private async Task<PullRequest?> RereadAsync(GitHubTarget t)
@@ -151,17 +188,114 @@ internal sealed class GitHubBlockerReader
             await ReadCiAsync(t, sha, unknowns).ConfigureAwait(false));
     }
 
-    private async Task<CiFacts> ReadCiAsync(GitHubTarget t, string sha, List<Unknown> unknowns)
+    private async Task<CiFacts> ReadCiAsync(GitHubTarget t, string sha, List<Unknown> unknowns, long? repositoryId = null)
     {
-        var checks = await Try(() => _client.Check.Run.GetAllForReference(t.Owner, t.Repo, sha), "Check runs", unknowns).ConfigureAwait(false);
+        // GitHub legitimately returns null for unstarted check timestamps. Read only the
+        // fields this workflow uses instead of requiring unused timestamps in Octokit's full model.
+        var checks = await ReadCheckRunsAsync(t, sha, unknowns, repositoryId).ConfigureAwait(false);
         var statuses = await Try(() => _client.Repository.Status.GetCombined(t.Owner, t.Repo, sha), "Commit statuses", unknowns).ConfigureAwait(false);
         return new CiFacts(
             sha,
-            checks?.CheckRuns?.Select(c => new CheckFact(c.Name, c.Status.StringValue, c.Conclusion?.StringValue, c.HtmlUrl)).ToList(),
-            checks?.TotalCount ?? 0,
+            checks.Items?.Select(c => new CheckFact(c.Name!, c.Status!, c.Conclusion, c.HtmlUrl)).ToList(),
+            checks.Reported,
             statuses?.Statuses?.Select(s => new StatusFact(s.Context, s.State.StringValue, s.TargetUrl, s.Description)).ToList(),
-            statuses?.TotalCount ?? 0);
+            statuses?.TotalCount ?? 0, checks.Complete);
     }
+
+    private async Task<(IReadOnlyList<CheckRunDto>? Items, int Reported, bool Complete)> ReadCheckRunsAsync(
+        GitHubTarget t, string sha, List<Unknown> unknowns, long? repositoryId)
+    {
+        var path = $"/repos/{t.Owner}/{t.Repo}/commits/{Uri.EscapeDataString(sha)}/check-runs";
+        var canonicalPath = repositoryId is { } id ? CanonicalCheckPath(id, sha) : null;
+        var url = new Uri(path[1..], UriKind.Relative);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var runIds = new HashSet<long>();
+        var idsKnown = true;
+        List<CheckRunDto>? items = null;
+        int? reported = null;
+        for (var page = 0; page < 100; page++)
+        {
+            var response = await Try(() => _client.Connection.Get<CheckRunsDto>(url, null), "Check runs", unknowns).ConfigureAwait(false);
+            if (response is null)
+                return (items, reported ?? 0, false);
+            var body = response.Body;
+            if (body is null || body.TotalCount is null or < 0 || body.CheckRuns is null
+                || body.CheckRuns.Any(c => c is null || string.IsNullOrWhiteSpace(c.Name) || string.IsNullOrWhiteSpace(c.Status)))
+            {
+                unknowns.Add(new Unknown("Check runs", "GitHub returned incomplete check-run identity, status or count metadata."));
+                return (items, reported ?? 0, false);
+            }
+            if (body.CheckRuns.Any(c => c.HeadSha is { } checkSha && !string.Equals(checkSha, sha, StringComparison.OrdinalIgnoreCase)))
+            {
+                unknowns.Add(new Unknown("Check runs", "GitHub returned check runs for a different commit; that page was not attributed to the requested head."));
+                return (items, reported ?? body.TotalCount.Value, false);
+            }
+            items ??= [];
+            items.AddRange(body.CheckRuns);
+            reported ??= body.TotalCount;
+            foreach (var check in body.CheckRuns)
+            {
+                if (check.Id is null)
+                    idsKnown = false;
+                else if (check.Id <= 0 || !runIds.Add(check.Id.Value))
+                {
+                    unknowns.Add(new Unknown("Check runs", "GitHub returned invalid or overlapping check-run identities; collection completeness is unknown."));
+                    return (items, reported.Value, false);
+                }
+            }
+            if (reported != body.TotalCount)
+            {
+                unknowns.Add(new Unknown("Check runs", "GitHub's check-run count changed during pagination; collection completeness is unknown."));
+                return (items, reported.Value, false);
+            }
+            var next = response.HttpResponse.ApiInfo.Links.FirstOrDefault(p => string.Equals(p.Key, "next", StringComparison.OrdinalIgnoreCase)).Value;
+            if (next is null)
+            {
+                var complete = items.Count == reported && (page == 0 || idsKnown);
+                if (!complete)
+                    unknowns.Add(new Unknown("Check runs", "GitHub's reported check-run count or paginated identities did not establish complete results."));
+                return (items, reported.Value, complete);
+            }
+            // Release reads do not include a PR's base repository identity. Resolve it only
+            // when GitHub actually supplies a canonical-ID next page, without changing ordinary reads.
+            if (canonicalPath is null && t.Kind == GitHubTargetKind.Release && IsCanonicalCheckPage(next, sha))
+            {
+                var repository = await Try(() => _client.Repository.Get(t.Owner, t.Repo), "Check-run repository identity", unknowns).ConfigureAwait(false);
+                if (repository is not { Id: > 0 }
+                    || !string.Equals(repository.FullName, t.Owner + "/" + t.Repo, StringComparison.OrdinalIgnoreCase))
+                {
+                    unknowns.Add(new Unknown("Check runs", "The canonical pagination repository could not be bound to the requested repository; further pages were not requested."));
+                    return (items, reported.Value, false);
+                }
+                canonicalPath = CanonicalCheckPath(repository.Id, sha);
+            }
+            if (!ValidCheckPage(next, path, canonicalPath) || !seen.Add(next.AbsoluteUri))
+            {
+                unknowns.Add(new Unknown("Check runs", "GitHub returned an unsafe or repeated pagination link; further check-run pages were not requested."));
+                return (items, reported.Value, false);
+            }
+            url = next;
+        }
+        unknowns.Add(new Unknown("Check runs", "The 100-page check-run collection limit was reached; further results were not inspected."));
+        return (items, reported ?? 0, false);
+    }
+
+    private static string CanonicalCheckPath(long id, string sha) =>
+        $"/repositories/{id.ToString(System.Globalization.CultureInfo.InvariantCulture)}/commits/{Uri.EscapeDataString(sha)}/check-runs";
+
+    private static bool IsCanonicalCheckPage(Uri url, string sha) => url.IsAbsoluteUri
+        && url.AbsolutePath.Split('/') is ["", "repositories", var id, "commits", var commit, "check-runs"]
+        && long.TryParse(id, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var repositoryId)
+        && repositoryId > 0 && string.Equals(commit, Uri.EscapeDataString(sha), StringComparison.Ordinal)
+        && ValidCheckPage(url, url.AbsolutePath, null);
+
+    private static bool ValidCheckPage(Uri url, string expectedPath, string? canonicalPath) =>
+        url.IsAbsoluteUri && url.Scheme == Uri.UriSchemeHttps && url.Host == "api.github.com" && url.Port == 443
+        && url.UserInfo.Length == 0 && url.Fragment.Length == 0
+        && (string.Equals(url.AbsolutePath, expectedPath, StringComparison.Ordinal)
+            || canonicalPath is not null && string.Equals(url.AbsolutePath, canonicalPath, StringComparison.Ordinal))
+        && url.Query.Length > 1 && url.Query[1..].Split('&').All(pair =>
+            pair.Split('=') is ["page" or "per_page", var value] && int.TryParse(value, out var number) && number > 0);
 
     // Branch protection's own endpoints need admin rights. Without them, the same requirements are public in three
     // places: the protection summary on GET /branches/{base}, the active rulesets on GET /rules/branches/{base}, and

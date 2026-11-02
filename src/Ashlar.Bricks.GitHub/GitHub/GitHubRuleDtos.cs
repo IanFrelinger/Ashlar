@@ -1,7 +1,29 @@
 namespace Ashlar.Bricks.GitHub;
 
-// Shapes GitHubBlockerReader reads that Octokit has no model for. Octokit's serializer maps PascalCase properties to
-// snake_case JSON keys, so the GraphQL query aliases its fields to snake_case.
+// Narrow shapes GitHubBlockerReader reads where Octokit lacks a suitable model (including nullable timestamps on
+// queued checks). Octokit's serializer maps PascalCase to snake_case, so GraphQL aliases its fields to snake_case.
+
+internal sealed class CheckRunsDto
+{
+    public int? TotalCount { get; set; }
+
+    public IReadOnlyList<CheckRunDto>? CheckRuns { get; set; }
+}
+
+internal sealed class CheckRunDto
+{
+    public long? Id { get; set; }
+
+    public string? HeadSha { get; set; }
+
+    public string? Name { get; set; }
+
+    public string? Status { get; set; }
+
+    public string? Conclusion { get; set; }
+
+    public string? HtmlUrl { get; set; }
+}
 
 internal sealed class RuleDto
 {

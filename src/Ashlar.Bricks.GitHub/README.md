@@ -112,6 +112,10 @@ exists for it, and CI on the tagged commit.
 - GitHub computes mergeability in a background job and answers `null` until it finishes. The brick re-reads an
   open pull request up to twice, 2 seconds apart. If mergeability is still uncomputed after that, it is an unknown.
 - Draft releases are found only among the 30 newest releases, and only with a token that has push access.
+- Check-run pagination is bounded to 100 pages and the same repository/commit. Canonical repository-ID links need
+  the matching base-repository identity observed on the PR. A release-tag read resolves that identity with one
+  additional repository-metadata request only when such a link is encountered. Unavailable or mismatched identity
+  remains unknown; the collector does not forward credentials to an unbound repository ID.
 
 ## Network access
 

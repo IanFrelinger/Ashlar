@@ -17,6 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — release-evidence evaluation findings
+
+- Queued checks with null timestamps no longer crash collection. Check-run pagination retains
+  partial results and verifies repository, commit, identities and counts before claiming completeness.
+- Malformed PR identity cannot pass assurance, and observed PR changes prevent a stale `ready` verdict.
+  Unverified check providers remain unknown in assurance; proven pending or missing requirements fail.
+- The frozen 36-case evaluation retains original failures, separately reviewed labels and repaired runs.
+  Its AI review and small selected sample do not establish customer outcomes or lift readiness holds.
+
 ### Added — read-only pull-request evidence
 
 - The existing `github.blockers` brick and PR-blockers Action export schema 1.0 JSON and Markdown

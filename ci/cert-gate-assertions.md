@@ -5,12 +5,16 @@
 > See also `docs/HowGatesGoQuiet.md`: the failure modes in which a check stops measuring
 > anything without going red. A mute is only the loudest of them.
 
-`cert-gate` is **one of five required status checks on `master`** (the others are `build-core`, `shell-lint`, `lychee (README + docs)`, and `Readiness summary`; see `CONTRIBUTING.md` and `docs/GitHubBranchProtection.md`). It runs on every pull request with **no path filter**, and it selects tests by substring from `scripts/cert-gate-config.sh:6`:
+`cert-gate` is **one of five required status checks on `master`** (the others are `build-core`, `shell-lint`, `lychee (README + docs)`, and `Readiness summary`; see `CONTRIBUTING.md` and `docs/GitHubBranchProtection.md`). It runs on every pull request with **no path filter**, and it selects tests by substring from `scripts/cert-gate-config.sh`:
 
 ```
 FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Certification
 |FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Adaptation.GenerationSafety
 |FullyQualifiedName~AstMutationEngineTests
+|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubBlockersBrickTests
+|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubReadAccessTests
+|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests
+|FullyQualifiedName~Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests
 ```
 
 It is one of five required checks, but it is the one that carries the merge-blocking *conventions* —
@@ -26,6 +30,8 @@ away, can see what they would be turning off.
 
 | Assertion | Lives in | What breaks without it |
 |---|---|---|
+| **Frozen release-evidence evaluation reports remain reproducible, including the failed baseline.** Every retained result directory has paired output review and JSON/Markdown scores, matches the frozen input/label hashes, and re-scores byte-for-byte through the independent-label scorer. Artificial counterexamples cover false-pass/unknown/error denominators and the runner's status propagation. | `tests/scripts/release-evidence-evaluation.test.sh`, `tools/ReleaseEvidenceEvaluation/verify_retained.py` (required `shell-lint`, discovered by `scripts/ci/run-repo-gates.sh`) | Missing reports, changed frozen inputs or labels, incomplete blocker annotations, changed score bytes and a lost original baseline fail the gate. Nonzero original evaluation errors remain disclosed evidence; this check uses no live APIs or .NET and establishes neither general accuracy nor customer outcomes. |
+| **Deterministic GitHub release-evidence and credential regressions remain required.** The four named brick suites run through `cert-gate` using in-memory HTTP fixtures, including malformed identity, queued/null-timestamp checks, stale positives and unverified check origins. | `CertGateFilterCoverageTests.Deterministic_GitHub_evidence_and_credential_regressions_are_selected_by_the_required_gate`, `scripts/cert-gate-config.sh` | Without the explicit selectors, these safety regressions sit outside the certification namespace and can pass locally while never running in the required gate. This is local replay coverage, not live GitHub accuracy, customer evidence, authenticated identity or a waiver of readiness holds. |
 | **A dogfood evidence PASS retains the record it cites, and workflow output stays data.** Malformed or duplicate JSON, missing or modified records, missing hashes, ambiguous sidecars and unavailable parser dependencies yield GAP. Hostile output text does not execute in ledger/summary steps. | `tests/scripts/dogfood-sweep-verdict.test.sh`, `tests/scripts/dogfood-workflow-output.test.sh` (required `shell-lint`, discovered by `scripts/ci/run-repo-gates.sh`) | A stale sidecar could claim a reviewable persisted record after that file was deleted or changed, or compiler/model text could become Bash source. This checks retained bytes; .NET owns signature verification, and neither this local hash nor a sidecar establishes operator custody or an external anchor. |
 | **Witness kinds agree between correctness and mutation, including JSON transport.** Cross-kind values cannot satisfy exact witnesses, including aggregate kinds preserved by the loader. | `WitnessKindRegressionTests`, `AggregateWitnessLoaderRegressionTests` | A wrong-typed output could pass correctness, or a JSON transport mismatch could count as a vacuous mutant kill (#462). |
 | **Author project source-set tricks cannot enter the gate-emitted artifact.** Non-C# includes, nested output names and Compile Remove do not change the judged program; author props are refused. | `CompiledSourceSetRegressionTests` | Certifying one source while activating an author-built program reintroduces #493. This covers the loader and gate-emitted bytes, not arbitrary external build/load paths. |
