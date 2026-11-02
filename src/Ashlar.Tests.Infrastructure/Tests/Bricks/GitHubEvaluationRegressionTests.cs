@@ -309,7 +309,14 @@ public sealed class GitHubEvaluationRegressionTests
             "mergeability" => Pull(state: "blocked"),
             _ => "__unreadable__",
         };
-        var api = new ResponseHandler { Pulls = [Pull(), final] };
+        var repeated = changed switch
+        {
+            "head" => Pull(headSha: new string('c', 40)),
+            "base" => Pull(baseSha: new string('c', 40)),
+            "mergeability" => Pull(),
+            _ => final,
+        };
+        var api = new ResponseHandler { Pulls = [Pull(), final, repeated] };
 
         var output = await Execute(api);
 

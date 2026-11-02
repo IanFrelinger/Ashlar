@@ -29,11 +29,33 @@ internal sealed class GitHubBlockerReader
         var unknowns = new List<Unknown>();
         if (target.Kind != GitHubTargetKind.PullRequest)
             return new BlockerSnapshot(target, null, await ReadReleaseAsync(target, unknowns).ConfigureAwait(false), unknowns);
-        var facts = await ReadPullRequestAsync(target, unknowns).ConfigureAwait(false);
-        if (facts is null || facts.Closed || facts.Merged)
-            return new BlockerSnapshot(target, facts, null, unknowns);
-        var final = await RereadAsync(target).ConfigureAwait(false);
-        var consistency = final is null || !ValidPullMetadata(final, target) ? "unknown"
+
+        PullRequest? anchor = null;
+        for (var attempt = 1; attempt <= 2; attempt++)
+        {
+            // Each attempt has its own evidence and read failures. Earlier-head CI, reviews,
+            // policy and unknowns must not be combined with the replacement snapshot.
+            unknowns = [];
+            var facts = await ReadPullRequestAsync(target, unknowns, anchor).ConfigureAwait(false);
+            if (facts is null || facts.Closed || facts.Merged)
+                return new BlockerSnapshot(target, facts, null, unknowns, CollectionAttempts: attempt);
+            var final = await RereadAsync(target).ConfigureAwait(false);
+            var consistency = CompareCollection(facts, final, target);
+            if (attempt == 1 && consistency == "changed" && final is not null
+                && IsCommitSha(final.Head?.Sha) && IsCommitSha(final.Base?.Sha))
+            {
+                // Reuse the valid final read as the new anchor. A failed or malformed read
+                // is not retried, and an unstable second attempt never starts a third.
+                anchor = final;
+                continue;
+            }
+            return new BlockerSnapshot(target, facts, null, unknowns, consistency, attempt);
+        }
+        throw new InvalidOperationException("The bounded pull-request collection did not return a snapshot.");
+    }
+
+    private static string CompareCollection(PullRequestFacts facts, PullRequest? final, GitHubTarget target) =>
+        final is null || !ValidPullMetadata(final, target) ? "unknown"
             : !string.Equals(final.Head?.Sha, facts.HeadSha, StringComparison.OrdinalIgnoreCase)
               || !string.Equals(final.Base?.Sha, facts.BaseSha, StringComparison.OrdinalIgnoreCase)
               || !string.Equals(final.Base?.Ref, facts.BaseRef, StringComparison.Ordinal)
@@ -42,12 +64,13 @@ internal sealed class GitHubBlockerReader
               || final.Mergeable != facts.Mergeable
               || !string.Equals(final.MergeableState?.StringValue, facts.MergeableState, StringComparison.OrdinalIgnoreCase)
                 ? "changed" : "stable";
-        return new BlockerSnapshot(target, facts, null, unknowns, consistency);
-    }
 
-    private async Task<PullRequestFacts?> ReadPullRequestAsync(GitHubTarget t, List<Unknown> unknowns)
+    private static bool IsCommitSha(string? value) => value is { Length: 40 }
+        && value.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
+
+    private async Task<PullRequestFacts?> ReadPullRequestAsync(GitHubTarget t, List<Unknown> unknowns, PullRequest? anchor = null)
     {
-        var pr = await Try(() => _client.PullRequest.Get(t.Owner, t.Repo, t.Number), "The pull request", unknowns,
+        var pr = anchor ?? await Try(() => _client.PullRequest.Get(t.Owner, t.Repo, t.Number), "The pull request", unknowns,
             notFound: "The pull request was not found, or is not visible to this token.").ConfigureAwait(false);
         if (pr is null)
             return null;

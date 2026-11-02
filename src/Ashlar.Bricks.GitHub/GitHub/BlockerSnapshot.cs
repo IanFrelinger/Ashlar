@@ -70,4 +70,5 @@ internal sealed record BlockerSnapshot(
     PullRequestFacts? PullRequest,
     ReleaseFacts? Release,
     IReadOnlyList<Unknown> Unknowns,
-    string CollectionConsistency = "not-checked");
+    string CollectionConsistency = "not-checked",
+    int CollectionAttempts = 1);

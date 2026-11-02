@@ -26,7 +26,7 @@ internal sealed record ReleaseEvidencePack(
     EvidenceFreshness Freshness);
 
 internal sealed record EvidenceAuthorization(string Credential, string EffectivePermissions, string AuthenticatedActor);
-internal sealed record EvidenceFreshness(string CollectionConsistency, string Revalidation);
+internal sealed record EvidenceFreshness(string CollectionConsistency, string Revalidation, int CollectionAttempts = 1);
 internal sealed record EvidenceFinding(string Id, string Status, bool Required, string Explanation, IReadOnlyList<string> Sources);
 
 /// <summary>Produces a conservative assurance result without changing the existing GitHub-derived verdict.</summary>
@@ -79,15 +79,16 @@ internal static class ReleaseEvidence
         else if (!pr.Closed && !pr.Merged)
         {
             Add("head-identity", IsCommitSha(pr.HeadSha) ? "pass" : "unknown",
-                IsCommitSha(pr.HeadSha) ? "A 40-character hexadecimal head commit was observed at collection start."
+                IsCommitSha(pr.HeadSha) ? "A 40-character hexadecimal head commit was observed for this snapshot's collection attempt."
                     : "The head commit is missing or is not a supported 40-character hexadecimal GitHub SHA.");
             Add("base-identity", IsCommitSha(pr.BaseSha) && !string.IsNullOrWhiteSpace(pr.BaseRef) ? "pass" : "unknown",
                 IsCommitSha(pr.BaseSha) && !string.IsNullOrWhiteSpace(pr.BaseRef) ? "The relevant base reference and 40-character hexadecimal commit were observed."
                     : "The base reference or commit is missing or malformed; base-change detection cannot establish stable input identity.");
             Add("collection-consistency", snapshot.CollectionConsistency == "stable" ? "pass" : "unknown",
                 snapshot.CollectionConsistency == "stable"
-                    ? "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot."
-                    : "The final PR read changed or could not establish the initial head, base and mergeability facts; collect again.");
+                    ? (snapshot.CollectionAttempts > 1 ? "Recollected once after an observed PR change. " : "")
+                        + "The final PR read agreed with this attempt's head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot."
+                    : "The final PR read changed or could not establish the collected head, base and mergeability facts; collect again.");
             var policySources = new[]
             {
                 $"https://api.github.com/repos/{repository}/branches/{Uri.EscapeDataString(pr.BaseRef)}/protection/required_status_checks",
@@ -157,6 +158,7 @@ internal static class ReleaseEvidence
             }
         }
         var assurance = pr?.Closed == true || pr?.Merged == true ? "not-applicable"
+            : snapshot.CollectionAttempts > 1 && snapshot.CollectionConsistency != "stable" ? "unknown"
             : findings.Any(f => f.Required && f.Status == "fail") ? "fail"
             : findings.Any(f => f.Required && f.Status == "unknown") ? "unknown" : "pass";
         return new ReleaseEvidencePack("1.0", repository, target.Number, target.WebUrl, pr?.HeadSha ?? pr?.Ci?.Sha,
@@ -168,7 +170,7 @@ internal static class ReleaseEvidence
              "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
              "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
              "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."],
-            new EvidenceFreshness(snapshot.CollectionConsistency, "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."));
+            new EvidenceFreshness(snapshot.CollectionConsistency, "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted.", snapshot.CollectionAttempts));
     }
 
     private static bool IsCommitSha(string? value) => value is { Length: 40 }
@@ -256,6 +258,7 @@ internal static class ReleaseEvidence
         output.AppendLine().AppendLine($"GitHub verdict: **{pack.Verdict}**. Scoped assurance: **{pack.Assurance}**.");
         output.AppendLine().AppendLine($"Head: {BlockerAnalysis.Quote(pack.HeadSha ?? "unknown")}; base: {BlockerAnalysis.Quote(pack.BaseRef ?? "unknown")} ({BlockerAnalysis.Quote(pack.BaseSha ?? "unknown")}).");
         output.AppendLine().AppendLine($"Collected: {pack.CollectedAt:O}; schema {pack.SchemaVersion}; Ashlar {BlockerAnalysis.Quote(pack.AshlarVersion)}; brick {BlockerAnalysis.Quote(pack.BrickVersion)}.");
+        output.AppendLine().AppendLine($"Collection attempts: {pack.Freshness.CollectionAttempts}; final PR comparison: {pack.Freshness.CollectionConsistency}.");
         foreach (var finding in pack.Findings)
         {
             output.AppendLine().Append("- **").Append(finding.Status).Append("**: ").Append(finding.Explanation);
