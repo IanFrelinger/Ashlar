@@ -1,11 +1,14 @@
 """Black-box Action client checks; stub evidence is not a GitHub accuracy evaluation."""
 import json
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 CLIENT = ROOT / 'actions/pr-blockers/pr_blockers.py'
@@ -103,6 +106,21 @@ class EvidenceActionTests(unittest.TestCase):
         call = next(x for x in requests if x.get('method') == 'tools/call')
         self.assertEqual(call['params']['arguments'], {'url': 'https://github.com/o/r/pull/7',
                                                      'collectionCheckName': 'Evidence summary'})
+
+    def test_queued_notifications_cannot_extend_response_deadline(self):
+        spec = importlib.util.spec_from_file_location('pr_blockers', CLIENT)
+        client = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(client)
+        server = client.Server.__new__(client.Server)
+        server.timeout = 1
+        server.send = lambda message: None
+        messages = iter([json.dumps({'method': 'notifications/message'}),
+                         json.dumps({'id': 1, 'result': {'ok': True}})])
+        server.lines = SimpleNamespace(get=lambda **kwargs: next(messages))
+        # A notification is read at 0.25s; the response is available only after the 1s deadline.
+        with mock.patch.object(client.time, 'monotonic', side_effect=[0, 0.25, 2]):
+            with self.assertRaises(client.NoAnswer):
+                server.request(1, 'tools/call', {})
 
 
 if __name__ == '__main__':

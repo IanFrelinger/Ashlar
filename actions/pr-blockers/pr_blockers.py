@@ -75,8 +75,11 @@ class Server:
         self.send({"jsonrpc": "2.0", "id": rid, "method": method, "params": params})
         deadline = time.monotonic() + self.timeout
         while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise NoAnswer(f"no response to {method} within {self.timeout:g}s")
             try:
-                line = self.lines.get(timeout=max(0, deadline - time.monotonic()))
+                line = self.lines.get(timeout=remaining)
             except queue.Empty:
                 raise NoAnswer(f"no response to {method} within {self.timeout:g}s")
             if line is None:
