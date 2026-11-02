@@ -1,0 +1,1595 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+  "ground_truth_sha256": "85b97df9b1b08dfe1585855b684324171f0ebec50ea3eac4902805de0db5c3e1",
+  "run_manifest_sha256": "154943f901097d014531b1b5cc1d60eb3fe1e44bf86997f47830aca4da7de30e",
+  "review": {
+    "ai_only": true,
+    "performed_after_outputs": true,
+    "ground_truth_unchanged": true,
+    "reviewer": "Two partitioned AI output reviewers; original mappings concatenated without edits",
+    "parts": [
+      {
+        "path": "tools/ReleaseEvidenceEvaluation/review/annotations-accuracy-part1.json",
+        "sha256": "f931e801dd3db8d01002615027801f5b1f7502d3fc570102a4ba3210a1b4bc1c"
+      },
+      {
+        "path": "tools/ReleaseEvidenceEvaluation/review/annotations-accuracy-part2.json",
+        "sha256": "27cbe60f813aacea7d2e805ec6df29b2570760c677cafedbc8f9cd3a8989f6b6"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "e01-no-configured-requirements",
+      "status": "resolved",
+      "evidence_sha256": "b687acc8e7f29d2da5bc7c8a02731f5fa5863ba981a5852415127a6789d52c09",
+      "legacy_sha256": "4fb5949fbb497690dc3207bffbf06e8d0b087cd83ba87d74d7b87b17bc03f750",
+      "transcript_sha256": "d2fc140c3fabd2e4f81285c7b4366b9a3b10af38f186099b15d33b36ebb8eea5",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "19ef22e8dd2b0720627f8a498573c6c5dd26d9e3",
+        "head_changed_between_consumed_pr_reads": false
+      },
+      "review_notes": "Verified there are no literal evidence fail findings and no legacy blockers. Empty match lists are complete; reference blockers are empty."
+    },
+    {
+      "id": "e02-required-external-status",
+      "status": "resolved",
+      "evidence_sha256": "53e6ccd2e4c786453c77633756a66e9b50005cfc7b0fc7b4fd85e420093bea28",
+      "legacy_sha256": "40fd65de12ae5a2ed9af31b18613097bfaa4ec93f8d0edf159c2b2b973ab0e9d",
+      "transcript_sha256": "3872da79bcfb6a7d2d97bb5a290442aedfc87e3899920b50d396fa517e54a2c9",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "b01c033147c58e030ae0f356026f57f54fcdda2b",
+        "head_changed_between_consumed_pr_reads": false
+      },
+      "review_notes": "Verified there are no literal evidence fail findings and no legacy blockers. Empty match lists are complete; reference blockers are empty."
+    },
+    {
+      "id": "e03-two-approvals",
+      "status": "resolved",
+      "evidence_sha256": "4e47f1b1b48da3cc4c90b5f4f28dc4bf01eba938393470aa9d73ee483ce769b7",
+      "legacy_sha256": "bb4c10e08f6378a024fbf55fe3eae450dea8cfa9a028da89abcfcfb8f9b8a9f9",
+      "transcript_sha256": "afabb88b970166961def794d6d046cbc45d1dddb60b18c52410e0b38570b45df",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "19646c275e5d91eb748313db878b24b48df39e96",
+        "head_changed_between_consumed_pr_reads": false
+      },
+      "review_notes": "Verified there are no literal evidence fail findings and no legacy blockers. Empty match lists are complete; reference blockers are empty."
+    },
+    {
+      "id": "e04-mixed-optional-ci",
+      "status": "resolved",
+      "evidence_sha256": "01bd86eaa922740146c27c9d6d5df559214fa8cd04efa86f56932f5668c0eac1",
+      "legacy_sha256": "d8eab979e7eaead89f9fae8cfded499b82f0b7b69da4b3cdbe2328be2dde908f",
+      "transcript_sha256": "76a0e91cae9b3785ffe2a1818f4fc8173bab1adbe860d0aab5451893b9bc8138",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "5d52012209c48040e1077abbe3a54dacb514cd94",
+        "head_changed_between_consumed_pr_reads": false
+      },
+      "review_notes": "Verified there are no literal evidence fail findings and no legacy blockers. Empty match lists are complete; reference blockers are empty."
+    },
+    {
+      "id": "e05-required-check-failure",
+      "status": "resolved",
+      "evidence_sha256": "1240fab2c3095f71bb1721dad9032a587ca70f7de8ca8610368401d10519055d",
+      "legacy_sha256": "70c77707b27fbe87d8b1e0f059f00664e3d9cbbc93701de969c7ce23f9322821",
+      "transcript_sha256": "9aef02041a5c9b8278933783236910985392bcf2e0391bd314e67db3fb4ff623",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "required-ci-failure"
+          ],
+          "classification": "matched",
+          "rationale": "The observed current-head ci / unit run 200050 completed with failure, and classic protection explicitly requires that unbound context. The cited run is the same failed check recorded by required-ci-failure; the unrelated successful status cannot satisfy it.",
+          "source_fact_ids": [
+            "cases/e05-required-check-failure.json#/routes/4/responses/0/body/checks/0",
+            "cases/e05-required-check-failure.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        },
+        {
+          "result_id": "required-check-8",
+          "ground_truth_ids": [
+            "required-ci-failure"
+          ],
+          "classification": "matched",
+          "rationale": "The observed current-head ci / unit run 200050 completed with failure, and classic protection explicitly requires that unbound context. The cited run is the same failed check recorded by required-ci-failure; the unrelated successful status cannot satisfy it.",
+          "source_fact_ids": [
+            "cases/e05-required-check-failure.json#/routes/4/responses/0/body/checks/0",
+            "cases/e05-required-check-failure.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "required-ci-failure"
+          ],
+          "classification": "matched",
+          "rationale": "The observed current-head ci / unit run 200050 completed with failure, and classic protection explicitly requires that unbound context. The cited run is the same failed check recorded by required-ci-failure; the unrelated successful status cannot satisfy it.",
+          "source_fact_ids": [
+            "cases/e05-required-check-failure.json#/routes/4/responses/0/body/checks/0",
+            "cases/e05-required-check-failure.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "35c179df616e95bc2ddcaa2cba4be00101a33370",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e06-merge-conflict",
+      "status": "resolved",
+      "evidence_sha256": "935050550b66c41d0b598f811a2d37c931b244cf28ae953b948f062131011cae",
+      "legacy_sha256": "2c1051862b08930c12bd92e322b9ba4ec8551e385865d9d86e0ec27762a52daa",
+      "transcript_sha256": "4516b2ae90b7c3e91e41894691c44ff9803424f2c7ca2269c4ac56f19b17a5b7",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "merge-conflict"
+          ],
+          "classification": "matched",
+          "rationale": "Both consumed PR snapshots report mergeable=false and mergeable_state=dirty at the same head/base. The reported main-branch merge conflict directly matches the frozen merge-conflict fact.",
+          "source_fact_ids": [
+            "cases/e06-merge-conflict.json#/routes/0/responses/0/body/mergeable",
+            "cases/e06-merge-conflict.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "merge-conflict"
+          ],
+          "classification": "matched",
+          "rationale": "Both consumed PR snapshots report mergeable=false and mergeable_state=dirty at the same head/base. The reported main-branch merge conflict directly matches the frozen merge-conflict fact.",
+          "source_fact_ids": [
+            "cases/e06-merge-conflict.json#/routes/0/responses/0/body/mergeable",
+            "cases/e06-merge-conflict.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "b120e7a0469345d2cab21a56d52f3a7f62969a26",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e07-draft-pr",
+      "status": "resolved",
+      "evidence_sha256": "631cc96012bb9bbab0cd07f4718f538ea440f71015e996b21ec2217139c4617a",
+      "legacy_sha256": "6a6dc7504acb68c71f1fcd178e8ea35a018dba1412b5151a3571ae3bba776531",
+      "transcript_sha256": "91a13d6d70d09ea981b22a09536b51d07d3b2ecac5042691f93b957a8034fac8",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "The two consumed PR responses both have draft=true. Reporting that the PR is a draft directly identifies the frozen draft blocker, independent of the passing Buildkite status.",
+          "source_fact_ids": [
+            "cases/e07-draft-pr.json#/routes/0/responses/0/body/draft",
+            "cases/e07-draft-pr.json#/routes/0/responses/1/body/draft"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "The two consumed PR responses both have draft=true. Reporting that the PR is a draft directly identifies the frozen draft blocker, independent of the passing Buildkite status.",
+          "source_fact_ids": [
+            "cases/e07-draft-pr.json#/routes/0/responses/0/body/draft",
+            "cases/e07-draft-pr.json#/routes/0/responses/1/body/draft"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "2e2f0a2a832d44e663444ff405fe011afaffb227",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e08-review-threshold",
+      "status": "resolved",
+      "evidence_sha256": "9842f3bb66e080305f0a5a3756b00ffe6f5bfab31388098a8a1447928d4cd914",
+      "legacy_sha256": "6b9ab5d2d7d069838b35a1afc74df1c0124915173e097259b088be44fc94963a",
+      "transcript_sha256": "2d2f8007c0c1f4f499b9edb2446ee959f64803ac32dd85fb9837444c974258a4",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The captured policy requires two approvals; one approval is present and the consumed GraphQL response says REVIEW_REQUIRED. Both the count-shortfall statement and the effective-review-unsatisfied statement identify review-required. This match does not infer which code-owner or latest-push condition is additionally unmet.",
+          "source_fact_ids": [
+            "cases/e08-review-threshold.json#/routes/5/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/1/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/8/responses/0/body"
+          ]
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The captured policy requires two approvals; one approval is present and the consumed GraphQL response says REVIEW_REQUIRED. Both the count-shortfall statement and the effective-review-unsatisfied statement identify review-required. This match does not infer which code-owner or latest-push condition is additionally unmet.",
+          "source_fact_ids": [
+            "cases/e08-review-threshold.json#/routes/5/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/1/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The captured policy requires two approvals; one approval is present and the consumed GraphQL response says REVIEW_REQUIRED. Both the count-shortfall statement and the effective-review-unsatisfied statement identify review-required. This match does not infer which code-owner or latest-push condition is additionally unmet.",
+          "source_fact_ids": [
+            "cases/e08-review-threshold.json#/routes/5/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/1/responses/0/body",
+            "cases/e08-review-threshold.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "d206332138379fae18b3bf178c56ca4d405ab702",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e09-changes-requested",
+      "status": "resolved",
+      "evidence_sha256": "3d3d39a74ba9720056be1ebef51beea59e7fcd1eb726032b3d31b83007bdb6ea",
+      "legacy_sha256": "98c3bbcc7c9cad610a7e79ab00092d4838b9ea1b0a417fdd69ef1cb694f7eb22",
+      "transcript_sha256": "4c6091991293cdc10b600c6880b685c10c74f7ca54567be02819d782fa502aa3",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "changes-requested"
+          ],
+          "classification": "matched",
+          "rationale": "The later review 400092 from synthetic-reviewer-1 is CHANGES_REQUESTED at the observed head, superseding that reviewer approval; the required-review policy is enabled and the consumed effective decision is CHANGES_REQUESTED. The named review and the unsatisfied effective-approval statement identify this frozen blocker.",
+          "source_fact_ids": [
+            "cases/e09-changes-requested.json#/routes/1/responses/0/body/1",
+            "cases/e09-changes-requested.json#/routes/8/responses/0/body/data/repository/pull_request/review_decision",
+            "cases/e09-changes-requested.json#/routes/5/responses/0/body"
+          ]
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "changes-requested"
+          ],
+          "classification": "matched",
+          "rationale": "The later review 400092 from synthetic-reviewer-1 is CHANGES_REQUESTED at the observed head, superseding that reviewer approval; the required-review policy is enabled and the consumed effective decision is CHANGES_REQUESTED. The named review and the unsatisfied effective-approval statement identify this frozen blocker.",
+          "source_fact_ids": [
+            "cases/e09-changes-requested.json#/routes/1/responses/0/body/1",
+            "cases/e09-changes-requested.json#/routes/8/responses/0/body/data/repository/pull_request/review_decision",
+            "cases/e09-changes-requested.json#/routes/5/responses/0/body"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "changes-requested"
+          ],
+          "classification": "matched",
+          "rationale": "The later review 400092 from synthetic-reviewer-1 is CHANGES_REQUESTED at the observed head, superseding that reviewer approval; the required-review policy is enabled and the consumed effective decision is CHANGES_REQUESTED. The named review and the unsatisfied effective-approval statement identify this frozen blocker.",
+          "source_fact_ids": [
+            "cases/e09-changes-requested.json#/routes/1/responses/0/body/1",
+            "cases/e09-changes-requested.json#/routes/8/responses/0/body/data/repository/pull_request/review_decision",
+            "cases/e09-changes-requested.json#/routes/5/responses/0/body"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "4af92d8a4bd1079a48371783ecb7041b86e4b7e6",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e10-behind-strict-base",
+      "status": "resolved",
+      "evidence_sha256": "0589e3e099a5c82ecc27d98bb1fe1d11c5411c23f264e1cc5d1f99d5a3655a5d",
+      "legacy_sha256": "7ce0864f3672633e495cd42343c933820218754b1fe4c8d51b17136262355de0",
+      "transcript_sha256": "96ee24711d62e8be2c6ab7a6205a539535144fb3156b23aa7fdeca904fdc13b4",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "strict-base-behind"
+          ],
+          "classification": "matched",
+          "rationale": "The consumed status policy explicitly has strict=true and the final consumed PR response reports mergeable_state=behind. The output names both the behind state and the up-to-date requirement, directly matching strict-base-behind; no SHA inequality is substituted for the policy.",
+          "source_fact_ids": [
+            "cases/e10-behind-strict-base.json#/routes/4/responses/0/body/strict",
+            "cases/e10-behind-strict-base.json#/routes/0/responses/1/body/mergeable_state"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "strict-base-behind"
+          ],
+          "classification": "matched",
+          "rationale": "The consumed status policy explicitly has strict=true and the final consumed PR response reports mergeable_state=behind. The output names both the behind state and the up-to-date requirement, directly matching strict-base-behind; no SHA inequality is substituted for the policy.",
+          "source_fact_ids": [
+            "cases/e10-behind-strict-base.json#/routes/4/responses/0/body/strict",
+            "cases/e10-behind-strict-base.json#/routes/0/responses/1/body/mergeable_state"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "15c780bf53d3fb1249b6291702668dc62e91ae10",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e11-queued-check",
+      "status": "resolved",
+      "evidence_sha256": "703092ae87f987d862e49fe4d87d0d321b63012f0f3716c6d1d32c93ae40cd8a",
+      "legacy_sha256": "1a85afe84a501c9ceef33595065e06aaeba7e1938054b90354a96c7e855384f6",
+      "transcript_sha256": "d8cd5c4cb3b46cebedd15c663f2089d15d553e8c51eb809b3e064a22e0252952",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "required-ci-queued"
+          ],
+          "classification": "matched",
+          "rationale": "Classic policy requires ci / unit, and the consumed current-head run 200110 is queued with a null conclusion. The queued and currently unmet required-check statements both identify required-ci-queued, not an optional CI observation.",
+          "source_fact_ids": [
+            "cases/e11-queued-check.json#/routes/4/responses/0/body/checks/0",
+            "cases/e11-queued-check.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        },
+        {
+          "result_id": "required-check-8",
+          "ground_truth_ids": [
+            "required-ci-queued"
+          ],
+          "classification": "matched",
+          "rationale": "Classic policy requires ci / unit, and the consumed current-head run 200110 is queued with a null conclusion. The queued and currently unmet required-check statements both identify required-ci-queued, not an optional CI observation.",
+          "source_fact_ids": [
+            "cases/e11-queued-check.json#/routes/4/responses/0/body/checks/0",
+            "cases/e11-queued-check.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "required-ci-queued"
+          ],
+          "classification": "matched",
+          "rationale": "Classic policy requires ci / unit, and the consumed current-head run 200110 is queued with a null conclusion. The queued and currently unmet required-check statements both identify required-ci-queued, not an optional CI observation.",
+          "source_fact_ids": [
+            "cases/e11-queued-check.json#/routes/4/responses/0/body/checks/0",
+            "cases/e11-queued-check.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "8f7e63fa795edc1ddea4ce1ba6444c33a288aeb1",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e12-missing-rule-context",
+      "status": "resolved",
+      "evidence_sha256": "86a24a513ad4b1f513734782779967f9bff1ff775a8b948228a6886e31dba30a",
+      "legacy_sha256": "709a4d67bd3f23df62180c02275c2dd017fd3e0f678f7ed88735be52914420b1",
+      "transcript_sha256": "80220e9b693a13e0ab212caee450c21de0258f51a62cc109f3ba1ba879984aec",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "required-context-missing"
+          ],
+          "classification": "matched",
+          "rationale": "The consumed effective rule requires security / scan. Complete current-head check and combined-status responses contain only a successful optional unit check and no security / scan context. The reported missing required context matches required-context-missing at the exact observed head.",
+          "source_fact_ids": [
+            "cases/e12-missing-rule-context.json#/routes/6/responses/0/body",
+            "cases/e12-missing-rule-context.json#/routes/2/responses/0/body",
+            "cases/e12-missing-rule-context.json#/routes/3/responses/0/body"
+          ]
+        },
+        {
+          "result_id": "required-check-8",
+          "ground_truth_ids": [
+            "required-context-missing"
+          ],
+          "classification": "matched",
+          "rationale": "The consumed effective rule requires security / scan. Complete current-head check and combined-status responses contain only a successful optional unit check and no security / scan context. The reported missing required context matches required-context-missing at the exact observed head.",
+          "source_fact_ids": [
+            "cases/e12-missing-rule-context.json#/routes/6/responses/0/body",
+            "cases/e12-missing-rule-context.json#/routes/2/responses/0/body",
+            "cases/e12-missing-rule-context.json#/routes/3/responses/0/body"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "required-context-missing"
+          ],
+          "classification": "matched",
+          "rationale": "The consumed effective rule requires security / scan. Complete current-head check and combined-status responses contain only a successful optional unit check and no security / scan context. The reported missing required context matches required-context-missing at the exact observed head.",
+          "source_fact_ids": [
+            "cases/e12-missing-rule-context.json#/routes/6/responses/0/body",
+            "cases/e12-missing-rule-context.json#/routes/2/responses/0/body",
+            "cases/e12-missing-rule-context.json#/routes/3/responses/0/body"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "a41249d1708f3ff4151faf42ecd191fe8fd61734",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e13-conflicting-same-name",
+      "status": "resolved",
+      "evidence_sha256": "c58c1b219e7e08faf1b3b9e963834a488c2ca69db0149578ae6c98292eb5d742",
+      "legacy_sha256": "0fe2b84f877af44548159bf0f8123bd39deaa0da75bd4aed937f8e90201fdcc6",
+      "transcript_sha256": "ec1b044d6e73d051013834b34afd0e167f5fc12fc1504f44ff0c0aa2fe10c7e3",
+      "evidence_matches": [
+        {
+          "result_id": "required-check-8",
+          "ground_truth_ids": [
+            "github-merge-block"
+          ],
+          "classification": "matched",
+          "rationale": "The finding explicitly allows a failed OR conflicting required-name conclusion and cites both same-name runs. Raw facts show ci / unit required without an App binding, App111 success versus App222 failure at the same head, two corresponding GraphQL name entries marked required, and GitHub merge state blocked. This matches the frozen aggregate github-merge-block/conflict evidence. It does not establish that App222 alone is the uniquely selected causal provider.",
+          "source_fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/8/responses/0/body"
+          ]
+        },
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [],
+          "classification": "unassessable",
+          "rationale": "Run 200132 from App222 really failed, but the frozen same-name-resolution unknown does not establish that this single App run alone is the selected causal blocker. A same-name App111 run succeeded; the required policy is unbound and GraphQL required entries lack producer identity. The broad GitHub blocked/conflicting-name fact must not be silently relabeled as a uniquely App222 failure. The assertion is unassessable as a specific causal blocker, rather than incorrect; App222 is not established optional either.",
+          "source_fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/8/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/4/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [],
+          "classification": "unassessable",
+          "rationale": "Run 200132 from App222 really failed, but the frozen same-name-resolution unknown does not establish that this single App run alone is the selected causal blocker. A same-name App111 run succeeded; the required policy is unbound and GraphQL required entries lack producer identity. The broad GitHub blocked/conflicting-name fact must not be silently relabeled as a uniquely App222 failure. The assertion is unassessable as a specific causal blocker, rather than incorrect; App222 is not established optional either.",
+          "source_fact_ids": [
+            "cases/e13-conflicting-same-name.json#/routes/0/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/8/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/2/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/4/responses/0/body",
+            "cases/e13-conflicting-same-name.json#/routes/8/responses/0/body"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "68007672c9f55ee479c23482c1efbb92f3f2f940",
+        "head_changed_between_consumed_pr_reads": false
+      },
+      "review_notes": "The aggregate conflict finding matches github-merge-block on the evidence surface. The legacy single-run claim is not an unambiguous report of that broad frozen block, so a legacy miss remains; this does not mean no failure symptom was observed."
+    },
+    {
+      "id": "e14-running-no-conclusion",
+      "status": "resolved",
+      "evidence_sha256": "9b94998516290a152755128e32d97b48a343d4fd57f1613e70c6d1ee98c96bb2",
+      "legacy_sha256": "064ba79078d063f0588d62217fd90a6e99715a78a4c876a5fb959f6ebfda8d8e",
+      "transcript_sha256": "3c65478a8930aa8c68d2371aff4988d1eb46dfcf5f84d9dcec90497eae3a44e2",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "required-ci-running"
+          ],
+          "classification": "matched",
+          "rationale": "Classic policy requires ci / integration, and the consumed current-head run 200140 is in_progress with no conclusion. The reported in-progress/pending requirement directly matches required-ci-running; the separate lint success does not satisfy it.",
+          "source_fact_ids": [
+            "cases/e14-running-no-conclusion.json#/routes/4/responses/0/body/checks/0",
+            "cases/e14-running-no-conclusion.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        },
+        {
+          "result_id": "required-check-8",
+          "ground_truth_ids": [
+            "required-ci-running"
+          ],
+          "classification": "matched",
+          "rationale": "Classic policy requires ci / integration, and the consumed current-head run 200140 is in_progress with no conclusion. The reported in-progress/pending requirement directly matches required-ci-running; the separate lint success does not satisfy it.",
+          "source_fact_ids": [
+            "cases/e14-running-no-conclusion.json#/routes/4/responses/0/body/checks/0",
+            "cases/e14-running-no-conclusion.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "required-ci-running"
+          ],
+          "classification": "matched",
+          "rationale": "Classic policy requires ci / integration, and the consumed current-head run 200140 is in_progress with no conclusion. The reported in-progress/pending requirement directly matches required-ci-running; the separate lint success does not satisfy it.",
+          "source_fact_ids": [
+            "cases/e14-running-no-conclusion.json#/routes/4/responses/0/body/checks/0",
+            "cases/e14-running-no-conclusion.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "0426efec7d5c1abb9ac4dd0be9afa8357551c89a",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e15-anonymous-graphql",
+      "status": "resolved",
+      "evidence_sha256": "a361ee78b72a3379a5f2e4cc124b983f744ff8e0194c1537667a99fe8337dbd2",
+      "legacy_sha256": "d349dde56d08dcc6865e211213e78533f5215f573dbe9a084ccd4765a8479749",
+      "transcript_sha256": "b7581d0d1335c0bc1a4107039a305582cbcdeb93bb4ea2c0d5f067c95e88039c",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "replay_scope": {
+        "request_count": 9,
+        "exact_response_body_hashes_verified": 9,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "a2a1073bd5dc51fc9b98c36d813a3c9c6d81be67",
+        "head_changed_between_consumed_pr_reads": false
+      },
+      "review_notes": "The actual transcript consumes GraphQL HTTP401, leaving effective reviewer eligibility unknown as frozen. The output reports unknown assurance with no invented missing-review blocker. Legacy ready is separate from conservative unknown readiness."
+    },
+    {
+      "id": "public-01",
+      "status": "resolved",
+      "evidence_sha256": "420510e118acb187542b85d63884059b39977c4fa7bf89a5bac61092333e179d",
+      "legacy_sha256": "c9c654dc0af5f8016515bdde946e67d58d20405cbf4e2478b106baa5c8f724e1",
+      "transcript_sha256": "3b7df0f250a6cf0583e154c4748b2e2b7a669db26c8f10d054cad7b761b3b40e",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-3",
+          "ground_truth_ids": [
+            "required-check-1-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Branch policy binds cert-gate to GitHub App 15368. Consumed check run 123953236854 is cert-gate from App15368, completed failure on frozen head 023e90a698abc11456a1c7d7665a629ae0b3436c, and its job URL is the reported source. This directly matches required-check-1-failure.",
+          "source_fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/26"
+          ]
+        },
+        {
+          "result_id": "required-check-11",
+          "ground_truth_ids": [
+            "required-check-1-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Branch policy binds cert-gate to GitHub App 15368. Consumed check run 123953236854 is cert-gate from App15368, completed failure on frozen head 023e90a698abc11456a1c7d7665a629ae0b3436c, and its job URL is the reported source. This directly matches required-check-1-failure.",
+          "source_fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/26"
+          ]
+        },
+        {
+          "result_id": "blocker-2",
+          "ground_truth_ids": [
+            "required-check-2-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Branch policy binds build-core to GitHub App 15368. Consumed check run 123953237389 is build-core from App15368, completed failure on frozen head 023e90a698abc11456a1c7d7665a629ae0b3436c, and its job URL is the reported source. This directly matches required-check-2-failure.",
+          "source_fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/13"
+          ]
+        },
+        {
+          "result_id": "required-check-12",
+          "ground_truth_ids": [
+            "required-check-2-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Branch policy binds build-core to GitHub App 15368. Consumed check run 123953237389 is build-core from App15368, completed failure on frozen head 023e90a698abc11456a1c7d7665a629ae0b3436c, and its job URL is the reported source. This directly matches required-check-2-failure.",
+          "source_fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/13"
+          ]
+        },
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "required-check-5-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Branch policy binds Readiness summary to GitHub App 15368. Consumed check run 123954337446 is Readiness summary from App15368, completed failure on frozen head 023e90a698abc11456a1c7d7665a629ae0b3436c, and its job URL is the reported source. This directly matches required-check-5-failure.",
+          "source_fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        },
+        {
+          "result_id": "required-check-15",
+          "ground_truth_ids": [
+            "required-check-5-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Branch policy binds Readiness summary to GitHub App 15368. Consumed check run 123954337446 is Readiness summary from App15368, completed failure on frozen head 023e90a698abc11456a1c7d7665a629ae0b3436c, and its job URL is the reported source. This directly matches required-check-5-failure.",
+          "source_fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:2",
+          "ground_truth_ids": [
+            "required-check-1-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Branch policy binds cert-gate to GitHub App 15368. Consumed check run 123953236854 is cert-gate from App15368, completed failure on frozen head 023e90a698abc11456a1c7d7665a629ae0b3436c, and its job URL is the reported source. This directly matches required-check-1-failure.",
+          "source_fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/0",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/26"
+          ]
+        },
+        {
+          "result_id": "blocker:1",
+          "ground_truth_ids": [
+            "required-check-2-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Branch policy binds build-core to GitHub App 15368. Consumed check run 123953237389 is build-core from App15368, completed failure on frozen head 023e90a698abc11456a1c7d7665a629ae0b3436c, and its job URL is the reported source. This directly matches required-check-2-failure.",
+          "source_fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/13"
+          ]
+        },
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "required-check-5-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Branch policy binds Readiness summary to GitHub App 15368. Consumed check run 123954337446 is Readiness summary from App15368, completed failure on frozen head 023e90a698abc11456a1c7d7665a629ae0b3436c, and its job URL is the reported source. This directly matches required-check-5-failure.",
+          "source_fact_ids": [
+            "public/public-01/routes.json#/routes/6/responses/0/body/protection/required_status_checks/checks/4",
+            "public/public-01/routes.json#/routes/2/responses/0/body/check_runs/0"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 11,
+        "exact_response_body_hashes_verified": 11,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "023e90a698abc11456a1c7d7665a629ae0b3436c",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "public-02",
+      "status": "resolved",
+      "evidence_sha256": "c713396d953011f5c01bbef5bfeebe4a76d72de012849dc0c326ec3e4dfee77e",
+      "legacy_sha256": "667a7e0d1b2bf616d259b5872d3e2d7b1bbd08b5b677493ca923274b0228bd75",
+      "transcript_sha256": "12693980bbe536ac12afea935c6167f76dac50912dbf13b3ee07a27c71320750",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "merge-conflict"
+          ],
+          "classification": "matched",
+          "rationale": "Both consumed PR853 snapshots report mergeable=false and dirty at the frozen head. The output identifies a merge conflict with master, directly matching merge-conflict; denied policy details and differing associated-base/branch-tip values are independent unknowns, not alternative inferred causes.",
+          "source_fact_ids": [
+            "public/public-02/routes.json#/routes/0/responses/0/body/mergeable",
+            "public/public-02/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "merge-conflict"
+          ],
+          "classification": "matched",
+          "rationale": "Both consumed PR853 snapshots report mergeable=false and dirty at the frozen head. The output identifies a merge conflict with master, directly matching merge-conflict; denied policy details and differing associated-base/branch-tip values are independent unknowns, not alternative inferred causes.",
+          "source_fact_ids": [
+            "public/public-02/routes.json#/routes/0/responses/0/body/mergeable",
+            "public/public-02/routes.json#/routes/0/responses/0/body/mergeable_state"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 11,
+        "exact_response_body_hashes_verified": 11,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "public-03",
+      "status": "resolved",
+      "evidence_sha256": "a3f2b17adcde4c77709b71dbbfeedb184dd43d975b33db6847d32c1a7b8ab13b",
+      "legacy_sha256": "a673e2e50dff9aa70e9083b03905def4f76172d6412d0ab010b3f983fe58466c",
+      "transcript_sha256": "f15997fe920e745fb2645cbb33d520c26e4589c615150c7b2e77c50b1589318d",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "The consumed PR14781 responses explicitly have draft=true. The draft assertion directly matches the frozen draft blocker independently of review and check policy detail limitations.",
+          "source_fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/draft"
+          ]
+        },
+        {
+          "result_id": "blocker-2",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The actually consumed GraphQL response for PR14781 says REVIEW_REQUIRED, while the consumed review list contains zero approvals. Both output statements explicitly report this effective required-approval shortfall, directly matching review-required without inventing an approval threshold or treating denied policy reads as empty.",
+          "source_fact_ids": [
+            "public/public-03/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The actually consumed GraphQL response for PR14781 says REVIEW_REQUIRED, while the consumed review list contains zero approvals. Both output statements explicitly report this effective required-approval shortfall, directly matching review-required without inventing an approval threshold or treating denied policy reads as empty.",
+          "source_fact_ids": [
+            "public/public-03/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "The consumed PR14781 responses explicitly have draft=true. The draft assertion directly matches the frozen draft blocker independently of review and check policy detail limitations.",
+          "source_fact_ids": [
+            "public/public-03/routes.json#/routes/0/responses/0/body/draft"
+          ]
+        },
+        {
+          "result_id": "blocker:1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The actually consumed GraphQL response for PR14781 says REVIEW_REQUIRED, while the consumed review list contains zero approvals. Both output statements explicitly report this effective required-approval shortfall, directly matching review-required without inventing an approval threshold or treating denied policy reads as empty.",
+          "source_fact_ids": [
+            "public/public-03/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "replay_scope": {
+        "request_count": 10,
+        "exact_response_body_hashes_verified": 10,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+        "head_changed_between_consumed_pr_reads": false
+      }
+    },
+    {
+      "id": "e16-policy-permission-denied",
+      "status": "resolved",
+      "evidence_sha256": "f318c45523351926e51721f049fd9d8f15c98f74edbd58f9982b8dbc07762cba",
+      "legacy_sha256": "4ce1ab00eabe0da6e9e258d81d947e967010cea74195869e712463cf3e2a7a75",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No fail finding or legacy blocker is reported. Unknown assurance preserves unreadable required policy/rules; legacy ready is within the frozen allowable set but remains ready with unknown conservative readiness, not a policy proof.",
+      "observed_verdict": "ready",
+      "observed_assurance": "unknown",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "f29d174207d30ab92dcc0e398725edd7d8c5db9f",
+      "base_anchor": "0088082f15e516d73a465bb8ffcb675b859004bf",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e17-private-pr-not-found",
+      "status": "resolved",
+      "evidence_sha256": "3fffde4afff599fa9768ab5cc94aefaba05d8baa9d5338633867be6af6f89f69",
+      "legacy_sha256": "d32be587ceb9da1dd1c2df08f01ee4c048e113e0bf41aed2bc787def603ac713",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No reported blocker. PR404 leaves identity/state unavailable and output correctly remains unknown/unknown rather than treating inaccessible private metadata as no requirements or out of scope.",
+      "observed_verdict": "unknown",
+      "observed_assurance": "unknown",
+      "frozen_legacy_allowable_verdicts": [
+        "unknown"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": null,
+      "base_anchor": null,
+      "collection_attempts": 1
+    },
+    {
+      "id": "e18-checks-and-reviews-denied",
+      "status": "resolved",
+      "evidence_sha256": "fd8a30b182040ceb88c631cc02d0c5edd7b8281ddb7f485c17389f7013ff651c",
+      "legacy_sha256": "fe135f033164f6e09e80a2df972ac2303ffae1521fdca29ab1a372dafce6d9e4",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No reported blocker. Known mandatory check/review facts remain unknown because check/review reads are403 and GraphQL access fails; no missing-check failure is invented. Legacy unknown is outside the unchanged frozen allowable set [ready], so retain a compatibility disagreement rather than relabel it.",
+      "observed_verdict": "unknown",
+      "observed_assurance": "unknown",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": false,
+      "head_anchor": "81d2a3305a8c57bbf01dadf5d5573be59f1be965",
+      "base_anchor": "8e132bb2ea95c0215055c946c894ba47a382d63f",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e19-rate-limited-policy",
+      "status": "resolved",
+      "evidence_sha256": "1ef0df806a7ab88eb3f64290fcea2dfa34890c08fd76c90f1770902d704d0e12",
+      "legacy_sha256": "4b97c1f6bfd40f2ec98ba25504e21d2a1765a9b0894e4668a1f9d5ddd34f10a6",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No reported blocker. Unknown assurance preserves rate-limited rules discovery. Legacy ready is frozen-compatible but counts as ready with unknown conservative readiness; a visible success cannot establish hidden policy absence.",
+      "observed_verdict": "ready",
+      "observed_assurance": "unknown",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "d6dd1bc61244a980faab96218c961c728c9217ea",
+      "base_anchor": "151d359e25133bb51c977a61f7244063d12c2dcb",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e20-review-transport-timeout",
+      "status": "resolved",
+      "evidence_sha256": "4f6d3fff4eef62fea7a9fa5895a37be9f1bdf7c14732cb2d90e4e93f63b5bc1d",
+      "legacy_sha256": "3f7769ce5dfc5674ae57f9e129a47e3db85b5dd3334dfdae85230317c78e8f32",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No reported blocker. Effective APPROVED and complete simple policy establish frozen conservative readiness ready, while the timed-out review inventory makes expected scoped assurance unknown. Actual legacy unknown is outside frozen allowable [ready], a compatibility disagreement; assurance unknown is correct.",
+      "observed_verdict": "unknown",
+      "observed_assurance": "unknown",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": false,
+      "head_anchor": "dd77afc571f949c56277e4dd98ff8fe2851472c6",
+      "base_anchor": "761f2a6611a1975dcd1642bdc30b3ef95604b733",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e21-malformed-policy-json",
+      "status": "resolved",
+      "evidence_sha256": "7669da99b52e1b6224330182676fe330d43f6796fa455c96bbe8fe3eff08e7e8",
+      "legacy_sha256": "454ab835bd90f96f55349868650f25d9033155ada8fdc4c43c91c4de738b77b0",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No reported blocker. The HTTP200 malformed effective-rules bytes leave policy unknown; actual assurance unknown preserves that gap. Legacy ready is within the frozen allowable set yet remains ready with unknown conservative readiness.",
+      "observed_verdict": "ready",
+      "observed_assurance": "unknown",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "2cb66f2939ca0776ce1f15f43e02cd1fecf725eb",
+      "base_anchor": "7da84371864b999faabb7547a494d1c0857fa077",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e22-truncated-second-page",
+      "status": "resolved",
+      "evidence_sha256": "5854b61f2bae453f5f884277a8505f6fb70f6ac4d24d82eea10e3b7623dc0c84",
+      "legacy_sha256": "01ce0c7fc2fd3bdbe9be3b6544090e9b4cd9a406c45187dd93ca79cf9a31aaeb",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No reported blocker. Incomplete advertised CI pagination does not prove required security / scan missing or failed, and output keeps that evidence unknown. Legacy unknown is outside unchanged allowable [ready], a compatibility disagreement.",
+      "observed_verdict": "unknown",
+      "observed_assurance": "unknown",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": false,
+      "head_anchor": "992d9348f6457fa0f6e044b566565be80b47dc01",
+      "base_anchor": "9db40c71650c2c8fb3485d70076ecdac9c4606f4",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e23-head-moves-during-read",
+      "status": "resolved",
+      "evidence_sha256": "1945df19e9b4ecbfc87a2cb724e20f951194a9901d759e0a6703bb505b0cfda9",
+      "legacy_sha256": "23a19f661262d21f6aed90f82d709cd94ca382016e91546827b163f4e7adcb74",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "new-head-required-check-missing"
+          ],
+          "classification": "matched",
+          "rationale": "The frozen blocker concerns final head e0869540c0a820b5579b17edcb6187e00f9ee07e, not initial c86c530ceec250ed8d89290820140f41d5095f78. Required ci / unit is explicitly configured. Recollection requests the new-head check and status routes, both empty; the finding and source anchor name that final head. Old-head success is not reused as satisfaction.",
+          "source_fact_ids": [
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/head/sha",
+            "cases/e23-head-moves-during-read.json#/routes/4/responses/0/body/checks/0",
+            "cases/e23-head-moves-during-read.json#/routes/9/responses/0/body",
+            "cases/e23-head-moves-during-read.json#/routes/10/responses/0/body"
+          ]
+        },
+        {
+          "result_id": "required-check-8",
+          "ground_truth_ids": [
+            "new-head-required-check-missing"
+          ],
+          "classification": "matched",
+          "rationale": "The frozen blocker concerns final head e0869540c0a820b5579b17edcb6187e00f9ee07e, not initial c86c530ceec250ed8d89290820140f41d5095f78. Required ci / unit is explicitly configured. Recollection requests the new-head check and status routes, both empty; the finding and source anchor name that final head. Old-head success is not reused as satisfaction.",
+          "source_fact_ids": [
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/head/sha",
+            "cases/e23-head-moves-during-read.json#/routes/4/responses/0/body/checks/0",
+            "cases/e23-head-moves-during-read.json#/routes/9/responses/0/body",
+            "cases/e23-head-moves-during-read.json#/routes/10/responses/0/body"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "new-head-required-check-missing"
+          ],
+          "classification": "matched",
+          "rationale": "The frozen blocker concerns final head e0869540c0a820b5579b17edcb6187e00f9ee07e, not initial c86c530ceec250ed8d89290820140f41d5095f78. Required ci / unit is explicitly configured. Recollection requests the new-head check and status routes, both empty; the finding and source anchor name that final head. Old-head success is not reused as satisfaction.",
+          "source_fact_ids": [
+            "cases/e23-head-moves-during-read.json#/routes/0/responses/1/body/head/sha",
+            "cases/e23-head-moves-during-read.json#/routes/4/responses/0/body/checks/0",
+            "cases/e23-head-moves-during-read.json#/routes/9/responses/0/body",
+            "cases/e23-head-moves-during-read.json#/routes/10/responses/0/body"
+          ]
+        }
+      ],
+      "review_note": "Two collection attempts; final output and failure citations use new head e0869540c0a820b5579b17edcb6187e00f9ee07e. Transcript sequences9 and17 read PR response1; sequences11/12 query empty new-head checks/statuses. All frozen blocker IDs are matched on both surfaces.",
+      "observed_verdict": "blocked",
+      "observed_assurance": "fail",
+      "frozen_legacy_allowable_verdicts": [
+        "blocked",
+        "unknown"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "e0869540c0a820b5579b17edcb6187e00f9ee07e",
+      "base_anchor": "357445b714849be9cae499cd323ccda44993b01c",
+      "collection_attempts": 2
+    },
+    {
+      "id": "e24-base-moves-during-read",
+      "status": "resolved",
+      "evidence_sha256": "e8bfaf702610ca83b7c44c1143a87fe26791a38304fa10a5ab5ca9771a4d1d59",
+      "legacy_sha256": "54801947fd7f08167dd945de7b583c61d0ba2267142ed47991e076fadd4cf820",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "strict-base-behind"
+          ],
+          "classification": "matched",
+          "rationale": "The later PR response changes base from b9c50724e84ec08c44cacaff8d6ef33f652c8240 to 17543202b05947edde56776b2384b54f746cea91 and reports mergeable_state=behind. The captured classic check policy explicitly has strict=true. Recollection/output use the later base. This is the frozen strict-update blocker, supported by behind plus explicit policy, not SHA inequality alone.",
+          "source_fact_ids": [
+            "cases/e24-base-moves-during-read.json#/routes/4/responses/0/body/strict",
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/mergeable_state"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "strict-base-behind"
+          ],
+          "classification": "matched",
+          "rationale": "The later PR response changes base from b9c50724e84ec08c44cacaff8d6ef33f652c8240 to 17543202b05947edde56776b2384b54f746cea91 and reports mergeable_state=behind. The captured classic check policy explicitly has strict=true. Recollection/output use the later base. This is the frozen strict-update blocker, supported by behind plus explicit policy, not SHA inequality alone.",
+          "source_fact_ids": [
+            "cases/e24-base-moves-during-read.json#/routes/4/responses/0/body/strict",
+            "cases/e24-base-moves-during-read.json#/routes/0/responses/1/body/mergeable_state"
+          ]
+        }
+      ],
+      "review_note": "Two collection attempts; output base17543202b05947edde56776b2384b54f746cea91 agrees with the later PR response. Both final reads report behind and strict=true is explicitly captured. The changed base is not itself the claimed blocker.",
+      "observed_verdict": "blocked",
+      "observed_assurance": "fail",
+      "frozen_legacy_allowable_verdicts": [
+        "blocked",
+        "unknown"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "ef8620798f8719494e3a027e336a39625e73c896",
+      "base_anchor": "17543202b05947edde56776b2384b54f746cea91",
+      "collection_attempts": 2
+    },
+    {
+      "id": "e25-approval-on-older-commit",
+      "status": "resolved",
+      "evidence_sha256": "c889c66e4077fb4a99f718f8330e2f2754a3cb00553d84e75a87bf2dfb3b12b5",
+      "legacy_sha256": "5cc11541c80b3bcb001c7bb55ad745be3773cfc7958c402207df3ee1a52abb48",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No reported blocker. The old-commit approval remains effective under dismiss_stale_reviews=false/require_last_push_approval=false and current effective APPROVED; no mandatory exact-head approval rule is invented. Ready/pass agrees with frozen labels.",
+      "observed_verdict": "ready",
+      "observed_assurance": "pass",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "01c3e0e867141b57bd3eccaec412b99a29d3822f",
+      "base_anchor": "07f812760d6f97b726076919ce2fe8d299c689aa",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e26-facts-change-same-head",
+      "status": "resolved",
+      "evidence_sha256": "3b1970af8f453238483dd0c7be6623398ecca66d803dcf26d920fff756d1b44d",
+      "legacy_sha256": "61784171f64dca7508040b4335e08103adbd9afc74cb2c0ed1882b4d6eaa02d7",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "later-changes-requested"
+          ],
+          "classification": "matched",
+          "rationale": "The later review-list response includes synthetic-reviewer-2 review 400262 as CHANGES_REQUESTED and the later effective GraphQL decision is CHANGES_REQUESTED. Transcript recollection consumes both responseIndex=1 observations after the PR summary changes to blocked, while head/base stay unchanged. This matches the frozen later review blocker without treating an old approval as final evidence.",
+          "source_fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/1/responses/1/body/1",
+            "cases/e26-facts-change-same-head.json#/routes/8/responses/1/body/data/repository/pull_request/review_decision"
+          ]
+        },
+        {
+          "result_id": "blocker-2",
+          "ground_truth_ids": [
+            "later-required-ci-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Policy explicitly requires ci / unit. The first same-head run 200260 succeeds, but the later response supplies run 200262 with conclusion=failure on c66930012bbe52fcfd1a1ac138610a3524c92f7d. Recollection consumes that later check response; the finding source names run 200262. This matches the frozen later failure and does not confuse stable head with unchanged facts.",
+          "source_fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/4/responses/0/body/checks/0",
+            "cases/e26-facts-change-same-head.json#/routes/2/responses/1/body/check_runs/0"
+          ]
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "later-changes-requested"
+          ],
+          "classification": "matched",
+          "rationale": "The later review-list response includes synthetic-reviewer-2 review 400262 as CHANGES_REQUESTED and the later effective GraphQL decision is CHANGES_REQUESTED. Transcript recollection consumes both responseIndex=1 observations after the PR summary changes to blocked, while head/base stay unchanged. This matches the frozen later review blocker without treating an old approval as final evidence.",
+          "source_fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/1/responses/1/body/1",
+            "cases/e26-facts-change-same-head.json#/routes/8/responses/1/body/data/repository/pull_request/review_decision"
+          ]
+        },
+        {
+          "result_id": "required-check-9",
+          "ground_truth_ids": [
+            "later-required-ci-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Policy explicitly requires ci / unit. The first same-head run 200260 succeeds, but the later response supplies run 200262 with conclusion=failure on c66930012bbe52fcfd1a1ac138610a3524c92f7d. Recollection consumes that later check response; the finding source names run 200262. This matches the frozen later failure and does not confuse stable head with unchanged facts.",
+          "source_fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/4/responses/0/body/checks/0",
+            "cases/e26-facts-change-same-head.json#/routes/2/responses/1/body/check_runs/0"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "later-changes-requested"
+          ],
+          "classification": "matched",
+          "rationale": "The later review-list response includes synthetic-reviewer-2 review 400262 as CHANGES_REQUESTED and the later effective GraphQL decision is CHANGES_REQUESTED. Transcript recollection consumes both responseIndex=1 observations after the PR summary changes to blocked, while head/base stay unchanged. This matches the frozen later review blocker without treating an old approval as final evidence.",
+          "source_fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/1/responses/1/body/1",
+            "cases/e26-facts-change-same-head.json#/routes/8/responses/1/body/data/repository/pull_request/review_decision"
+          ]
+        },
+        {
+          "result_id": "blocker:1",
+          "ground_truth_ids": [
+            "later-required-ci-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Policy explicitly requires ci / unit. The first same-head run 200260 succeeds, but the later response supplies run 200262 with conclusion=failure on c66930012bbe52fcfd1a1ac138610a3524c92f7d. Recollection consumes that later check response; the finding source names run 200262. This matches the frozen later failure and does not confuse stable head with unchanged facts.",
+          "source_fact_ids": [
+            "cases/e26-facts-change-same-head.json#/routes/4/responses/0/body/checks/0",
+            "cases/e26-facts-change-same-head.json#/routes/2/responses/1/body/check_runs/0"
+          ]
+        }
+      ],
+      "review_note": "Two collection attempts consume later review/check/GraphQL responses despite unchanged head/base. Both frozen later blockers are covered. The output claim of stable final comparison is bounded to the recollected attempt and does not erase initial facts changing.",
+      "observed_verdict": "blocked",
+      "observed_assurance": "fail",
+      "frozen_legacy_allowable_verdicts": [
+        "blocked",
+        "unknown"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "c66930012bbe52fcfd1a1ac138610a3524c92f7d",
+      "base_anchor": "c95498a0a58839741c7ce98c091efe5e23a0297e",
+      "collection_attempts": 2
+    },
+    {
+      "id": "e27-hostile-check-metadata",
+      "status": "resolved",
+      "evidence_sha256": "f7bd85408d534a24741afb37c534e87c82383bb3358de9405a4f26dbbce2eb3d",
+      "legacy_sha256": "02d263d804829d80a3ec887aac650db3e1483fc5a6ffcbcb8d52e142f7548747",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No reported blocker. Mandatory ci / unit succeeds; hostile optional check metadata and its failure do not establish a mandatory blocker. Ready/pass agrees with frozen labels. Untrusted text is treated as data.",
+      "observed_verdict": "ready",
+      "observed_assurance": "pass",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "426c3064d268cc95a6a5626641c4cce68d550222",
+      "base_anchor": "c51b5c428aaf8d95ef769537e9247dd420ade37a",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e28-malformed-pr-source-metadata",
+      "status": "resolved",
+      "evidence_sha256": "2b1e8b3ae499836e30965f1425830c53bf177923d49ecc2c4342135899c78618",
+      "legacy_sha256": "515915ffba0df8a01eb46d68b9d8be8427830d8f32d8534037429fe5e413f663",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No reported blocker. Malformed PR source URL and newline-bearing head ref remain provenance/identity uncertainty and output unknown/unknown. Legacy unknown is outside frozen [ready], so preserve the compatibility disagreement rather than alter truth.",
+      "observed_verdict": "unknown",
+      "observed_assurance": "unknown",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": false,
+      "head_anchor": "0d01ba026aa717328b476d9dc35646a13e4231bf",
+      "base_anchor": "8a3b1472997bfb8d8468ce89ec96e4b6d78bd487",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e29-app-bound-and-deployment-rule",
+      "status": "resolved",
+      "evidence_sha256": "c20e4d7d167b39ac8af10ed67a4b113a597c0d169e46fa9d0bdfd6b698d23302",
+      "legacy_sha256": "7ab9728ef62e69280970b2e99f3b53f39443c113b363a4a0ebbb075d322f1071",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "Explicit provider review: required_status_checks binds ci / unit to App44444; run200291 from App44444 succeeds on the captured head. Run200292 from App55555 fails but is nonrequired and appears only in a note. No wrong-provider fail finding or legacy blocker remains. The required production deployment has no satisfaction evidence; unsupported-rule-5 remains unknown and scoped assurance stays unknown, matching frozen expectation. Legacy ready is explicitly within frozen allowable [ready] based on clean GitHub summary; it is nevertheless ready with unknown conservative readiness and must not be described as complete readiness or a passing deployment result.",
+      "observed_verdict": "ready",
+      "observed_assurance": "unknown",
+      "frozen_legacy_allowable_verdicts": [
+        "ready"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "ee90d0ebec2b37ef365f5dc0b3af424400daf359",
+      "base_anchor": "d2fc73fb8c742aae57722d9035fb44e5b6916da9",
+      "collection_attempts": 1
+    },
+    {
+      "id": "e30-required-collection-check",
+      "status": "resolved",
+      "evidence_sha256": "8990e854b69f538a04e19b681c8428d4bfd9633bea393527ca3156ad67abff82",
+      "legacy_sha256": "b4987b56887c7d96362c4db0bab07448fd00bc3d15d115ef82d0ce3d1b3ee436",
+      "evidence_matches": [
+        {
+          "result_id": "collection-check",
+          "ground_truth_ids": [
+            "own-required-check-incomplete"
+          ],
+          "classification": "matched",
+          "rationale": "Classic policy explicitly requires Ashlar release evidence in addition to ci / unit. The own check is in_progress with null conclusion at the same captured head; merely collecting/rendering evidence cannot complete it. The circular/pending wording identifies the frozen incomplete mandatory collection-check blocker.",
+          "source_fact_ids": [
+            "cases/e30-required-collection-check.json#/routes/4/responses/0/body/checks/1",
+            "cases/e30-required-collection-check.json#/routes/2/responses/0/body/check_runs/1"
+          ]
+        },
+        {
+          "result_id": "required-check-9",
+          "ground_truth_ids": [
+            "own-required-check-incomplete"
+          ],
+          "classification": "matched",
+          "rationale": "Classic policy explicitly requires Ashlar release evidence in addition to ci / unit. The own check is in_progress with null conclusion at the same captured head; merely collecting/rendering evidence cannot complete it. The circular/pending wording identifies the frozen incomplete mandatory collection-check blocker.",
+          "source_fact_ids": [
+            "cases/e30-required-collection-check.json#/routes/4/responses/0/body/checks/1",
+            "cases/e30-required-collection-check.json#/routes/2/responses/0/body/check_runs/1"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "own-required-check-incomplete"
+          ],
+          "classification": "matched",
+          "rationale": "Classic policy explicitly requires Ashlar release evidence in addition to ci / unit. The own check is in_progress with null conclusion at the same captured head; merely collecting/rendering evidence cannot complete it. The circular/pending wording identifies the frozen incomplete mandatory collection-check blocker.",
+          "source_fact_ids": [
+            "cases/e30-required-collection-check.json#/routes/4/responses/0/body/checks/1",
+            "cases/e30-required-collection-check.json#/routes/2/responses/0/body/check_runs/1"
+          ]
+        }
+      ],
+      "review_note": "The collection check remains explicitly mandatory and pending. Both evidence findings and the legacy blocker map to the same frozen blocker instance, counted once per surface.",
+      "observed_verdict": "blocked",
+      "observed_assurance": "fail",
+      "frozen_legacy_allowable_verdicts": [
+        "blocked"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "bd195341a64d5163abe18a41be2174bd9f34228e",
+      "base_anchor": "b2335a8e5e242eaceab853d4d54a290556c82ff5",
+      "collection_attempts": 1
+    },
+    {
+      "id": "public-04",
+      "status": "resolved",
+      "evidence_sha256": "4a13ded046b664eeb2edc36bc326cfdd0a8afcc2e7eac53a1dcdb38ba1bd38ac",
+      "legacy_sha256": "f836ddbb92abaf5e133bfd52af32dfb0d94b3532fdd993ec2dc26c0da81dfd5a",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The captured effective GraphQL review decision is REVIEW_REQUIRED for cli/cli PR14845, and both REST reviews are COMMENTED. The reported unsatisfied approving review maps to that authoritative frozen blocker. Denied classic policy details remain unknown and are not inferred from the raw review count.",
+          "source_fact_ids": [
+            "public/public-04/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The captured effective GraphQL review decision is REVIEW_REQUIRED for cli/cli PR14845, and both REST reviews are COMMENTED. The reported unsatisfied approving review maps to that authoritative frozen blocker. Denied classic policy details remain unknown and are not inferred from the raw review count.",
+          "source_fact_ids": [
+            "public/public-04/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The captured effective GraphQL review decision is REVIEW_REQUIRED for cli/cli PR14845, and both REST reviews are COMMENTED. The reported unsatisfied approving review maps to that authoritative frozen blocker. Denied classic policy details remain unknown and are not inferred from the raw review count.",
+          "source_fact_ids": [
+            "public/public-04/routes.json#/routes/9/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "review_note": "Reported review blocker is confirmed despite additional frozen policy/test-merge/base-attribution unknowns. Fail assurance is justified by the known blocker; the output does not establish complete hidden policy.",
+      "observed_verdict": "blocked",
+      "observed_assurance": "fail",
+      "frozen_legacy_allowable_verdicts": [
+        "blocked"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "04c4ebf52e7033a83eb38e9741c8ace05bf8617b",
+      "base_anchor": "93d24ce9ffefb6cc86bde89b50271457bb0ef9cb",
+      "collection_attempts": 1
+    },
+    {
+      "id": "public-05",
+      "status": "resolved",
+      "evidence_sha256": "7087e08b252dbedf93e124f1d9a85bf7b6cf0a1ff9266d9d0f040f9965a688c3",
+      "legacy_sha256": "8f9f223e2d7d28306b9ec77b63b00c1949d1e0368ce469c645e2a603c7c54ef1",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The effective GraphQL decision is REVIEW_REQUIRED for dotnet/runtime PR136790. The active organization pull_request rule explicitly requires one approval and the sole captured review is COMMENTED. Thus the reported 0-of-1/unsatisfied approval matches the frozen effective-review blocker. Other denied classic-policy details are not thereby established.",
+          "source_fact_ids": [
+            "public/public-05/routes.json#/routes/12/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The effective GraphQL decision is REVIEW_REQUIRED for dotnet/runtime PR136790. The active organization pull_request rule explicitly requires one approval and the sole captured review is COMMENTED. Thus the reported 0-of-1/unsatisfied approval matches the frozen effective-review blocker. Other denied classic-policy details are not thereby established.",
+          "source_fact_ids": [
+            "public/public-05/routes.json#/routes/12/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The effective GraphQL decision is REVIEW_REQUIRED for dotnet/runtime PR136790. The active organization pull_request rule explicitly requires one approval and the sole captured review is COMMENTED. Thus the reported 0-of-1/unsatisfied approval matches the frozen effective-review blocker. Other denied classic-policy details are not thereby established.",
+          "source_fact_ids": [
+            "public/public-05/routes.json#/routes/12/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        }
+      ],
+      "review_note": "Reported required-review blocker is confirmed by REVIEW_REQUIRED and the one-approval organization rule. Other unknown mandatory or policy details remain independent; known failure controls assurance.",
+      "observed_verdict": "blocked",
+      "observed_assurance": "fail",
+      "frozen_legacy_allowable_verdicts": [
+        "blocked"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+      "base_anchor": "f368d14df0c3905d3b80073d709685af83ba895d",
+      "collection_attempts": 1
+    },
+    {
+      "id": "public-06",
+      "status": "resolved",
+      "evidence_sha256": "97aea1745827566144b211efc4ac32b20e2d50c04b88f408b87fd713b6c3d519",
+      "legacy_sha256": "40430aa437a1674aa339995acc45468c2b3dba39fa09e4c382095259dde85e56",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "The captured initial/final PR metadata explicitly sets draft=true for dotnet/runtime PR136812. The reported draft blocker directly matches the frozen draft fact independently of unknown policy details.",
+          "source_fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/draft"
+          ]
+        },
+        {
+          "result_id": "blocker-2",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The effective GraphQL decision is REVIEW_REQUIRED and the active organization pull_request rule requires one approval; the captured review list is empty. The reported 0-of-1/unsatisfied approval matches the frozen effective-review blocker while classic policy details remain denied.",
+          "source_fact_ids": [
+            "public/public-06/routes.json#/routes/13/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        },
+        {
+          "result_id": "blocker-3",
+          "ground_truth_ids": [
+            "required-check-2-pending"
+          ],
+          "classification": "matched",
+          "rationale": "The captured branch protection summary requires Build Analysis with App216604, and the paginated check result for that exact name/app/head is in_progress with null conclusion. The finding source names run125025485320. This matches the frozen mandatory pending check; other optional queued/runtime checks are not promoted to blockers.",
+          "source_fact_ids": [
+            "public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-06/routes.json#/routes/5/responses/0/body/check_runs/16"
+          ]
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The effective GraphQL decision is REVIEW_REQUIRED and the active organization pull_request rule requires one approval; the captured review list is empty. The reported 0-of-1/unsatisfied approval matches the frozen effective-review blocker while classic policy details remain denied.",
+          "source_fact_ids": [
+            "public/public-06/routes.json#/routes/13/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        },
+        {
+          "result_id": "required-check-14",
+          "ground_truth_ids": [
+            "required-check-2-pending"
+          ],
+          "classification": "matched",
+          "rationale": "The captured branch protection summary requires Build Analysis with App216604, and the paginated check result for that exact name/app/head is in_progress with null conclusion. The finding source names run125025485320. This matches the frozen mandatory pending check; other optional queued/runtime checks are not promoted to blockers.",
+          "source_fact_ids": [
+            "public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-06/routes.json#/routes/5/responses/0/body/check_runs/16"
+          ]
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "The captured initial/final PR metadata explicitly sets draft=true for dotnet/runtime PR136812. The reported draft blocker directly matches the frozen draft fact independently of unknown policy details.",
+          "source_fact_ids": [
+            "public/public-06/routes.json#/routes/0/responses/0/body/draft"
+          ]
+        },
+        {
+          "result_id": "blocker:1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The effective GraphQL decision is REVIEW_REQUIRED and the active organization pull_request rule requires one approval; the captured review list is empty. The reported 0-of-1/unsatisfied approval matches the frozen effective-review blocker while classic policy details remain denied.",
+          "source_fact_ids": [
+            "public/public-06/routes.json#/routes/13/responses/0/body/data/repository/pull_request/review_decision"
+          ]
+        },
+        {
+          "result_id": "blocker:2",
+          "ground_truth_ids": [
+            "required-check-2-pending"
+          ],
+          "classification": "matched",
+          "rationale": "The captured branch protection summary requires Build Analysis with App216604, and the paginated check result for that exact name/app/head is in_progress with null conclusion. The finding source names run125025485320. This matches the frozen mandatory pending check; other optional queued/runtime checks are not promoted to blockers.",
+          "source_fact_ids": [
+            "public/public-06/routes.json#/routes/9/responses/0/body/protection/required_status_checks/checks/1",
+            "public/public-06/routes.json#/routes/5/responses/0/body/check_runs/16"
+          ]
+        }
+      ],
+      "review_note": "Draft, mandatory Build Analysis pending, and effective required approval are each confirmed and matched on both surfaces. No optional runtime queued/running check is added as a blocker; policy discovery limitations remain separate.",
+      "observed_verdict": "blocked",
+      "observed_assurance": "fail",
+      "frozen_legacy_allowable_verdicts": [
+        "blocked"
+      ],
+      "legacy_compatibility_agrees": true,
+      "head_anchor": "33eb87c9872b320aeed78454a76070b3f768a355",
+      "base_anchor": "8586c680f0c3337fd707e3eb891d8250f8f5544c",
+      "collection_attempts": 1
+    }
+  ]
+}

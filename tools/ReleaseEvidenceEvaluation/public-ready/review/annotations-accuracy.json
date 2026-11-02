@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+  "ground_truth_sha256": "56bb3ef07b040e87de45d3fa304e694ec4a34d43d3dbc69eb77d9abc2b5b2bc1",
+  "run_manifest_sha256": "33a436b62813197d84ff28ddadc0d45bacca0f63bb687a5ae0149b7451ec23b9",
+  "status": "resolved",
+  "review": {
+    "ai_only": true,
+    "performed_after_outputs": true,
+    "ground_truth_unchanged": true,
+    "reviewer": "first-independent-AI, supplemental integrated candidate post-output matching",
+    "blinded_to_candidate_outputs": false,
+    "scope": "Three supplemental public-ready cases, reviewed against unchanged pre-output adjudicated labels. Inspect every literal status=fail evidence finding and every payload.outputs.blockers item. Passing/unknown findings are not confirmed-blocker assertions under SCORING.md.",
+    "limitations": [
+      "AI-only review, not human/customer validation.",
+      "Zero reported/reference blockers give no denominator for general blocker-detection claims.",
+      "Aggregate verdict agreement does not establish correct reasons for every passing or unknown finding."
+    ],
+    "integrity_validation": {
+      "artifact_hashes_verified": 12,
+      "dataset_hashes_verified": 3,
+      "raw_capture_hashes_verified": 9,
+      "retained_label_and_fixture_manifest_hashes_verified": true,
+      "transcript_requests_verified": 31,
+      "exact_raw_response_body_hashes_verified": 31,
+      "route_coverage_verified": true,
+      "baseline_annotation_unchanged": true
+    }
+  },
+  "cases": [
+    {
+      "id": "public-ready-01",
+      "status": "resolved",
+      "evidence_sha256": "3852b7ee50159412beab922fa31534c5e13851d14882c3610a09e4ef6491f4e9",
+      "legacy_sha256": "d6e696d36d0eb5a976d678cae9c685f62a37b63173d76dbb0258b3617f53fcb2",
+      "transcript_sha256": "fc05ac3b1dc017d7bfb7e5e8aafb4111041bf09782cb32c4447141f47f6b911c",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_notes": "Inspected all 10 evidence findings (9 pass, 0 fail, 1 unknown) and the empty legacy blockers list. Both empty match lists provide complete literal blocker coverage; the unchanged oracle contains no confirmed blockers.",
+      "observed_results": {
+        "legacy_verdict": "ready",
+        "scoped_assurance": "unknown",
+        "evidence_finding_counts": {
+          "pass": 9,
+          "fail": 0,
+          "unknown": 1
+        },
+        "literal_evidence_fail_ids": [],
+        "legacy_blocker_ids": []
+      },
+      "reviewed_locations": {
+        "evidence_findings": "public-ready-01/release-evidence.json#/findings",
+        "legacy_blockers": "public-ready-01/payload.json#/outputs/blockers"
+      },
+      "replay_scope": {
+        "request_count": 10,
+        "exact_raw_response_body_hashes_verified": 10,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+        "head_changed_between_consumed_pr_reads": false,
+        "separate_final_branch_response_consumed": false,
+        "unconsumed_branch_repeat_limitation": "The runner consumes the initial branch response only; initial/final PR reads consume both captured snapshots. This does not add a blocker or strengthen the frozen assurance scope."
+      },
+      "qualitative_notes": [
+        "Scoped assurance unknown agrees numerically with the frozen oracle, but unsupported-rule-5 again calls copilot_code_review mandatory. The adjudicated oracle treats that captured rule as review automation and identifies denied classic protection detail as its material policy uncertainty. Blocker-only matching does not assess correctness/completeness of pass and unknown explanations; the earlier baseline limitation remains.",
+        "Legacy ready is compatible with the clean GitHub operational summary but is an unsupported positive result against frozen conservative readiness unknown."
+      ]
+    },
+    {
+      "id": "public-ready-02",
+      "status": "resolved",
+      "evidence_sha256": "2468eac60eae9a66409c43c3dc3ae31d13d7667abd9350ab0b1dd062c20f3679",
+      "legacy_sha256": "ad8f8a17a6efe4dd9c0e8a8d59ac7c8bc3ad72bf541c4f20101bbca38a4174a9",
+      "transcript_sha256": "2b632dbc346876de0ce1a2e9e3f4e167b82c13fb2881bd7c9ae78f73c324b1e8",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_notes": "Inspected all 6 evidence findings (6 pass, 0 fail, 0 unknown) and the empty legacy blockers list. Both empty match lists provide complete literal blocker coverage; the unchanged oracle contains no confirmed blockers.",
+      "observed_results": {
+        "legacy_verdict": "ready",
+        "scoped_assurance": "pass",
+        "evidence_finding_counts": {
+          "pass": 6,
+          "fail": 0,
+          "unknown": 0
+        },
+        "literal_evidence_fail_ids": [],
+        "legacy_blocker_ids": []
+      },
+      "reviewed_locations": {
+        "evidence_findings": "public-ready-02/release-evidence.json#/findings",
+        "legacy_blockers": "public-ready-02/payload.json#/outputs/blockers"
+      },
+      "replay_scope": {
+        "request_count": 11,
+        "exact_raw_response_body_hashes_verified": 11,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+        "head_changed_between_consumed_pr_reads": false,
+        "separate_final_branch_response_consumed": false,
+        "unconsumed_branch_repeat_limitation": "The runner consumes the initial branch response only; initial/final PR reads consume both captured snapshots. This does not add a blocker or strengthen the frozen assurance scope."
+      },
+      "qualitative_notes": [
+        "Ready/pass agrees with the unchanged frozen adjudicated bounded GitHub mandatory-policy labels. PR-associated base SHA versus branch-tip SHA remains a disclosed attribution limitation, not an added equality requirement or a confirmed merge blocker."
+      ]
+    },
+    {
+      "id": "public-ready-03",
+      "status": "resolved",
+      "evidence_sha256": "c21e32351b68ecb7578d9bb119c1bd977df49511216f62f7f550b5fb7fef0510",
+      "legacy_sha256": "c7b98b3650a34aa159d7740241f749e226b5b86bc2b3aad2e1bde90f6f7259d6",
+      "transcript_sha256": "453b52621eb94b40a9480324f688cbc6d8dec162c0102e5eb2d231397ca9ae63",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_notes": "Inspected all 6 evidence findings (6 pass, 0 fail, 0 unknown) and the empty legacy blockers list. Both empty match lists provide complete literal blocker coverage; the unchanged oracle contains no confirmed blockers.",
+      "observed_results": {
+        "legacy_verdict": "ready",
+        "scoped_assurance": "pass",
+        "evidence_finding_counts": {
+          "pass": 6,
+          "fail": 0,
+          "unknown": 0
+        },
+        "literal_evidence_fail_ids": [],
+        "legacy_blocker_ids": []
+      },
+      "reviewed_locations": {
+        "evidence_findings": "public-ready-03/release-evidence.json#/findings",
+        "legacy_blockers": "public-ready-03/payload.json#/outputs/blockers"
+      },
+      "replay_scope": {
+        "request_count": 10,
+        "exact_raw_response_body_hashes_verified": 10,
+        "pr_response_indices": [
+          0,
+          1
+        ],
+        "initial_final_head_sha": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+        "head_changed_between_consumed_pr_reads": false,
+        "separate_final_branch_response_consumed": false,
+        "unconsumed_branch_repeat_limitation": "The runner consumes the initial branch response only; initial/final PR reads consume both captured snapshots. This does not add a blocker or strengthen the frozen assurance scope."
+      },
+      "qualitative_notes": [
+        "Ready/pass agrees with the unchanged frozen adjudicated bounded GitHub mandatory-policy labels. PR-associated base SHA versus branch-tip SHA remains a disclosed attribution limitation, not an added equality requirement or a confirmed merge blocker."
+      ]
+    }
+  ]
+}

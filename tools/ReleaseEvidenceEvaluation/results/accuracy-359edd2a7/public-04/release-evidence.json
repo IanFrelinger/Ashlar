@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0",
+  "repository": "cli/cli",
+  "pullRequest": 14845,
+  "url": "https://github.com/cli/cli/pull/14845",
+  "headSha": "04c4ebf52e7033a83eb38e9741c8ace05bf8617b",
+  "baseRef": "trunk",
+  "baseSha": "93d24ce9ffefb6cc86bde89b50271457bb0ef9cb",
+  "collectionStartedAt": "2026-11-02T03:31:21.6136156\u002B00:00",
+  "collectedAt": "2026-11-02T03:31:21.6184173\u002B00:00",
+  "ashlarVersion": "0.4.2\u002B359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+  "brickVersion": "1.4.0",
+  "auditId": null,
+  "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+  "authorization": {
+    "credential": "not-supplied-to-brick",
+    "effectivePermissions": "not-enumerated",
+    "authenticatedActor": "unknown"
+  },
+  "verdict": "blocked",
+  "assurance": "fail",
+  "findings": [
+    {
+      "id": "blocker-1",
+      "status": "fail",
+      "required": true,
+      "explanation": "GitHub reports that an approving review is required (review decision REVIEW_REQUIRED); the pull request has 0 approving review(s).",
+      "sources": [
+        "https://github.com/cli/cli/pull/14845"
+      ]
+    },
+    {
+      "id": "head-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "A 40-character hexadecimal head commit was observed for this snapshot\u0027s collection attempt.",
+      "sources": [
+        "https://github.com/cli/cli/pull/14845"
+      ]
+    },
+    {
+      "id": "base-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+      "sources": [
+        "https://github.com/cli/cli/pull/14845"
+      ]
+    },
+    {
+      "id": "collection-consistency",
+      "status": "pass",
+      "required": true,
+      "explanation": "The final PR read agreed with this attempt\u0027s head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+      "sources": [
+        "https://github.com/cli/cli/pull/14845"
+      ]
+    },
+    {
+      "id": "required-check-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check names were read from GitHub policy sources.",
+      "sources": [
+        "https://api.github.com/repos/cli/cli/branches/trunk/protection/required_status_checks",
+        "https://api.github.com/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+        "https://api.github.com/repos/cli/cli/rules/branches/trunk",
+        "https://api.github.com/repos/cli/cli/branches/trunk"
+      ]
+    },
+    {
+      "id": "rulesets",
+      "status": "pass",
+      "required": true,
+      "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+      "sources": [
+        "https://api.github.com/repos/cli/cli/rules/branches/trunk"
+      ]
+    },
+    {
+      "id": "unsupported-rule-6",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Detected mandatory rule \u0060copilot_code_review\u0060 is outside this collector\u0027s supported policy evaluation.",
+      "sources": [
+        "https://api.github.com/repos/cli/cli/rules/branches/trunk"
+      ]
+    },
+    {
+      "id": "approval-policy",
+      "status": "fail",
+      "required": true,
+      "explanation": "GitHub reports required review approval as unsatisfied.",
+      "sources": [
+        "https://github.com/cli/cli/pull/14845"
+      ]
+    },
+    {
+      "id": "required-check-9",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check \u0060build (macos-latest)\u0060 has a passing conclusion.",
+      "sources": [
+        "https://github.com/cli/cli/actions/runs/40553652299/job/122363777336"
+      ]
+    },
+    {
+      "id": "required-check-10",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check \u0060build (ubuntu-latest)\u0060 has a passing conclusion.",
+      "sources": [
+        "https://github.com/cli/cli/actions/runs/40553652299/job/122363777935"
+      ]
+    },
+    {
+      "id": "required-check-11",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check \u0060build (windows-latest)\u0060 has a passing conclusion.",
+      "sources": [
+        "https://github.com/cli/cli/actions/runs/40553652299/job/122363778241"
+      ]
+    }
+  ],
+  "limitations": [
+    "Human release decision required; this pack does not prove compliance or authorize a release.",
+    "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+    "GitHub rules are not fully reimplemented: deployment, merge-queue, legacy-status provider identity, signatures, bypass permissions and custom rules require separate review.",
+    "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+    "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+  ],
+  "freshness": {
+    "collectionConsistency": "stable",
+    "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted.",
+    "collectionAttempts": 1
+  }
+}

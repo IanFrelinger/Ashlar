@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "ground_truth_sha256": "56bb3ef07b040e87de45d3fa304e694ec4a34d43d3dbc69eb77d9abc2b5b2bc1",
+  "run_manifest_sha256": "61e4b9cceceb03bc0d8698a636325d32708a093c7a4552dc41bb2da0b2e3c5cf",
+  "status": "resolved",
+  "review": {
+    "ai_only": true,
+    "performed_after_outputs": true,
+    "ground_truth_unchanged": true,
+    "reviewer": "first-independent-AI, post-output blocker matching",
+    "blinded_to_candidate_outputs": false,
+    "scope": "Inspect every literal status=fail evidence finding and every payload.outputs.blockers entry against unchanged pre-output adjudicated confirmed blocker IDs. Passing/unknown findings are not confirmed blocker assertions under SCORING.md.",
+    "limitation": "This is AI-only output matching. Empty blocker populations do not establish general blocker detection performance or complete finding-explanation accuracy."
+  },
+  "cases": [
+    {
+      "id": "public-ready-01",
+      "status": "resolved",
+      "evidence_sha256": "27333922b03543cd943d526e0914bbdce51b148806c2d9f35ac0b091198de7a9",
+      "legacy_sha256": "d3677e90301aa66267e942353d696700247c3e7df339d87e6e118919a66e06dc",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_notes": "Inspected all 10 evidence findings: 9 pass, 0 fail, 1 unknown. payload.outputs.blockers is empty. Both reviewed match lists are empty because there are zero literal reported blockers, and the frozen confirmed_blockers list is also empty.",
+      "observed_results": {
+        "legacy_verdict": "ready",
+        "scoped_assurance": "unknown",
+        "evidence_finding_counts": {
+          "pass": 9,
+          "fail": 0,
+          "unknown": 1
+        },
+        "literal_evidence_fail_ids": [],
+        "legacy_blocker_ids": []
+      },
+      "reviewed_locations": {
+        "evidence_findings": "public-ready-01/release-evidence.json#/findings",
+        "legacy_blockers": "public-ready-01/payload.json#/outputs/blockers"
+      },
+      "qualitative_notes": [
+        "Overall scoped assurance unknown agrees with the frozen label. The output attributes its required unknown to copilot_code_review, whereas the frozen oracle material uncertainty is incomplete protected-branch policy detail access. The literal blocker metric does not assess correctness/completeness of pass or unknown finding explanations. Legacy ready remains compatible with the observed clean GitHub summary, while conservative readiness is unknown."
+      ]
+    },
+    {
+      "id": "public-ready-02",
+      "status": "resolved",
+      "evidence_sha256": "4a13a2fbfa7c6728b554d56275725ee5d9928423921aa81f3df532ad9fa190ce",
+      "legacy_sha256": "05de3661001e7cc5463505403bc180103967c831a03d0e4ac4ff1cdba1eaf21e",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_notes": "Inspected all 6 evidence findings: 6 pass, 0 fail, 0 unknown. payload.outputs.blockers is empty. Both reviewed match lists are empty because there are zero literal reported blockers, and the frozen confirmed_blockers list is also empty.",
+      "observed_results": {
+        "legacy_verdict": "ready",
+        "scoped_assurance": "pass",
+        "evidence_finding_counts": {
+          "pass": 6,
+          "fail": 0,
+          "unknown": 0
+        },
+        "literal_evidence_fail_ids": [],
+        "legacy_blocker_ids": []
+      },
+      "reviewed_locations": {
+        "evidence_findings": "public-ready-02/release-evidence.json#/findings",
+        "legacy_blockers": "public-ready-02/payload.json#/outputs/blockers"
+      },
+      "qualitative_notes": [
+        "Legacy ready and scoped assurance pass agree with the unchanged frozen adjudicated bounded GitHub labels. No confirmed-blocker claim is reported."
+      ]
+    },
+    {
+      "id": "public-ready-03",
+      "status": "resolved",
+      "evidence_sha256": "eab9da1fa58b98c6d0ce7e933630fa5b81164d462e7699ced38fc222e90e0c43",
+      "legacy_sha256": "6c5cf29c9bcd923f6b43bfa5588110040871afdbac52ba504542955be3c7e29d",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_notes": "Inspected all 6 evidence findings: 6 pass, 0 fail, 0 unknown. payload.outputs.blockers is empty. Both reviewed match lists are empty because there are zero literal reported blockers, and the frozen confirmed_blockers list is also empty.",
+      "observed_results": {
+        "legacy_verdict": "ready",
+        "scoped_assurance": "pass",
+        "evidence_finding_counts": {
+          "pass": 6,
+          "fail": 0,
+          "unknown": 0
+        },
+        "literal_evidence_fail_ids": [],
+        "legacy_blocker_ids": []
+      },
+      "reviewed_locations": {
+        "evidence_findings": "public-ready-03/release-evidence.json#/findings",
+        "legacy_blockers": "public-ready-03/payload.json#/outputs/blockers"
+      },
+      "qualitative_notes": [
+        "Legacy ready and scoped assurance pass agree with the unchanged frozen adjudicated bounded GitHub labels. No confirmed-blocker claim is reported."
+      ]
+    }
+  ]
+}

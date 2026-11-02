@@ -1,0 +1,151 @@
+{
+  "brickId": "github.blockers",
+  "brickVersion": "1.3.1",
+  "summary": "PR #14716 is READY: nothing blocking was found.",
+  "outputs": {
+    "verdict": "ready",
+    "blockers": [],
+    "unknowns": [],
+    "notes": [
+      {
+        "text": "Read 16 check run(s) and 0 commit status(es) on the head commit 936921fa9e67; none is failing or pending.",
+        "evidence": "https://github.com/cli/cli/commit/936921fa9e67cdbf78fb25abc6252afabafef056"
+      }
+    ],
+    "evidence": [
+      "https://github.com/cli/cli/pull/14716",
+      "https://github.com/cli/cli/commit/936921fa9e67cdbf78fb25abc6252afabafef056"
+    ],
+    "answer": "**What is blocking PR #14716?** PR #14716 is READY: nothing blocking was found.\n\nNotes:\n- Read 16 check run(s) and 0 commit status(es) on the head commit 936921fa9e67; none is failing or pending. ([evidence](https://github.com/cli/cli/commit/936921fa9e67cdbf78fb25abc6252afabafef056))\n\nRead from https://github.com/cli/cli/pull/14716\n",
+    "assurance": "unknown",
+    "evidencePack": {
+      "schemaVersion": "1.0",
+      "repository": "cli/cli",
+      "pullRequest": 14716,
+      "url": "https://github.com/cli/cli/pull/14716",
+      "headSha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+      "baseRef": "trunk",
+      "baseSha": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45",
+      "collectionStartedAt": "2026-11-02T03:26:00.0302595\u002B00:00",
+      "collectedAt": "2026-11-02T03:26:00.46278\u002B00:00",
+      "ashlarVersion": "0.4.2\u002B86c6e9e18da496264d2e138efcbd18fabc1558bc",
+      "brickVersion": "1.3.1",
+      "auditId": null,
+      "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+      "authorization": {
+        "credential": "not-supplied-to-brick",
+        "effectivePermissions": "not-enumerated",
+        "authenticatedActor": "unknown"
+      },
+      "verdict": "ready",
+      "assurance": "unknown",
+      "findings": [
+        {
+          "id": "head-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "A 40-character hexadecimal head commit was observed at collection start.",
+          "sources": [
+            "https://github.com/cli/cli/pull/14716"
+          ]
+        },
+        {
+          "id": "base-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+          "sources": [
+            "https://github.com/cli/cli/pull/14716"
+          ]
+        },
+        {
+          "id": "collection-consistency",
+          "status": "pass",
+          "required": true,
+          "explanation": "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+          "sources": [
+            "https://github.com/cli/cli/pull/14716"
+          ]
+        },
+        {
+          "id": "required-check-policy",
+          "status": "pass",
+          "required": true,
+          "explanation": "Required check names were read from GitHub policy sources.",
+          "sources": [
+            "https://api.github.com/repos/cli/cli/branches/trunk/protection/required_status_checks",
+            "https://api.github.com/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+            "https://api.github.com/repos/cli/cli/rules/branches/trunk",
+            "https://api.github.com/repos/cli/cli/branches/trunk"
+          ]
+        },
+        {
+          "id": "rulesets",
+          "status": "pass",
+          "required": true,
+          "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+          "sources": [
+            "https://api.github.com/repos/cli/cli/rules/branches/trunk"
+          ]
+        },
+        {
+          "id": "unsupported-rule-5",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Detected mandatory rule \u0060copilot_code_review\u0060 is outside this collector\u0027s supported policy evaluation.",
+          "sources": [
+            "https://api.github.com/repos/cli/cli/rules/branches/trunk"
+          ]
+        },
+        {
+          "id": "approval-policy",
+          "status": "pass",
+          "required": true,
+          "explanation": "GitHub\u0027s review decision, or a fully read zero-approval rule, establishes the review requirement.",
+          "sources": [
+            "https://github.com/cli/cli/pull/14716"
+          ]
+        },
+        {
+          "id": "required-check-8",
+          "status": "pass",
+          "required": true,
+          "explanation": "Observed required check \u0060build (macos-latest)\u0060 has a passing conclusion.",
+          "sources": [
+            "https://github.com/cli/cli/actions/runs/39272694853/job/118128877286"
+          ]
+        },
+        {
+          "id": "required-check-9",
+          "status": "pass",
+          "required": true,
+          "explanation": "Observed required check \u0060build (ubuntu-latest)\u0060 has a passing conclusion.",
+          "sources": [
+            "https://github.com/cli/cli/actions/runs/39272694853/job/118128877234"
+          ]
+        },
+        {
+          "id": "required-check-10",
+          "status": "pass",
+          "required": true,
+          "explanation": "Observed required check \u0060build (windows-latest)\u0060 has a passing conclusion.",
+          "sources": [
+            "https://github.com/cli/cli/actions/runs/39272694853/job/118128877056"
+          ]
+        }
+      ],
+      "limitations": [
+        "Human release decision required; this pack does not prove compliance or authorize a release.",
+        "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+        "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+        "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+        "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+      ],
+      "freshness": {
+        "collectionConsistency": "stable",
+        "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+      }
+    },
+    "evidenceMarkdown": "## Pull-request evidence snapshot\n\n[\u0060cli/cli\u0060 PR #14716](https://github.com/cli/cli/pull/14716)\n\nGitHub verdict: **ready**. Scoped assurance: **unknown**.\n\nHead: \u0060936921fa9e67cdbf78fb25abc6252afabafef056\u0060; base: \u0060trunk\u0060 (\u0060b1c8c0ae5aec75ec8caf6e537071efc15d274f45\u0060).\n\nCollected: 2026-11-02T03:26:00.4627800\u002B00:00; schema 1.0; Ashlar \u00600.4.2\u002B86c6e9e18da496264d2e138efcbd18fabc1558bc\u0060; brick \u00601.3.1\u0060.\n\n- **pass**: A 40-character hexadecimal head commit was observed at collection start. [source](https://github.com/cli/cli/pull/14716)\n\n- **pass**: The relevant base reference and 40-character hexadecimal commit were observed. [source](https://github.com/cli/cli/pull/14716)\n\n- **pass**: The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot. [source](https://github.com/cli/cli/pull/14716)\n\n- **pass**: Required check names were read from GitHub policy sources. [source](https://api.github.com/repos/cli/cli/branches/trunk/protection/required_status_checks) [source](https://api.github.com/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews) [source](https://api.github.com/repos/cli/cli/rules/branches/trunk) [source](https://api.github.com/repos/cli/cli/branches/trunk)\n\n- **pass**: Active branch rules were read (this collector evaluates check and review requirements only). [source](https://api.github.com/repos/cli/cli/rules/branches/trunk)\n\n- **unknown**: Detected mandatory rule \u0060copilot_code_review\u0060 is outside this collector\u0027s supported policy evaluation. [source](https://api.github.com/repos/cli/cli/rules/branches/trunk)\n\n- **pass**: GitHub\u0027s review decision, or a fully read zero-approval rule, establishes the review requirement. [source](https://github.com/cli/cli/pull/14716)\n\n- **pass**: Observed required check \u0060build (macos-latest)\u0060 has a passing conclusion. [source](https://github.com/cli/cli/actions/runs/39272694853/job/118128877286)\n\n- **pass**: Observed required check \u0060build (ubuntu-latest)\u0060 has a passing conclusion. [source](https://github.com/cli/cli/actions/runs/39272694853/job/118128877234)\n\n- **pass**: Observed required check \u0060build (windows-latest)\u0060 has a passing conclusion. [source](https://github.com/cli/cli/actions/runs/39272694853/job/118128877056)\n\nLimitations:\n\n- Human release decision required; this pack does not prove compliance or authorize a release.\n\n- No repository code, PR body, diff, private file content, artifact payload or access token is included.\n\n- GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.\n\n- API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.\n\n- No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately.\n"
+  }
+}

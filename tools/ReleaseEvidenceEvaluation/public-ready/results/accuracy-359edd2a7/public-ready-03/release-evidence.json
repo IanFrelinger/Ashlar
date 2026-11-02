@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0",
+  "repository": "jqlang/jq",
+  "pullRequest": 3641,
+  "url": "https://github.com/jqlang/jq/pull/3641",
+  "headSha": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+  "baseRef": "master",
+  "baseSha": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac",
+  "collectionStartedAt": "2026-11-02T03:35:32.7445344\u002B00:00",
+  "collectedAt": "2026-11-02T03:35:32.7636819\u002B00:00",
+  "ashlarVersion": "0.4.2\u002B359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+  "brickVersion": "1.4.0",
+  "auditId": null,
+  "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+  "authorization": {
+    "credential": "not-supplied-to-brick",
+    "effectivePermissions": "not-enumerated",
+    "authenticatedActor": "unknown"
+  },
+  "verdict": "ready",
+  "assurance": "pass",
+  "findings": [
+    {
+      "id": "head-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "A 40-character hexadecimal head commit was observed for this snapshot\u0027s collection attempt.",
+      "sources": [
+        "https://github.com/jqlang/jq/pull/3641"
+      ]
+    },
+    {
+      "id": "base-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+      "sources": [
+        "https://github.com/jqlang/jq/pull/3641"
+      ]
+    },
+    {
+      "id": "collection-consistency",
+      "status": "pass",
+      "required": true,
+      "explanation": "The final PR read agreed with this attempt\u0027s head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+      "sources": [
+        "https://github.com/jqlang/jq/pull/3641"
+      ]
+    },
+    {
+      "id": "required-check-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check names were read from GitHub policy sources.",
+      "sources": [
+        "https://api.github.com/repos/jqlang/jq/branches/master/protection/required_status_checks",
+        "https://api.github.com/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+        "https://api.github.com/repos/jqlang/jq/rules/branches/master",
+        "https://api.github.com/repos/jqlang/jq/branches/master"
+      ]
+    },
+    {
+      "id": "rulesets",
+      "status": "pass",
+      "required": true,
+      "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+      "sources": [
+        "https://api.github.com/repos/jqlang/jq/rules/branches/master"
+      ]
+    },
+    {
+      "id": "approval-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "GitHub\u0027s review decision, or a fully read zero-approval rule, establishes the review requirement.",
+      "sources": [
+        "https://github.com/jqlang/jq/pull/3641"
+      ]
+    }
+  ],
+  "limitations": [
+    "Human release decision required; this pack does not prove compliance or authorize a release.",
+    "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+    "GitHub rules are not fully reimplemented: deployment, merge-queue, legacy-status provider identity, signatures, bypass permissions and custom rules require separate review.",
+    "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+    "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+  ],
+  "freshness": {
+    "collectionConsistency": "stable",
+    "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted.",
+    "collectionAttempts": 1
+  }
+}

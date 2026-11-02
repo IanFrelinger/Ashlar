@@ -1,0 +1,122 @@
+[
+  {
+    "sequence": 1,
+    "method": "GET",
+    "path": "/repos/cli/cli/pulls/14716",
+    "matchedRoute": "/repos/cli/cli/pulls/14716",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "cdaa9fed5bf6be8726211013b8da5931526eac4f93fdb1e714689651675fbcd1"
+  },
+  {
+    "sequence": 2,
+    "method": "GET",
+    "path": "/repos/cli/cli/pulls/14716/reviews",
+    "matchedRoute": "/repos/cli/cli/pulls/14716/reviews",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "8cd5b59cf63853f3a06ecd0330e051c3df81a95ed15a1f7846b855a87799c173"
+  },
+  {
+    "sequence": 3,
+    "method": "GET",
+    "path": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs",
+    "matchedRoute": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "ceb842b3df2a7f5506605a234b71c9dddfb37c19aa21b4689cce874ba4578b77"
+  },
+  {
+    "sequence": 4,
+    "method": "GET",
+    "path": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/status",
+    "matchedRoute": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/status",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "bfdb53e8805f8c752a7bad707f296cc7b4e55303428c712f784504c81e412ac8"
+  },
+  {
+    "sequence": 5,
+    "method": "GET",
+    "path": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+    "matchedRoute": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": null,
+    "status": 403,
+    "fault": null,
+    "responseBodySha256": "3637d94086bc09ca6a9e948cebdb94c78fa4ce05de9e1bcd703fc2dd3899aa3d"
+  },
+  {
+    "sequence": 6,
+    "method": "GET",
+    "path": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+    "matchedRoute": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": null,
+    "status": 403,
+    "fault": null,
+    "responseBodySha256": "823e095c68a21e16a620edaa4a02fd47cc1b1c17b0c0c5a06e76191daac2ce8a"
+  },
+  {
+    "sequence": 7,
+    "method": "GET",
+    "path": "/repos/cli/cli/rules/branches/trunk?per_page=100",
+    "matchedRoute": "/repos/cli/cli/rules/branches/trunk?per_page=100",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "0cfa174c27f373af9b759c33a530057d3f8f911ca44b8d228fbe13dfeec97249"
+  },
+  {
+    "sequence": 8,
+    "method": "POST",
+    "path": "/graphql",
+    "matchedRoute": "/graphql",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": "8b39b34f2da50dfc02e9035864fdf0c2c6879f0244920b8a9bb1cc8621a07944",
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "dad579900f668dcdb29c9b9ae7ff094b1697f015c4e3541933ef884252aa6e60"
+  },
+  {
+    "sequence": 9,
+    "method": "GET",
+    "path": "/repos/cli/cli/branches/trunk",
+    "matchedRoute": "/repos/cli/cli/branches/trunk",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "1118ec88e2e07bb0343dfdfe1004687f9ff08f0ddc8ca17088d8af9be25b5dd3"
+  },
+  {
+    "sequence": 10,
+    "method": "GET",
+    "path": "/repos/cli/cli/pulls/14716",
+    "matchedRoute": "/repos/cli/cli/pulls/14716",
+    "responseIndex": 1,
+    "requestAuthorizationPresent": false,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "cdaa9fed5bf6be8726211013b8da5931526eac4f93fdb1e714689651675fbcd1"
+  }
+]

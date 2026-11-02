@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "1.0",
+  "repository": "eval/fixture",
+  "pullRequest": 1,
+  "url": "https://github.com/eval/fixture/pull/1",
+  "headSha": "d206332138379fae18b3bf178c56ca4d405ab702",
+  "baseRef": "main",
+  "baseSha": "ec354b480a77135ef8880bfa3afe6819ec9a4896",
+  "collectionStartedAt": "2026-11-02T03:31:21.2191491\u002B00:00",
+  "collectedAt": "2026-11-02T03:31:21.2279266\u002B00:00",
+  "ashlarVersion": "0.4.2\u002B359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+  "brickVersion": "1.4.0",
+  "auditId": null,
+  "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+  "authorization": {
+    "credential": "supplied-to-client",
+    "effectivePermissions": "not-enumerated",
+    "authenticatedActor": "unknown"
+  },
+  "verdict": "blocked",
+  "assurance": "fail",
+  "findings": [
+    {
+      "id": "blocker-1",
+      "status": "fail",
+      "required": true,
+      "explanation": "1 of 2 required approving reviews.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "head-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "A 40-character hexadecimal head commit was observed for this snapshot\u0027s collection attempt.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "base-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "collection-consistency",
+      "status": "pass",
+      "required": true,
+      "explanation": "The final PR read agreed with this attempt\u0027s head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "required-check-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check names were read from GitHub policy sources.",
+      "sources": [
+        "https://api.github.com/repos/eval/fixture/branches/main/protection/required_status_checks",
+        "https://api.github.com/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+        "https://api.github.com/repos/eval/fixture/rules/branches/main",
+        "https://api.github.com/repos/eval/fixture/branches/main"
+      ]
+    },
+    {
+      "id": "rulesets",
+      "status": "pass",
+      "required": true,
+      "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+      "sources": [
+        "https://api.github.com/repos/eval/fixture/rules/branches/main"
+      ]
+    },
+    {
+      "id": "approval-policy",
+      "status": "fail",
+      "required": true,
+      "explanation": "GitHub reports required review approval as unsatisfied.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    }
+  ],
+  "limitations": [
+    "Human release decision required; this pack does not prove compliance or authorize a release.",
+    "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+    "GitHub rules are not fully reimplemented: deployment, merge-queue, legacy-status provider identity, signatures, bypass permissions and custom rules require separate review.",
+    "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+    "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+  ],
+  "freshness": {
+    "collectionConsistency": "stable",
+    "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted.",
+    "collectionAttempts": 1
+  }
+}

@@ -1,0 +1,1827 @@
+{
+  "baseline_candidate_commit": "47a7c8506b89670d977265ce342a962d35858cd5",
+  "candidate_commit": "359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+  "candidate_mode": "repaired-rerun",
+  "case_count": 36,
+  "cases": [
+    {
+      "actual_assurance": "pass",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "pass",
+      "expected_readiness": "ready",
+      "export_status": "success",
+      "id": "e01-no-configured-requirements",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "pass",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "pass",
+      "expected_readiness": "ready",
+      "export_status": "success",
+      "id": "e02-required-external-status",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "pass",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "pass",
+      "expected_readiness": "ready",
+      "export_status": "success",
+      "id": "e03-two-approvals",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "pass",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "pass",
+      "expected_readiness": "ready",
+      "export_status": "success",
+      "id": "e04-mixed-optional-ci",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-ci-failure"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-ci-failure"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1",
+            "required-check-8"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-ci-failure"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-ci-failure"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e05-required-check-failure",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "merge-conflict"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "merge-conflict"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "merge-conflict"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "merge-conflict"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e06-merge-conflict",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "draft"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "draft"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "draft"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "draft"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e07-draft-pr",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "approval-policy",
+            "blocker-1"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e08-review-threshold",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "changes-requested"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "changes-requested"
+          ],
+          "reported_blocker_ids": [
+            "approval-policy",
+            "blocker-1"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "changes-requested"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "changes-requested"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e09-changes-requested",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "strict-base-behind"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "strict-base-behind"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "strict-base-behind"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "strict-base-behind"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e10-behind-strict-base",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-ci-queued"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-ci-queued"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1",
+            "required-check-8"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-ci-queued"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-ci-queued"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e11-queued-check",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-context-missing"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-context-missing"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1",
+            "required-check-8"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-context-missing"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-context-missing"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e12-missing-rule-context",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "github-merge-block"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "github-merge-block"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1",
+            "required-check-8"
+          ],
+          "unassessable_result_ids": [
+            "blocker-1"
+          ]
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [
+            "github-merge-block"
+          ],
+          "reference_blocker_ids": [
+            "github-merge-block"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": [
+            "blocker:0"
+          ]
+        }
+      },
+      "disclosures": [
+        "evidence_cases_with_unassessable_blockers",
+        "evidence_unassessable_blockers",
+        "legacy_cases_with_missed_blockers",
+        "legacy_cases_with_unassessable_blockers",
+        "legacy_missed_blockers",
+        "legacy_unassessable_blockers"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e13-conflicting-same-name",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-ci-running"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-ci-running"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1",
+            "required-check-8"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-ci-running"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-ci-running"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e14-running-no-conclusion",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_ready_unknown_readiness"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "e15-anonymous-graphql",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_ready_unknown_readiness"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "e16-policy-permission-denied",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "unknown",
+      "allowable_legacy_verdicts": [
+        "unknown"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "e17-private-pr-not-found",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "unknown",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_compatibility_disagreements"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "e18-checks-and-reviews-denied",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_ready_unknown_readiness"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "e19-rate-limited-policy",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "unknown",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_compatibility_disagreements"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "ready",
+      "export_status": "success",
+      "id": "e20-review-transport-timeout",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_ready_unknown_readiness"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "e21-malformed-policy-json",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "unknown",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_compatibility_disagreements"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "e22-truncated-second-page",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked",
+        "unknown"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "new-head-required-check-missing"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "new-head-required-check-missing"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1",
+            "required-check-8"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "new-head-required-check-missing"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "new-head-required-check-missing"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e23-head-moves-during-read",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked",
+        "unknown"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "strict-base-behind"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "strict-base-behind"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "strict-base-behind"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "strict-base-behind"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e24-base-moves-during-read",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "pass",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "pass",
+      "expected_readiness": "ready",
+      "export_status": "success",
+      "id": "e25-approval-on-older-commit",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked",
+        "unknown"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "later-changes-requested",
+            "later-required-ci-failure"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "later-changes-requested",
+            "later-required-ci-failure"
+          ],
+          "reported_blocker_ids": [
+            "approval-policy",
+            "blocker-1",
+            "blocker-2",
+            "required-check-9"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "later-changes-requested",
+            "later-required-ci-failure"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "later-changes-requested",
+            "later-required-ci-failure"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0",
+            "blocker:1"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e26-facts-change-same-head",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "pass",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "pass",
+      "expected_readiness": "ready",
+      "export_status": "success",
+      "id": "e27-hostile-check-metadata",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "unknown",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_compatibility_disagreements"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "e28-malformed-pr-source-metadata",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_ready_unknown_readiness"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "e29-app-bound-and-deployment-rule",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "own-required-check-incomplete"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "own-required-check-incomplete"
+          ],
+          "reported_blocker_ids": [
+            "collection-check",
+            "required-check-9"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "own-required-check-incomplete"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "own-required-check-incomplete"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "e30-required-collection-check",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-check-1-failure",
+            "required-check-2-failure",
+            "required-check-5-failure"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-check-1-failure",
+            "required-check-2-failure",
+            "required-check-5-failure"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1",
+            "blocker-2",
+            "blocker-3",
+            "required-check-11",
+            "required-check-12",
+            "required-check-15"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "required-check-1-failure",
+            "required-check-2-failure",
+            "required-check-5-failure"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "required-check-1-failure",
+            "required-check-2-failure",
+            "required-check-5-failure"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0",
+            "blocker:1",
+            "blocker:2"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "public-01",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "merge-conflict"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "merge-conflict"
+          ],
+          "reported_blocker_ids": [
+            "blocker-1"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "merge-conflict"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "merge-conflict"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "public-02",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "draft",
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "draft",
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "approval-policy",
+            "blocker-1",
+            "blocker-2"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "draft",
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "draft",
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0",
+            "blocker:1"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "public-03",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "approval-policy",
+            "blocker-1"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "public-04",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "approval-policy",
+            "blocker-1"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "public-05",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "fail",
+      "actual_legacy_verdict": "blocked",
+      "allowable_legacy_verdicts": [
+        "blocked"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "draft",
+            "required-check-2-pending",
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "draft",
+            "required-check-2-pending",
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "approval-policy",
+            "blocker-1",
+            "blocker-2",
+            "blocker-3",
+            "required-check-14"
+          ],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [
+            "draft",
+            "required-check-2-pending",
+            "review-required"
+          ],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [
+            "draft",
+            "required-check-2-pending",
+            "review-required"
+          ],
+          "reported_blocker_ids": [
+            "blocker:0",
+            "blocker:1",
+            "blocker:2"
+          ],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "fail",
+      "expected_readiness": "blocked",
+      "export_status": "success",
+      "id": "public-06",
+      "run_status": "answered"
+    }
+  ],
+  "failure_case_ids": [
+    "e13-conflicting-same-name",
+    "e15-anonymous-graphql",
+    "e16-policy-permission-denied",
+    "e18-checks-and-reviews-denied",
+    "e19-rate-limited-policy",
+    "e20-review-transport-timeout",
+    "e21-malformed-policy-json",
+    "e22-truncated-second-page",
+    "e28-malformed-pr-source-metadata",
+    "e29-app-bound-and-deployment-rule"
+  ],
+  "inputs": {
+    "annotations_sha256": "b5520243fe6cd427bed75b8d3c10a3e1f177d124df9b9c2dece505107b5b77b8",
+    "fixture_manifest_sha256": "7f13a41177dd6b0e639ead8dd173ab2556d2fb96683716a10d258d50b1d06ea5",
+    "ground_truth_sha256": "85b97df9b1b08dfe1585855b684324171f0ebec50ea3eac4902805de0db5c3e1",
+    "run_manifest_sha256": "154943f901097d014531b1b5cc1d60eb3fe1e44bf86997f47830aca4da7de30e"
+  },
+  "limitations": [
+    "A small fixed sample does not establish general accuracy.",
+    "Expected policy and blockers come only from frozen independent review labels.",
+    "Artifact hashes establish retained-record consistency, not proof of reviewer blinding chronology.",
+    "Legacy readiness and scoped assurance are separate metrics; collector errors remain errors."
+  ],
+  "metrics": {
+    "answered_cases": {
+      "case_ids": [
+        "e01-no-configured-requirements",
+        "e02-required-external-status",
+        "e03-two-approvals",
+        "e04-mixed-optional-ci",
+        "e05-required-check-failure",
+        "e06-merge-conflict",
+        "e07-draft-pr",
+        "e08-review-threshold",
+        "e09-changes-requested",
+        "e10-behind-strict-base",
+        "e11-queued-check",
+        "e12-missing-rule-context",
+        "e13-conflicting-same-name",
+        "e14-running-no-conclusion",
+        "e15-anonymous-graphql",
+        "e16-policy-permission-denied",
+        "e17-private-pr-not-found",
+        "e18-checks-and-reviews-denied",
+        "e19-rate-limited-policy",
+        "e20-review-transport-timeout",
+        "e21-malformed-policy-json",
+        "e22-truncated-second-page",
+        "e23-head-moves-during-read",
+        "e24-base-moves-during-read",
+        "e25-approval-on-older-commit",
+        "e26-facts-change-same-head",
+        "e27-hostile-check-metadata",
+        "e28-malformed-pr-source-metadata",
+        "e29-app-bound-and-deployment-rule",
+        "e30-required-collection-check",
+        "public-01",
+        "public-02",
+        "public-03",
+        "public-04",
+        "public-05",
+        "public-06"
+      ],
+      "denominator": 36,
+      "numerator": 36,
+      "rate": 1.0,
+      "unit": "cases"
+    },
+    "assurance_false_pass_combined": {
+      "case_ids": [],
+      "denominator": 30,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "assurance_false_pass_known_fail": {
+      "case_ids": [],
+      "denominator": 20,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "assurance_false_pass_unknown": {
+      "case_ids": [],
+      "denominator": 10,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "assurance_unknown_among_answered": {
+      "case_ids": [
+        "e15-anonymous-graphql",
+        "e16-policy-permission-denied",
+        "e17-private-pr-not-found",
+        "e18-checks-and-reviews-denied",
+        "e19-rate-limited-policy",
+        "e20-review-transport-timeout",
+        "e21-malformed-policy-json",
+        "e22-truncated-second-page",
+        "e28-malformed-pr-source-metadata",
+        "e29-app-bound-and-deployment-rule"
+      ],
+      "denominator": 36,
+      "numerator": 10,
+      "rate": 0.2777777777777778,
+      "unit": "cases"
+    },
+    "assurance_unknown_results": {
+      "case_ids": [
+        "e15-anonymous-graphql",
+        "e16-policy-permission-denied",
+        "e17-private-pr-not-found",
+        "e18-checks-and-reviews-denied",
+        "e19-rate-limited-policy",
+        "e20-review-transport-timeout",
+        "e21-malformed-policy-json",
+        "e22-truncated-second-page",
+        "e28-malformed-pr-source-metadata",
+        "e29-app-bound-and-deployment-rule"
+      ],
+      "denominator": 36,
+      "numerator": 10,
+      "rate": 0.2777777777777778,
+      "unit": "cases"
+    },
+    "collection_failures": {
+      "case_ids": [],
+      "denominator": 36,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "evidence_cases_with_incorrect_blockers": {
+      "case_ids": [],
+      "denominator": 20,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "evidence_cases_with_missed_blockers": {
+      "case_ids": [],
+      "denominator": 20,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "evidence_cases_with_unassessable_blockers": {
+      "case_ids": [
+        "e13-conflicting-same-name"
+      ],
+      "denominator": 20,
+      "numerator": 1,
+      "rate": 0.05,
+      "unit": "cases"
+    },
+    "evidence_incorrect_blockers": {
+      "case_ids": [],
+      "denominator": 45,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "blocker instances"
+    },
+    "evidence_missed_blockers": {
+      "case_ids": [],
+      "denominator": 26,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "blocker instances"
+    },
+    "evidence_unassessable_blockers": {
+      "case_ids": [
+        "e13-conflicting-same-name"
+      ],
+      "denominator": 45,
+      "numerator": 1,
+      "rate": 0.022222222222222223,
+      "unit": "blocker instances"
+    },
+    "export_failures": {
+      "case_ids": [],
+      "denominator": 36,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "harness_failures": {
+      "case_ids": [],
+      "denominator": 36,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "legacy_cases_with_incorrect_blockers": {
+      "case_ids": [],
+      "denominator": 20,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "legacy_cases_with_missed_blockers": {
+      "case_ids": [
+        "e13-conflicting-same-name"
+      ],
+      "denominator": 20,
+      "numerator": 1,
+      "rate": 0.05,
+      "unit": "cases"
+    },
+    "legacy_cases_with_unassessable_blockers": {
+      "case_ids": [
+        "e13-conflicting-same-name"
+      ],
+      "denominator": 20,
+      "numerator": 1,
+      "rate": 0.05,
+      "unit": "cases"
+    },
+    "legacy_compatibility_disagreements": {
+      "case_ids": [
+        "e18-checks-and-reviews-denied",
+        "e20-review-transport-timeout",
+        "e22-truncated-second-page",
+        "e28-malformed-pr-source-metadata"
+      ],
+      "denominator": 36,
+      "numerator": 4,
+      "rate": 0.1111111111111111,
+      "unit": "cases"
+    },
+    "legacy_false_ready_known_blockers": {
+      "case_ids": [],
+      "denominator": 20,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "legacy_incorrect_blockers": {
+      "case_ids": [],
+      "denominator": 26,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "blocker instances"
+    },
+    "legacy_missed_blockers": {
+      "case_ids": [
+        "e13-conflicting-same-name"
+      ],
+      "denominator": 26,
+      "numerator": 1,
+      "rate": 0.038461538461538464,
+      "unit": "blocker instances"
+    },
+    "legacy_ready_unknown_readiness": {
+      "case_ids": [
+        "e15-anonymous-graphql",
+        "e16-policy-permission-denied",
+        "e19-rate-limited-policy",
+        "e21-malformed-policy-json",
+        "e29-app-bound-and-deployment-rule"
+      ],
+      "denominator": 9,
+      "numerator": 5,
+      "rate": 0.5555555555555556,
+      "unit": "cases"
+    },
+    "legacy_unassessable_blockers": {
+      "case_ids": [
+        "e13-conflicting-same-name"
+      ],
+      "denominator": 26,
+      "numerator": 1,
+      "rate": 0.038461538461538464,
+      "unit": "blocker instances"
+    },
+    "legacy_unknown_among_answered": {
+      "case_ids": [
+        "e17-private-pr-not-found",
+        "e18-checks-and-reviews-denied",
+        "e20-review-transport-timeout",
+        "e22-truncated-second-page",
+        "e28-malformed-pr-source-metadata"
+      ],
+      "denominator": 36,
+      "numerator": 5,
+      "rate": 0.1388888888888889,
+      "unit": "cases"
+    },
+    "legacy_unknown_results": {
+      "case_ids": [
+        "e17-private-pr-not-found",
+        "e18-checks-and-reviews-denied",
+        "e20-review-transport-timeout",
+        "e22-truncated-second-page",
+        "e28-malformed-pr-source-metadata"
+      ],
+      "denominator": 36,
+      "numerator": 5,
+      "rate": 0.1388888888888889,
+      "unit": "cases"
+    }
+  },
+  "review_scope": "AI-only independent review; no human, customer, productivity, or release-approval claim",
+  "schema_version": 1
+}

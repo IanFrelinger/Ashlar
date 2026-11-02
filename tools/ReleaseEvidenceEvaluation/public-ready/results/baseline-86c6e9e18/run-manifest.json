@@ -1,0 +1,373 @@
+{
+  "schemaVersion": "ashlar.release-evidence-evaluation-run/1",
+  "candidateCommit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "baselineCandidateCommit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "candidateMode": "baseline",
+  "brickAssemblyVersion": "0.4.2\u002B86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "mode": "offline-http-replay",
+  "startedAt": "2026-11-02T03:25:59.9383226+00:00",
+  "completedAt": "2026-11-02T03:26:00.5750944+00:00",
+  "mergeabilityDelay": "elided; request sequence preserved; replay timing is not API latency",
+  "fixtureManifestSha256": "17e01f26dff07b58d004b43ae12c5c3959e6a58b36b0a22ef56b0aa107919035",
+  "fixtureManifestPath": "frozen-fixture-manifest.json",
+  "groundTruthSha256": "56bb3ef07b040e87de45d3fa304e694ec4a34d43d3dbc69eb77d9abc2b5b2bc1",
+  "groundTruthPath": "frozen-ground-truth.json",
+  "cases": [
+    {
+      "caseId": "public-ready-01",
+      "datasetPath": "public-ready-01/input.json",
+      "datasetSha256": "a66311bba9488a24f515a163032977f305399424789100607b79c6cffb53e149",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "public-ready-01/release-evidence.json",
+      "markdownPath": "public-ready-01/release-evidence.md",
+      "payloadPath": "public-ready-01/payload.json",
+      "transcriptPath": "public-ready-01/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "27333922b03543cd943d526e0914bbdce51b148806c2d9f35ac0b091198de7a9",
+      "markdownSha256": "590c1c9b80b541f1b47c746ab95e6cceebe84c36c8727caf09e9391f412299a3",
+      "payloadSha256": "d3677e90301aa66267e942353d696700247c3e7df339d87e6e118919a66e06dc",
+      "transcriptSha256": "fc05ac3b1dc017d7bfb7e5e8aafb4111041bf09782cb32c4447141f47f6b911c",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 569.0503,
+      "requestCount": 10,
+      "unusedRoutes": [
+        "GET /repos/cli/cli/statuses/936921fa9e67cdbf78fb25abc6252afabafef056?per_page=100"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/pulls/14716",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/pulls/14716/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/statuses/936921fa9e67cdbf78fb25abc6252afabafef056?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/branches/trunk",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/rules/branches/trunk?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "public-ready-01/release-evidence.json": "27333922b03543cd943d526e0914bbdce51b148806c2d9f35ac0b091198de7a9",
+        "public-ready-01/release-evidence.md": "590c1c9b80b541f1b47c746ab95e6cceebe84c36c8727caf09e9391f412299a3",
+        "public-ready-01/payload.json": "d3677e90301aa66267e942353d696700247c3e7df339d87e6e118919a66e06dc",
+        "public-ready-01/transcript.json": "fc05ac3b1dc017d7bfb7e5e8aafb4111041bf09782cb32c4447141f47f6b911c"
+      }
+    },
+    {
+      "caseId": "public-ready-02",
+      "datasetPath": "public-ready-02/input.json",
+      "datasetSha256": "f552d1435b114bf7894a877b608ae7dad3642317cd8c21a6f25074be05789b31",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "public-ready-02/release-evidence.json",
+      "markdownPath": "public-ready-02/release-evidence.md",
+      "payloadPath": "public-ready-02/payload.json",
+      "transcriptPath": "public-ready-02/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "4a13a2fbfa7c6728b554d56275725ee5d9928423921aa81f3df532ad9fa190ce",
+      "markdownSha256": "ba60c4f1e6ac1aa2022e4c195809c6b46b403fbc3100f81286053fba48443364",
+      "payloadSha256": "05de3661001e7cc5463505403bc180103967c831a03d0e4ac4ff1cdba1eaf21e",
+      "transcriptSha256": "2b632dbc346876de0ce1a2e9e3f4e167b82c13fb2881bd7c9ae78f73c324b1e8",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 19.5909,
+      "requestCount": 11,
+      "unusedRoutes": [
+        "GET /repos/jqlang/jq/statuses/65f4b31f9148dced73f782ff21c024539776eae6?per_page=100"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/pulls/3432",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/pulls/3432/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/5101141/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs?page=2",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/statuses/65f4b31f9148dced73f782ff21c024539776eae6?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/branches/master",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/branches/master/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/rules/branches/master?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "public-ready-02/release-evidence.json": "4a13a2fbfa7c6728b554d56275725ee5d9928423921aa81f3df532ad9fa190ce",
+        "public-ready-02/release-evidence.md": "ba60c4f1e6ac1aa2022e4c195809c6b46b403fbc3100f81286053fba48443364",
+        "public-ready-02/payload.json": "05de3661001e7cc5463505403bc180103967c831a03d0e4ac4ff1cdba1eaf21e",
+        "public-ready-02/transcript.json": "2b632dbc346876de0ce1a2e9e3f4e167b82c13fb2881bd7c9ae78f73c324b1e8"
+      }
+    },
+    {
+      "caseId": "public-ready-03",
+      "datasetPath": "public-ready-03/input.json",
+      "datasetSha256": "9a1740635e856f4c52a9e1402d0939ff06bb495db99c01d2b7778e5596f77483",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "public-ready-03/release-evidence.json",
+      "markdownPath": "public-ready-03/release-evidence.md",
+      "payloadPath": "public-ready-03/payload.json",
+      "transcriptPath": "public-ready-03/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "eab9da1fa58b98c6d0ce7e933630fa5b81164d462e7699ced38fc222e90e0c43",
+      "markdownSha256": "4793f77385cc66028664185e3de9ff76f3992845a14c836eabe80a7493e7f109",
+      "payloadSha256": "6c5cf29c9bcd923f6b43bfa5588110040871afdbac52ba504542955be3c7e29d",
+      "transcriptSha256": "453b52621eb94b40a9480324f688cbc6d8dec162c0102e5eb2d231397ca9ae63",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 8.5079,
+      "requestCount": 10,
+      "unusedRoutes": [
+        "GET /repos/jqlang/jq/statuses/88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8?per_page=100"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/pulls/3641",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/pulls/3641/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/commits/88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/statuses/88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/commits/88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/branches/master",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/branches/master/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/jqlang/jq/rules/branches/master?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "public-ready-03/release-evidence.json": "eab9da1fa58b98c6d0ce7e933630fa5b81164d462e7699ced38fc222e90e0c43",
+        "public-ready-03/release-evidence.md": "4793f77385cc66028664185e3de9ff76f3992845a14c836eabe80a7493e7f109",
+        "public-ready-03/payload.json": "6c5cf29c9bcd923f6b43bfa5588110040871afdbac52ba504542955be3c7e29d",
+        "public-ready-03/transcript.json": "453b52621eb94b40a9480324f688cbc6d8dec162c0102e5eb2d231397ca9ae63"
+      }
+    }
+  ]
+}
