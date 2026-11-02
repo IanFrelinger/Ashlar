@@ -79,7 +79,7 @@ internal static class WitnessRunner
     /// <summary>
     /// Judges a MUTANT unit's observations with exactly the in-process mutant semantics
     /// (<c>MutantWitnessExecutor</c>): any throw, missing key, or mismatch kills. Actual
-    /// values are unwrapped from their JSON transport shape before the comparer so a
+    /// values are unwrapped from their JSON transport shape by the shared comparer so a
     /// transport artifact can never masquerade as a kill — a vacuous kill is the exact
     /// failure mode the mutation gate exists to prevent.
     /// </summary>
@@ -98,7 +98,7 @@ internal static class WitnessRunner
                 if (!ProjectObservation(observation).TryGetValue(key, out var actual) || actual is null)
                     return false;
 
-                if (!WitnessValueComparer.AreEqual(expected, UnwrapJson(actual)))
+                if (!WitnessValueComparer.AreEqual(expected, actual))
                     return false;
             }
         }
@@ -120,15 +120,11 @@ internal static class WitnessRunner
         {
             outputs[key] = value is JsonElement el
                 ? el.GetRawText()
-                : Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture);
+                : JsonSerializer.Serialize(value);
         }
 
         return JsonSerializer.Serialize(new object?[] { observation.Summary, observation.Threw, outputs });
     }
-
-    /// <summary>Unwraps a JSON transport value to its CLR shape; non-JSON values pass through.</summary>
-    public static object UnwrapJson(object value) =>
-        value is JsonElement el ? FromJsonElement(el) : value;
 
     /// <summary>Run asynchronously.</summary>
     public static async Task<WitnessRunResult> RunAsync(
@@ -212,48 +208,8 @@ internal static class WitnessRunner
         return (firstJson == secondJson, firstJson, secondJson);
     }
 
-    private static bool ValuesEqual(object expected, object actual)
-    {
-        if (expected is JsonElement expectedEl && actual is not JsonElement)
-            return ValuesEqual(FromJsonElement(expectedEl), actual);
-        if (actual is JsonElement actualEl && expected is not JsonElement)
-            return ValuesEqual(expected, FromJsonElement(actualEl));
-
-        // A witness pins EXACT output — no coercion across kinds. Integer and boolean are
-        // matched type-first (if either side is integral/boolean, both must be), so a double
-        // never rounds into an int (2.4 == 2) and an int never equals its decimal string or a
-        // bool. Mirror of WitnessValueComparer.AreEqual.
-        var expectedIsInt = expected is int or long or short or byte;
-        var actualIsInt = actual is int or long or short or byte;
-        if (expectedIsInt || actualIsInt)
-        {
-            if (!(expectedIsInt && actualIsInt))
-            {
-                return false;
-            }
-            return Convert.ToInt64(expected) == Convert.ToInt64(actual);
-        }
-
-        if (expected is bool || actual is bool)
-        {
-            return expected is bool eb && actual is bool ab && eb == ab;
-        }
-
-        return string.Equals(
-            Convert.ToString(expected, System.Globalization.CultureInfo.InvariantCulture),
-            Convert.ToString(actual, System.Globalization.CultureInfo.InvariantCulture),
-            StringComparison.Ordinal);
-    }
-
-    private static object FromJsonElement(JsonElement el) => el.ValueKind switch
-    {
-        JsonValueKind.String => el.GetString()!,
-        JsonValueKind.Number when el.TryGetInt64(out var l) => l,
-        JsonValueKind.Number => el.GetDouble(),
-        JsonValueKind.True => true,
-        JsonValueKind.False => false,
-        _ => el.GetRawText()
-    };
+    private static bool ValuesEqual(object expected, object actual) =>
+        WitnessValueComparer.AreEqual(expected, actual);
 
     /// <summary>
     /// Renders a witness value for a failure message. Distinguishing null from the empty
