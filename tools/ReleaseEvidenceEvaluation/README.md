@@ -46,6 +46,35 @@ status with the bare paths captured in this dataset. The replay transport can ad
 in a container with networking disabled after dependencies are available; the wrapper itself does
 not claim to create an agent sandbox or confine other processes.
 
+To repeat the phase's network-disabled replay, first populate dependencies through the supported
+container build. Then put this temporary wrapper ahead of Docker on `PATH` (retain any required
+managed-environment CA wrapper as `ASHLAR_EVALUATION_REAL_DOCKER`):
+
+```bash
+export ASHLAR_EVALUATION_REAL_DOCKER="$(command -v docker)"
+eval_docker_dir="$(mktemp -d)"
+cat > "$eval_docker_dir/docker" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == run ]]; then
+  shift
+  exec "$ASHLAR_EVALUATION_REAL_DOCKER" run --network none --memory 6g --security-opt no-new-privileges "$@"
+fi
+exec "$ASHLAR_EVALUATION_REAL_DOCKER" "$@"
+SH
+chmod +x "$eval_docker_dir/docker"
+PATH="$eval_docker_dir:$PATH" ASHLAR_DEVTEST_IMAGE=ashlar-devtest:slim \
+  bash tools/ReleaseEvidenceEvaluation/run-replay.sh \
+  --candidate-commit b4b77b7f47975c64873dd8dc458329a584228d36 --allow-candidate-rerun \
+  --fixture-manifest tools/ReleaseEvidenceEvaluation/input-manifest.json \
+  --ground-truth tools/ReleaseEvidenceEvaluation/review/adjudicated-ground-truth.json \
+  --output /tmp/new-final-replay
+rm -rf "$eval_docker_dir"
+```
+
+An empty package cache will fail offline; a failed build is not an accuracy result. This restriction
+applies to that disposable replay container, not to an agent or the live GitHub collection path.
+
 ## Input and sequencing contract
 
 Each case has an `id`, PR `target` URL, `credentialSupplied` boolean, optional

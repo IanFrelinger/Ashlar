@@ -1,6 +1,8 @@
 # Release-evidence evaluation plan
 
-Status: **planned, not executed or independently reviewed**. This plan is for the open
+Status: **executed on 2026-11-02**, with frozen inputs and two separately contextualized AI
+reviewers; no human/customer review is claimed. The [evaluation report](release-evidence-evaluation-2026-11-02.md)
+retains original failures, repair results and remaining gaps. This plan is for the open
 read-only PR evidence pack. The existing [blockers accuracy study](blockers-accuracy.md)
 does not establish this pack's assurance accuracy or cover the failure cases below.
 Unit tests and a stub MCP server validate development behavior; they are not user research
@@ -23,7 +25,8 @@ records rationale. Cases whose policy cannot be established get an explicit unkn
 ground-truth label; missing permission is never labeled ready by absence of a visible rule.
 Synthetic cases require a reviewer to inspect their intended policy and exact responses.
 
-The following is a minimum allocation, not a claim that these fixtures already exist:
+The following preregistered minimum allocation was implemented as 30 synthetic cases, with
+six additional public captures across three repositories. See the report for frozen manifests:
 
 | Cases | Count | Required variation |
 |---|---:|---|

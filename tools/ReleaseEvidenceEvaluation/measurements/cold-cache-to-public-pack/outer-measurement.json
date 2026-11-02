@@ -1,0 +1,6 @@
+{
+  "startedAt": "2026-11-02T01:09:59.262385+00:00",
+  "secondsIncludingContainerCloneBuildCollectionTeardown": 82.66805714899965,
+  "exitCode": 0,
+  "excluded": "Docker image pull and SDK installation (both already present)"
+}

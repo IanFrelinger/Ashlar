@@ -1,0 +1,22 @@
+  Determining projects to restore...
+  Restored /repo/src/Ashlar.Abstractions/Ashlar.Abstractions.csproj (in 12.03 sec).
+  Restored /repo/src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj (in 12.11 sec).
+  Restored /repo/src/Ashlar.Core.Application/Ashlar.Core.Application.csproj (in 12.1 sec).
+  Restored /repo/src/Ashlar.Analyzers/Ashlar.Analyzers.csproj (in 12.21 sec).
+  Restored /repo/src/Ashlar.Tools.Dev/Ashlar.Tools.Dev.csproj (in 163 ms).
+  Restored /repo/src/Ashlar.Policies/Ashlar.Policies.csproj (in 105 ms).
+  Restored /repo/src/Ashlar.Tools.Assembly/Ashlar.Tools.Assembly.csproj (in 378 ms).
+  Restored /repo/src/Ashlar.Runtime/Ashlar.Runtime.csproj (in 679 ms).
+  Restored /repo/src/Ashlar.Orchestration/Ashlar.Orchestration.csproj (in 1.07 sec).
+  Restored /repo/src/Ashlar.Mcp.Server/Ashlar.Mcp.Server.csproj (in 1.04 sec).
+  Restored /repo/src/Ashlar.BackgroundAgents/Ashlar.BackgroundAgents.csproj (in 15.56 sec).
+  Restored /repo/src/Ashlar.Infrastructure/Ashlar.Infrastructure.csproj (in 1.5 sec).
+  Restored /repo/src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj (in 2.53 sec).
+  Restored /repo/src/Ashlar.Contracts/Ashlar.Contracts.csproj (in 9 ms).
+  Restored /repo/src/Ashlar.Mcp.Bricks/Ashlar.Mcp.Bricks.csproj (in 1.87 sec).
+  Restored /repo/src/Ashlar.Core.Domain/Ashlar.Core.Domain.csproj (in 30 ms).
+  Restored /repo/src/Ashlar.Brick.Contracts/Ashlar.Brick.Contracts.csproj (in 6 ms).
+  Restored /repo/src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj (in 18 ms).
+  Restored /repo/src/Ashlar.Certification.Contracts/Ashlar.Certification.Contracts.csproj (in 11 ms).
+  Restored /repo/src/Ashlar.Transport.Grpc/Ashlar.Transport.Grpc.csproj (in 3.71 sec).
+  Restored /repo/src/Ashlar.Hosting/Ashlar.Hosting.csproj (in 722 ms).

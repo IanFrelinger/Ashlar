@@ -345,8 +345,11 @@ did not change the .NET implementation validated above.
 
 ## Remaining validation boundaries
 
-The independently reviewed 30-snapshot evaluation is planned, not executed. Current fixture
-and unit results do not satisfy that evaluation gate. No attended operator-key custody proof,
+At this batch's delivery, the independently reviewed evaluation was planned, not executed;
+its fixture and unit results did not satisfy that gate. The subsequent
+[2026-11-02 evaluation](benchmarks/release-evidence-evaluation-2026-11-02.md) executed 36 cases
+with separate AI review, retained initial failures and repaired reruns, and disclosed remaining
+coverage gaps. It does not claim human/customer validation. No attended operator-key custody proof,
 seven-day threshold window, real loop-produced human-reviewed PR, customer pilot, release or
 deployment was produced by the checks above. Existing marketing/autonomy holds remain in force.
 
@@ -354,8 +357,7 @@ The P3 operator-to-certification identity bridge, P4 durable selected-workflow t
 P5's end-to-end .NET agent-framework MCP example and
 compatibility CI were **not implemented in this batch**; they are remaining engineering work,
 not presented as externally blocked or complete. Receiver-side mesh test reruns remain deferred
-pending a concrete use case. The independent 30-snapshot evaluation needs reviewed ground truth
-and adjudication; operator custody needs the owner's attended key; seven-day scorecard evidence
+pending a concrete use case. Operator custody needs the owner's attended key; seven-day scorecard evidence
 requires elapsed runs and review; and the real loop-produced PR needs human review. Those are
 distinct dependencies from the implementation work still outstanding. Customer pilots/data and
 outreach require separate authorization.

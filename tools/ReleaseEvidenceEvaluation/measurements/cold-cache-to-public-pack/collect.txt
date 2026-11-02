@@ -1,0 +1,101 @@
+info: ModelContextProtocol.Server.StdioServerTransport[857250842]
+      Server (stream) (ashlar) transport reading messages.
+info: Ashlar.Egress[7302]
+      Ashlar egress mode: report (basis profile:full; profile full, defaulted because nothing set it). HTTP, governed model routes and explicit sites honor enforcement; named operator file exports report unless mode resolution faults.
+info: System.Net.Http.HttpClient.OllamaModelServingBackend.LogicalHandler[100]
+      Start processing HTTP request GET http://127.0.0.1:11434/api/tags
+info: System.Net.Http.HttpClient.OllamaModelServingBackend.ClientHandler[100]
+      Sending HTTP request GET http://127.0.0.1:11434/api/tags
+info: System.Net.Http.HttpClient.OllamaModelServingBackend.ClientHandler[104]
+      HTTP request failed after 3.5878ms
+      System.Net.Http.HttpRequestException: Connection refused (127.0.0.1:11434)
+       ---> System.Net.Sockets.SocketException (111): Connection refused
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+         at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.InjectNewHttp11ConnectionAsync(QueueItem queueItem)
+         at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+         at System.Net.Http.SocketsHttpHandler.<SendAsync>g__CreateHandlerAndSendAsync|118_0(HttpRequestMessage request, CancellationToken cancellationToken)
+         at Ashlar.Abstractions.Security.Egress.EgressRedirectHandler.FollowAsync(HttpRequestMessage request, CancellationToken cancellationToken) in /repo/src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs:line 78
+         at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
+info: System.Net.Http.HttpClient.OllamaModelServingBackend.LogicalHandler[104]
+      HTTP request failed after 28.0632ms
+      System.Net.Http.HttpRequestException: Connection refused (127.0.0.1:11434)
+       ---> System.Net.Sockets.SocketException (111): Connection refused
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+         at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.InjectNewHttp11ConnectionAsync(QueueItem queueItem)
+         at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+         at System.Net.Http.SocketsHttpHandler.<SendAsync>g__CreateHandlerAndSendAsync|118_0(HttpRequestMessage request, CancellationToken cancellationToken)
+         at Ashlar.Abstractions.Security.Egress.EgressRedirectHandler.FollowAsync(HttpRequestMessage request, CancellationToken cancellationToken) in /repo/src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs:line 78
+         at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
+         at Ashlar.Abstractions.Security.Egress.EgressGuardHandler.FinishAsync(HttpRequestMessage request, Task`1 send) in /repo/src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs:line 95
+         at Ashlar.Abstractions.Security.Egress.EgressGuardHandler.SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) in /repo/src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs:line 79
+         at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
+warn: Ashlar.Infrastructure.NodeCapabilityRuntime.NcrStartupHealthService[0]
+      NCR startup health check degraded: failed to reach Ollama backend. Verify Ashlar:NodeCapabilityRuntime:Ollama:BaseUrl and Ollama service availability.
+      System.Net.Http.HttpRequestException: Connection refused (127.0.0.1:11434)
+       ---> System.Net.Sockets.SocketException (111): Connection refused
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+         at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+         at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.InjectNewHttp11ConnectionAsync(QueueItem queueItem)
+         at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+         at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+         at System.Net.Http.SocketsHttpHandler.<SendAsync>g__CreateHandlerAndSendAsync|118_0(HttpRequestMessage request, CancellationToken cancellationToken)
+         at Ashlar.Abstractions.Security.Egress.EgressRedirectHandler.FollowAsync(HttpRequestMessage request, CancellationToken cancellationToken) in /repo/src/Ashlar.Abstractions/Security/Egress/EgressRedirectHandler.cs:line 78
+         at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
+         at Ashlar.Abstractions.Security.Egress.EgressGuardHandler.FinishAsync(HttpRequestMessage request, Task`1 send) in /repo/src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs:line 95
+         at Ashlar.Abstractions.Security.Egress.EgressGuardHandler.SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) in /repo/src/Ashlar.Abstractions/Security/Egress/EgressGuardHandler.cs:line 79
+         at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
+         at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+         at Ashlar.Infrastructure.NodeCapabilityRuntime.Backends.OllamaModelServingBackend.IsAvailableAsync(CancellationToken ct) in /repo/src/Ashlar.Infrastructure/NodeCapabilityRuntime/Backends/OllamaModelServingBackend.cs:line 43
+         at Ashlar.Infrastructure.NodeCapabilityRuntime.NcrStartupHealthService.StartAsync(CancellationToken cancellationToken) in /repo/src/Ashlar.Infrastructure/NodeCapabilityRuntime/NcrStartupHealthService.cs:line 41
+info: Ashlar.Mcp.Server.AshlarMcpToolBridge[0]
+      MCP tool catalog validated. ToolCount=1
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /repo
+info: ModelContextProtocol.Server.McpServer[570385771]
+      Server (ashlar 1.0.0+47a7c8506b89670d977265ce342a962d35858cd5) method 'initialize' request handler called.
+info: ModelContextProtocol.Server.McpServer[570385771]
+      Server (ashlar 1.0.0+47a7c8506b89670d977265ce342a962d35858cd5), Client (ashlar-pr-blockers-action 1) method 'tools/call' request handler called.
+info: ModelContextProtocol.Server.McpServer[1867955179]
+      Server (ashlar 1.0.0+47a7c8506b89670d977265ce342a962d35858cd5), Client (ashlar-pr-blockers-action 1) method 'initialize' request handler completed in 27.6866ms.
+info: Ashlar.Bricks.GitHub.GitHubBlockersBrick[0]
+      github.blockers https://github.com/IanFrelinger/Ashlar/pull/900: blocked, 3 blocker(s), 1 unknown(s)
+info: Ashlar.Mcp.Bricks.BrickMcpToolContributor[0]
+      MCP brick audit record written. AuditId=0d313de488a4422780603aad137ffc34 Session=64ebda2f87374cb69bf4ad56b1ce8410 Seq=1 RecordSha256=c30c6bfeb0445af3364e5217823ea7e7554e5e95f1c6c31f5419e45d62435a34
+info: Ashlar.Mcp.Server.AshlarMcpToolBridge[0]
+      MCP tool call completed. Tool=github.blockers Caller=anonymous IsError=False DurationMs=5016
+info: ModelContextProtocol.Server.McpServer[2065726448]
+      "github_blockers" completed. IsError = False.
+info: ModelContextProtocol.Server.McpServer[1867955179]
+      Server (ashlar 1.0.0+47a7c8506b89670d977265ce342a962d35858cd5), Client (ashlar-pr-blockers-action 1) method 'tools/call' request handler completed in 5065.2913ms.
+info: ModelContextProtocol.Server.StdioServerTransport[1221292038]
+      Server (stream) (ashlar) transport completed reading messages.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: ModelContextProtocol.Server.StdioServerTransport[1375634372]
+      Server (stream) (ashlar) shutting down.
+info: ModelContextProtocol.Server.StdioServerTransport[1256455528]
+      Server (stream) (ashlar) shut down.
+Ashlar github.blockers: blocked
