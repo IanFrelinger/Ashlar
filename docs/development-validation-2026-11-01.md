@@ -240,7 +240,7 @@ for exact cases, supported path and remaining limitations. Session evidence:
 `/workspace/scratch/live-evidence/certification/{baseline-red.log,baseline-red.trx,fixed-green.log,fixed-green.trx}`.
 
 The final certification implementation (`2e0d237068af156e94612a8f2e89c56aea788196`) passed
-the CI-target command `bash scripts/cert-gate.sh` on `.NET 8`: **3,756 passed, 0 failed,
+the CI-target command `bash scripts/run-cert-gate.sh` on `.NET 8`: **3,756 passed, 0 failed,
 0 skipped**, total time **9.2228 minutes**. Its
 list-derived nonzero floor (`expected >= 3751`) and zero-skip baseline guard both passed.
 The retained `/workspace/scratch/live-evidence/cert-gate-net8.trx` was independently parsed:
