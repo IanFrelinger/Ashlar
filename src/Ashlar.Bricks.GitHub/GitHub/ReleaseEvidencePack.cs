@@ -81,6 +81,7 @@ internal static class ReleaseEvidence
                 $"https://api.github.com/repos/{repository}/branches/{Uri.EscapeDataString(pr.BaseRef)}/protection/required_status_checks",
                 $"https://api.github.com/repos/{repository}/branches/{Uri.EscapeDataString(pr.BaseRef)}/protection/required_pull_request_reviews",
                 $"https://api.github.com/repos/{repository}/rules/branches/{Uri.EscapeDataString(pr.BaseRef)}",
+                $"https://api.github.com/repos/{repository}/branches/{Uri.EscapeDataString(pr.BaseRef)}",
             };
             Add("required-check-policy", pr.Protection.RequiredChecks is null ? "unknown" : "pass",
                 pr.Protection.RequiredChecks is null ? "The complete required-check list could not be read; GitHub mergeability alone does not establish assurance."
