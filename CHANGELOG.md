@@ -17,6 +17,25 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — read-only pull-request evidence
+
+- The existing `github.blockers` brick and PR-blockers Action export schema 1.0 JSON and Markdown
+  snapshots, retaining the legacy verdict and adding conservative scoped assurance. Unreadable policy,
+  incomplete identities, unsupported rules and circular required checks cannot pass assurance.
+- The MCP host can hold a read credential scoped to one repository, outside model-visible arguments.
+  This restricts these GitHub bricks; it does not sandbox an agent's other tools or network access.
+- `scripts/evidence-export.py` optionally signs exported evidence and audit bytes with Ed25519.
+  Verification requires a previously trusted public key and an independently retained manifest hash.
+  Signatures establish retained bytes and signer identity, not evidence truth or release authorization.
+
+### Fixed — witness kinds and retained dogfood evidence
+
+- Correctness and mutation judges share type-aware witness comparison, including JSON transport kinds;
+  session comparison and loaded aggregate witnesses preserve kinds. Existing signatures are not revoked:
+  prior records need recertification to establish these stronger semantics.
+- Dogfood classification checks that cited record bytes still match their retained hash. Workflow outputs
+  are passed as data to shell steps. Readiness documentation preserves the autonomy/design-partner hold.
+
 ### Added — a three-node private-mesh demo
 
 - **`scripts/demo/private-mesh-demo.sh`** runs three nodes from `deploy/compose/docker-compose.private-mesh-demo.yml`.

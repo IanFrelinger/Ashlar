@@ -152,5 +152,5 @@ instruction discovery, `scripts/ctx.py` queries and bounded source reads in the 
 `/workspace/Ashlar` clone on Linux. Remote reads used the connected GitHub tools. Artifact
 inspection used Python `zipfile`, `json` and SHA-256 and matched both digests above.
 No host `dotnet` was run. Focused implementation tests, adversarial reproduction outcomes
-and final repository checks are recorded with the implementation delivery; remote green
+and final repository checks are recorded in the [validation record](development-validation-2026-11-01.md); remote green
 results above must not be reused as validation of uncommitted changes.
