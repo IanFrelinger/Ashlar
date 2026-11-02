@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "1.0",
+  "repository": "dotnet/runtime",
+  "pullRequest": 136790,
+  "url": "https://github.com/dotnet/runtime/pull/136790",
+  "headSha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+  "baseRef": "main",
+  "baseSha": "f368d14df0c3905d3b80073d709685af83ba895d",
+  "collectionStartedAt": "2026-11-02T02:01:00.470744\u002B00:00",
+  "collectedAt": "2026-11-02T02:01:00.559324\u002B00:00",
+  "ashlarVersion": "0.4.2\u002B7bf31595b7b67940f62441ecb29d132c1561d0ec",
+  "brickVersion": "1.3.1",
+  "auditId": null,
+  "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+  "authorization": {
+    "credential": "not-supplied-to-brick",
+    "effectivePermissions": "not-enumerated",
+    "authenticatedActor": "unknown"
+  },
+  "verdict": "blocked",
+  "assurance": "fail",
+  "findings": [
+    {
+      "id": "blocker-1",
+      "status": "fail",
+      "required": true,
+      "explanation": "0 of 1 required approving reviews.",
+      "sources": [
+        "https://github.com/dotnet/runtime/pull/136790"
+      ]
+    },
+    {
+      "id": "head-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "A 40-character hexadecimal head commit was observed at collection start.",
+      "sources": [
+        "https://github.com/dotnet/runtime/pull/136790"
+      ]
+    },
+    {
+      "id": "base-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+      "sources": [
+        "https://github.com/dotnet/runtime/pull/136790"
+      ]
+    },
+    {
+      "id": "collection-consistency",
+      "status": "pass",
+      "required": true,
+      "explanation": "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+      "sources": [
+        "https://github.com/dotnet/runtime/pull/136790"
+      ]
+    },
+    {
+      "id": "required-check-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check names were read from GitHub policy sources.",
+      "sources": [
+        "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_status_checks",
+        "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+        "https://api.github.com/repos/dotnet/runtime/rules/branches/main",
+        "https://api.github.com/repos/dotnet/runtime/branches/main"
+      ]
+    },
+    {
+      "id": "rulesets",
+      "status": "pass",
+      "required": true,
+      "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+      "sources": [
+        "https://api.github.com/repos/dotnet/runtime/rules/branches/main"
+      ]
+    },
+    {
+      "id": "required-check-origin",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Required check app/provider bindings could not be verified; a matching check name alone is insufficient.",
+      "sources": [
+        "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_status_checks",
+        "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+        "https://api.github.com/repos/dotnet/runtime/rules/branches/main",
+        "https://api.github.com/repos/dotnet/runtime/branches/main"
+      ]
+    },
+    {
+      "id": "unsupported-rule-7",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Detected mandatory rule \u0060deletion\u0060 is outside this collector\u0027s supported policy evaluation.",
+      "sources": [
+        "https://api.github.com/repos/dotnet/runtime/rules/branches/main"
+      ]
+    },
+    {
+      "id": "unsupported-rule-8",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Detected mandatory rule \u0060non_fast_forward\u0060 is outside this collector\u0027s supported policy evaluation.",
+      "sources": [
+        "https://api.github.com/repos/dotnet/runtime/rules/branches/main"
+      ]
+    },
+    {
+      "id": "unsupported-rule-9",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Detected mandatory rule \u0060creation\u0060 is outside this collector\u0027s supported policy evaluation.",
+      "sources": [
+        "https://api.github.com/repos/dotnet/runtime/rules/branches/main"
+      ]
+    },
+    {
+      "id": "approval-policy",
+      "status": "fail",
+      "required": true,
+      "explanation": "GitHub reports required review approval as unsatisfied.",
+      "sources": [
+        "https://github.com/dotnet/runtime/pull/136790"
+      ]
+    },
+    {
+      "id": "required-check-12",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Observations named \u0060license/cla\u0060 could not be bound to the required app/provider; their conclusions do not establish satisfaction or failure of that requirement.",
+      "sources": [
+        "https://github.com/dotnet/runtime/runs/124931190368"
+      ]
+    },
+    {
+      "id": "required-check-13",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Observations named \u0060Build Analysis\u0060 could not be bound to the required app/provider; their conclusions do not establish satisfaction or failure of that requirement.",
+      "sources": [
+        "https://github.com/dotnet/runtime/runs/124957584414"
+      ]
+    }
+  ],
+  "limitations": [
+    "Human release decision required; this pack does not prove compliance or authorize a release.",
+    "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+    "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+    "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+    "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+  ],
+  "freshness": {
+    "collectionConsistency": "stable",
+    "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+  }
+}
