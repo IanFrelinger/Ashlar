@@ -219,7 +219,7 @@ internal sealed class GitHubBlockerReader
         var statuses = await Try(() => _client.Repository.Status.GetCombined(t.Owner, t.Repo, sha), "Commit statuses", unknowns).ConfigureAwait(false);
         return new CiFacts(
             sha,
-            checks.Items?.Select(c => new CheckFact(c.Name!, c.Status!, c.Conclusion, c.HtmlUrl)).ToList(),
+            checks.Items?.Select(c => new CheckFact(c.Name!, c.Status!, c.Conclusion, c.HtmlUrl, RequiredCheckEvaluation.PositiveProviderId(c.App?.Id))).ToList(),
             checks.Reported,
             statuses?.Statuses?.Select(s => new StatusFact(s.Context, s.State.StringValue, s.TargetUrl, s.Description)).ToList(),
             statuses?.TotalCount ?? 0, checks.Complete);
@@ -334,8 +334,8 @@ internal sealed class GitHubBlockerReader
             .Select(r => r.Type!).Distinct(StringComparer.Ordinal).ToList();
         var rulesAdditionalReviews = rules?.Where(r => r.Type == "pull_request").Any(r =>
             r.Parameters!.RequireCodeOwnerReviews != false || r.Parameters.RequireLastPushApproval != false || r.Parameters.DismissStaleReviews != false) != false;
-        var ruleOriginsKnown = rules is not null && rules.Where(r => r.Type == "required_status_checks")
-            .SelectMany(r => r.Parameters!.RequiredStatusChecks!).All(c => c.IntegrationIdRead && (c.IntegrationId is null or -1));
+        var ruleRequirements = rules?.Where(r => r.Type == "required_status_checks")
+            .SelectMany(r => ReadBindings(r.Parameters!.RequiredStatusChecks!, integration: true)).ToList();
         var rulesChecks = rules?
             .Where(r => r.Type == "required_status_checks")
             .SelectMany(r => r.Parameters?.RequiredStatusChecks ?? [])
@@ -352,7 +352,9 @@ internal sealed class GitHubBlockerReader
             return new ProtectionFacts(
                 adminChecks.Names.Union(rulesChecks ?? [], StringComparer.Ordinal).ToList(),
                 Math.Max(adminApprovals.Count, rulesApprovals ?? 0), pull?.ReviewDecision, RulesRead: rules is not null,
-                RequiredCheckOriginsKnown: adminChecks.OriginsKnown && ruleOriginsKnown, UnsupportedRules: unsupportedRules, AdditionalReviewRules: adminApprovals.AdditionalRules || rulesAdditionalReviews);
+                RequiredCheckOriginsKnown: adminChecks.Requirements.All(r => r.OriginKnown) && ruleRequirements?.All(r => r.OriginKnown) == true,
+                UnsupportedRules: unsupportedRules, AdditionalReviewRules: adminApprovals.AdditionalRules || rulesAdditionalReviews,
+                CheckRequirements: adminChecks.Requirements.Concat(ruleRequirements ?? []).Distinct().ToList());
         }
 
         var summaryChecks = adminChecks is null ? await ReadProtectionSummaryChecksAsync(t, branch).ConfigureAwait(false) : adminChecks;
@@ -362,7 +364,9 @@ internal sealed class GitHubBlockerReader
 
         int? approvals = adminApprovals is null ? rulesApprovals : rulesApprovals is null ? null : Math.Max(adminApprovals.Count, rulesApprovals.Value);
         return new ProtectionFacts(checks, approvals, pull?.ReviewDecision, ApprovalsPartial: adminApprovals is null && approvals is not null, RulesRead: rules is not null,
-            RequiredCheckOriginsKnown: summaryChecks?.OriginsKnown == true && ruleOriginsKnown, UnsupportedRules: unsupportedRules, AdditionalReviewRules: adminApprovals?.AdditionalRules != false || rulesAdditionalReviews);
+            RequiredCheckOriginsKnown: summaryChecks?.Requirements.All(r => r.OriginKnown) == true && ruleRequirements?.All(r => r.OriginKnown) == true,
+            UnsupportedRules: unsupportedRules, AdditionalReviewRules: adminApprovals?.AdditionalRules != false || rulesAdditionalReviews,
+            CheckRequirements: MergeRequirements(summaryChecks?.Requirements, ruleRequirements, pull?.RequiredContexts));
     }
 
     private async Task<List<RuleDto>?> ReadRulesAsync(GitHubTarget t, string branch)
@@ -372,8 +376,8 @@ internal sealed class GitHubBlockerReader
             var response = await _client.Connection.Get<List<RuleDto>>(
                 new Uri($"repos/{t.Owner}/{t.Repo}/rules/branches/{Uri.EscapeDataString(branch)}", UriKind.Relative),
                 new Dictionary<string, string> { ["per_page"] = "100" }).ConfigureAwait(false);
-            return response.Body is { Count: < 100 } rules && rules.All(r => !string.IsNullOrWhiteSpace(r.Type)
-                && (r.Type != "required_status_checks" || r.Parameters?.RequiredStatusChecks is { } checks && checks.All(c => !string.IsNullOrWhiteSpace(c.Context)))
+            return response.Body is { Count: < 100 } rules && rules.All(r => r is not null && !string.IsNullOrWhiteSpace(r.Type)
+                && (r.Type != "required_status_checks" || r.Parameters?.RequiredStatusChecks is { } checks && checks.All(c => c is not null && !string.IsNullOrWhiteSpace(c.Context)))
                 && (r.Type != "pull_request" || r.Parameters?.RequiredApprovingReviewCount is >= 0)) ? rules : null;
         }
         catch (Exception ex) when (IsReadFailure(ex) || IsParseFailure(ex))
@@ -393,9 +397,9 @@ internal sealed class GitHubBlockerReader
                 return null;
             var required = response.Body.Protection?.RequiredStatusChecks;
             if (required is null)
-                return response.Body.Protected == false ? new RequiredChecksRead([], true) : null;
+                return response.Body.Protected == false ? new RequiredChecksRead([], []) : null;
             if (string.Equals(required.EnforcementLevel, "off", StringComparison.OrdinalIgnoreCase))
-                return new RequiredChecksRead([], true);
+                return new RequiredChecksRead([], []);
             return ReadCheckNames(required);
         }
         catch (Exception ex) when (IsReadFailure(ex) || IsParseFailure(ex))
@@ -462,7 +466,7 @@ internal sealed class GitHubBlockerReader
         }
         catch (NotFoundException ex) when (SaysRuleAbsent(ex))
         {
-            return new RequiredChecksRead([], true);
+            return new RequiredChecksRead([], []);
         }
         catch (Exception ex) when (IsReadFailure(ex))
         {
@@ -470,20 +474,53 @@ internal sealed class GitHubBlockerReader
         }
     }
 
-    private sealed record RequiredChecksRead(IReadOnlyList<string> Names, bool OriginsKnown);
+    private sealed record RequiredChecksRead(IReadOnlyList<string> Names, IReadOnlyList<RequiredCheckRequirement> Requirements);
+
+    private static IReadOnlyList<RequiredCheckRequirement> MergeRequirements(
+        IReadOnlyList<RequiredCheckRequirement>? branch, IReadOnlyList<RequiredCheckRequirement>? rules, IReadOnlyList<string>? graphNames)
+    {
+        var result = (branch ?? []).Concat(rules ?? []).Distinct().ToList();
+        foreach (var name in graphNames ?? [])
+            if (!result.Any(r => r.Name == name))
+                result.Add(new RequiredCheckRequirement(name, null, false));
+        return result;
+    }
+
+    private static IReadOnlyList<RequiredCheckRequirement> ReadBindings(IReadOnlyList<StatusCheckDto> checks, bool integration)
+    {
+        return checks.GroupBy(c => c.Context!, StringComparer.Ordinal).Select(group =>
+        {
+            var bindings = group.Select(c =>
+            {
+                var read = integration ? c.IntegrationIdRead : c.AppIdRead;
+                var id = integration ? c.IntegrationId : c.AppId;
+                var otherRead = integration ? c.AppIdRead : c.IntegrationIdRead;
+                var other = integration ? c.AppId : c.IntegrationId;
+                // -1 is documented for branch protection, not for ruleset integration_id.
+                var numeric = RequiredCheckEvaluation.ReadProviderId(id, out var appId);
+                var otherNumeric = RequiredCheckEvaluation.ReadProviderId(other, out var otherId);
+                var valid = read && numeric && (appId is null or > 0 || !integration && appId == -1)
+                    && (!otherRead || otherNumeric && otherId == appId);
+                return new RequiredCheckRequirement(group.Key, appId == -1 ? null : appId, valid);
+            }).Distinct().ToArray();
+            // Conflicting or incomplete duplicate bindings within one source never become unbound.
+            return bindings.Length == 1 ? bindings[0] : new RequiredCheckRequirement(group.Key, null, false);
+        }).ToArray();
+    }
 
     private static RequiredChecksRead? ReadCheckNames(RequiredStatusChecksDto required)
     {
         if (required.Contexts is null && required.Checks is null)
             return null;
-        if (required.Checks?.Any(c => string.IsNullOrWhiteSpace(c.Context)) == true)
+        if (required.Checks?.Any(c => c is null || string.IsNullOrWhiteSpace(c.Context)) == true || required.Contexts?.Any(string.IsNullOrWhiteSpace) == true)
             return null;
         var names = (required.Contexts ?? []).Concat((required.Checks ?? []).Select(c => c.Context!))
             .Distinct(StringComparer.Ordinal).ToList();
-        var originsKnown = names.Count == 0 || required.Checks is not null
-            && names.All(n => required.Checks.Any(c => c.Context == n))
-            && required.Checks.All(c => c.AppIdRead && (c.AppId is null or -1));
-        return new RequiredChecksRead(names, originsKnown);
+        var bindings = ReadBindings(required.Checks ?? [], integration: false).ToList();
+        foreach (var name in names)
+            if (!bindings.Any(r => r.Name == name))
+                bindings.Add(new RequiredCheckRequirement(name, null, false));
+        return new RequiredChecksRead(names, bindings);
     }
 
     private async Task<ApprovalsRead?> ReadRequiredApprovalsAsync(GitHubTarget t, string branch)

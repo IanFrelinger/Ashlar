@@ -23,6 +23,14 @@ internal sealed class CheckRunDto
     public string? Conclusion { get; set; }
 
     public string? HtmlUrl { get; set; }
+
+    public CheckAppDto? App { get; set; }
+}
+
+internal sealed class CheckAppDto
+{
+    // Keep the JSON primitive type: Octokit's typed numeric conversion otherwise accepts strings/bools.
+    public object? Id { get; set; }
 }
 
 internal sealed class RuleDto
@@ -49,16 +57,16 @@ internal sealed class StatusCheckDto
 {
     public string? Context { get; set; }
 
-    private long? _appId;
-    private long? _integrationId;
+    private object? _appId;
+    private object? _integrationId;
 
-    public long? AppId
+    public object? AppId
     {
         get => _appId;
         set { _appId = value; AppIdRead = true; }
     }
 
-    public long? IntegrationId
+    public object? IntegrationId
     {
         get => _integrationId;
         set { _integrationId = value; IntegrationIdRead = true; }
