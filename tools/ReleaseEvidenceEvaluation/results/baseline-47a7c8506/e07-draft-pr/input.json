@@ -1,0 +1,592 @@
+{
+  "schemaVersion": "1.0",
+  "id": "e07-draft-pr",
+  "category": "observed-blockers",
+  "kind": "synthetic",
+  "intent": "The PR remains draft=true on both reads. The unbound required Buildkite status has succeeded and no approving reviews are required.",
+  "target": "https://github.com/eval/fixture/pull/1",
+  "credentialSupplied": true,
+  "sanitizedAuthorization": {
+    "mode": "synthetic authenticated fine-grained token",
+    "tokenRetained": false,
+    "repositoryVisibility": "public",
+    "permissionsAssumed": [
+      "pull requests:read",
+      "checks:read",
+      "commit statuses:read",
+      "administration:read"
+    ]
+  },
+  "identity": {
+    "initial": {
+      "headSha": "2e2f0a2a832d44e663444ff405fe011afaffb227",
+      "baseSha": "ecba9982364c9382c9220d78afc7a54e10aeb295",
+      "baseRef": "main"
+    },
+    "final": {
+      "headSha": "2e2f0a2a832d44e663444ff405fe011afaffb227",
+      "baseSha": "ecba9982364c9382c9220d78afc7a54e10aeb295",
+      "baseRef": "main"
+    }
+  },
+  "collectionInterval": {
+    "start": "2025-02-12T10:00:00Z",
+    "end": "2025-02-12T10:00:04Z",
+    "kind": "synthetic scenario clock; not a measured collection duration"
+  },
+  "sources": [
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/commits/statuses#get-the-combined-status-for-a-specific-reference"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/pulls/reviews#list-reviews-for-a-pull-request"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/branches/branch-protection#get-status-checks-protection"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/branches/branch-protection#get-pull-request-review-protection"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/branches/branches#get-a-branch"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/graphql/reference/enums#pullrequestreviewdecision"
+    }
+  ],
+  "syntheticDisclosure": "All repository, account, PR, provider job and commit identities are fabricated; these are not captures of a live repository.",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/pulls/1",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/eval/fixture/pulls/1",
+            "id": 100007,
+            "number": 1,
+            "state": "open",
+            "locked": false,
+            "title": "Synthetic release fixture 07",
+            "user": {
+              "login": "synthetic-author",
+              "id": 90001,
+              "type": "User",
+              "html_url": "https://github.com/synthetic-author"
+            },
+            "html_url": "https://github.com/eval/fixture/pull/1",
+            "issue_url": "https://api.github.com/repos/eval/fixture/issues/1",
+            "commits_url": "https://api.github.com/repos/eval/fixture/pulls/1/commits",
+            "statuses_url": "https://api.github.com/repos/eval/fixture/statuses/2e2f0a2a832d44e663444ff405fe011afaffb227",
+            "created_at": "2025-02-10T09:00:00Z",
+            "updated_at": "2025-02-12T09:59:00Z",
+            "draft": true,
+            "merged": false,
+            "mergeable": true,
+            "rebaseable": true,
+            "mergeable_state": "draft",
+            "maintainer_can_modify": true,
+            "head": {
+              "label": "eval:scenario-07",
+              "ref": "scenario-07",
+              "sha": "2e2f0a2a832d44e663444ff405fe011afaffb227",
+              "user": {
+                "login": "synthetic-author",
+                "id": 90001,
+                "type": "User",
+                "html_url": "https://github.com/synthetic-author"
+              },
+              "repo": {
+                "id": 990001,
+                "name": "fixture",
+                "full_name": "eval/fixture",
+                "private": false,
+                "owner": {
+                  "login": "eval",
+                  "id": 9900,
+                  "type": "Organization",
+                  "html_url": "https://github.com/eval"
+                },
+                "html_url": "https://github.com/eval/fixture",
+                "url": "https://api.github.com/repos/eval/fixture",
+                "default_branch": "main"
+              }
+            },
+            "base": {
+              "label": "eval:main",
+              "ref": "main",
+              "sha": "ecba9982364c9382c9220d78afc7a54e10aeb295",
+              "user": {
+                "login": "eval",
+                "id": 9900,
+                "type": "Organization"
+              },
+              "repo": {
+                "id": 990001,
+                "name": "fixture",
+                "full_name": "eval/fixture",
+                "private": false,
+                "owner": {
+                  "login": "eval",
+                  "id": 9900,
+                  "type": "Organization",
+                  "html_url": "https://github.com/eval"
+                },
+                "html_url": "https://github.com/eval/fixture",
+                "url": "https://api.github.com/repos/eval/fixture",
+                "default_branch": "main"
+              }
+            },
+            "additions": 49,
+            "deletions": 14,
+            "changed_files": 1,
+            "commits": 3,
+            "comments": 0,
+            "review_comments": 0
+          }
+        },
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/eval/fixture/pulls/1",
+            "id": 100007,
+            "number": 1,
+            "state": "open",
+            "locked": false,
+            "title": "Synthetic release fixture 07",
+            "user": {
+              "login": "synthetic-author",
+              "id": 90001,
+              "type": "User",
+              "html_url": "https://github.com/synthetic-author"
+            },
+            "html_url": "https://github.com/eval/fixture/pull/1",
+            "issue_url": "https://api.github.com/repos/eval/fixture/issues/1",
+            "commits_url": "https://api.github.com/repos/eval/fixture/pulls/1/commits",
+            "statuses_url": "https://api.github.com/repos/eval/fixture/statuses/2e2f0a2a832d44e663444ff405fe011afaffb227",
+            "created_at": "2025-02-10T09:00:00Z",
+            "updated_at": "2025-02-12T09:59:00Z",
+            "draft": true,
+            "merged": false,
+            "mergeable": true,
+            "rebaseable": true,
+            "mergeable_state": "draft",
+            "maintainer_can_modify": true,
+            "head": {
+              "label": "eval:scenario-07",
+              "ref": "scenario-07",
+              "sha": "2e2f0a2a832d44e663444ff405fe011afaffb227",
+              "user": {
+                "login": "synthetic-author",
+                "id": 90001,
+                "type": "User",
+                "html_url": "https://github.com/synthetic-author"
+              },
+              "repo": {
+                "id": 990001,
+                "name": "fixture",
+                "full_name": "eval/fixture",
+                "private": false,
+                "owner": {
+                  "login": "eval",
+                  "id": 9900,
+                  "type": "Organization",
+                  "html_url": "https://github.com/eval"
+                },
+                "html_url": "https://github.com/eval/fixture",
+                "url": "https://api.github.com/repos/eval/fixture",
+                "default_branch": "main"
+              }
+            },
+            "base": {
+              "label": "eval:main",
+              "ref": "main",
+              "sha": "ecba9982364c9382c9220d78afc7a54e10aeb295",
+              "user": {
+                "login": "eval",
+                "id": 9900,
+                "type": "Organization"
+              },
+              "repo": {
+                "id": 990001,
+                "name": "fixture",
+                "full_name": "eval/fixture",
+                "private": false,
+                "owner": {
+                  "login": "eval",
+                  "id": 9900,
+                  "type": "Organization",
+                  "html_url": "https://github.com/eval"
+                },
+                "html_url": "https://github.com/eval/fixture",
+                "url": "https://api.github.com/repos/eval/fixture",
+                "default_branch": "main"
+              }
+            },
+            "additions": 49,
+            "deletions": 14,
+            "changed_files": 1,
+            "commits": 3,
+            "comments": 0,
+            "review_comments": 0
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/pulls/1/reviews",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/commits/2e2f0a2a832d44e663444ff405fe011afaffb227/check-runs",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "total_count": 0,
+            "check_runs": []
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/commits/2e2f0a2a832d44e663444ff405fe011afaffb227/status",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "state": "success",
+            "statuses": [
+              {
+                "url": "https://api.github.com/repos/eval/fixture/statuses/2e2f0a2a832d44e663444ff405fe011afaffb227",
+                "id": 300070,
+                "state": "success",
+                "description": "Synthetic buildkite/release success",
+                "target_url": "https://ci.example.invalid/build/300070",
+                "context": "buildkite/release",
+                "creator": {
+                  "login": "synthetic-ci",
+                  "id": 99012,
+                  "type": "Bot"
+                },
+                "created_at": "2025-02-12T09:58:00Z",
+                "updated_at": "2025-02-12T09:59:00Z"
+              }
+            ],
+            "sha": "2e2f0a2a832d44e663444ff405fe011afaffb227",
+            "total_count": 1,
+            "repository": {
+              "id": 990001,
+              "name": "fixture",
+              "full_name": "eval/fixture",
+              "private": false,
+              "owner": {
+                "login": "eval",
+                "id": 9900,
+                "type": "Organization",
+                "html_url": "https://github.com/eval"
+              },
+              "html_url": "https://github.com/eval/fixture",
+              "url": "https://api.github.com/repos/eval/fixture",
+              "default_branch": "main"
+            },
+            "commit_url": "https://api.github.com/repos/eval/fixture/commits/2e2f0a2a832d44e663444ff405fe011afaffb227"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/eval/fixture/branches/main/protection/required_status_checks",
+            "strict": false,
+            "contexts": [
+              "buildkite/release"
+            ],
+            "checks": [
+              {
+                "context": "buildkite/release",
+                "app_id": null,
+                "integration_id": null
+              }
+            ],
+            "contexts_url": "https://api.github.com/repos/eval/fixture/branches/main/protection/required_status_checks/contexts"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "dismiss_stale_reviews": false,
+            "require_code_owner_reviews": false,
+            "required_approving_review_count": 0,
+            "require_last_push_approval": false,
+            "dismissal_restrictions": {
+              "users": [],
+              "teams": [],
+              "apps": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "name": "main",
+            "commit": {
+              "sha": "ecba9982364c9382c9220d78afc7a54e10aeb295",
+              "url": "https://api.github.com/repos/eval/fixture/commits/ecba9982364c9382c9220d78afc7a54e10aeb295"
+            },
+            "protected": true,
+            "protection": {
+              "enabled": true,
+              "required_status_checks": {
+                "enforcement_level": "non_admins",
+                "contexts": [
+                  "buildkite/release"
+                ],
+                "checks": [
+                  {
+                    "context": "buildkite/release",
+                    "app_id": null,
+                    "integration_id": null
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "data": {
+              "repository": {
+                "pull_request": {
+                  "review_decision": null,
+                  "commits": {
+                    "nodes": [
+                      {
+                        "commit": {
+                          "oid": "2e2f0a2a832d44e663444ff405fe011afaffb227",
+                          "status_check_rollup": {
+                            "contexts": {
+                              "nodes": [
+                                {
+                                  "type_name": "StatusContext",
+                                  "context": "buildkite/release",
+                                  "is_required": true
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "endpointInventory": [
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/pulls/1",
+      "responses": [
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        },
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/pulls/1/reviews",
+      "responses": [
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/commits/2e2f0a2a832d44e663444ff405fe011afaffb227/check-runs",
+      "responses": [
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/commits/2e2f0a2a832d44e663444ff405fe011afaffb227/status",
+      "responses": [
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+      "responses": [
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+      "responses": [
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+      "responses": [
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main",
+      "responses": [
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "responses": [
+        {
+          "status": 200,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    }
+  ]
+}

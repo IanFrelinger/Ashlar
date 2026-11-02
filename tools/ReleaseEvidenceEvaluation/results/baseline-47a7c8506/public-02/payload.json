@@ -1,0 +1,201 @@
+{
+  "brickId": "github.blockers",
+  "brickVersion": "1.3.0",
+  "summary": "PR #853 is BLOCKED by 1 blocker(s); 1 unknown(s).",
+  "outputs": {
+    "verdict": "blocked",
+    "blockers": [
+      {
+        "reason": "The branch has merge conflicts with \u0060master\u0060.",
+        "evidence": "https://github.com/IanFrelinger/Ashlar/pull/853"
+      }
+    ],
+    "unknowns": [
+      {
+        "what": "Required approvals",
+        "why": "Branch protection is not readable with this token (it needs admin rights), and GitHub\u0027s review decision could not be read; the pull request has 0 approving review(s)."
+      }
+    ],
+    "notes": [
+      {
+        "text": "Read 53 check run(s) and 0 commit status(es) on the head commit 8b9fda6a16e3; none is failing or pending.",
+        "evidence": "https://github.com/IanFrelinger/Ashlar/commit/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6"
+      }
+    ],
+    "evidence": [
+      "https://github.com/IanFrelinger/Ashlar/pull/853",
+      "https://github.com/IanFrelinger/Ashlar/commit/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6"
+    ],
+    "answer": "**What is blocking PR #853?** PR #853 is BLOCKED by 1 blocker(s); 1 unknown(s).\n\nBlockers:\n- The branch has merge conflicts with \u0060master\u0060. ([evidence](https://github.com/IanFrelinger/Ashlar/pull/853))\n\nUnknowns:\n- Required approvals: Branch protection is not readable with this token (it needs admin rights), and GitHub\u0027s review decision could not be read; the pull request has 0 approving review(s).\n\nNotes:\n- Read 53 check run(s) and 0 commit status(es) on the head commit 8b9fda6a16e3; none is failing or pending. ([evidence](https://github.com/IanFrelinger/Ashlar/commit/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6))\n\nRead from https://github.com/IanFrelinger/Ashlar/pull/853\n",
+    "assurance": "fail",
+    "evidencePack": {
+      "schemaVersion": "1.0",
+      "repository": "IanFrelinger/Ashlar",
+      "pullRequest": 853,
+      "url": "https://github.com/IanFrelinger/Ashlar/pull/853",
+      "headSha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+      "baseRef": "master",
+      "baseSha": "6bc6f1b7eb327c6de4870f37bb2cc4d6361b64a5",
+      "collectionStartedAt": "2026-11-02T01:09:06.665463\u002B00:00",
+      "collectedAt": "2026-11-02T01:09:06.6716729\u002B00:00",
+      "ashlarVersion": "0.4.2\u002B47a7c8506b89670d977265ce342a962d35858cd5",
+      "brickVersion": "1.3.0",
+      "auditId": null,
+      "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+      "authorization": {
+        "credential": "not-supplied-to-brick",
+        "effectivePermissions": "not-enumerated",
+        "authenticatedActor": "unknown"
+      },
+      "verdict": "blocked",
+      "assurance": "fail",
+      "findings": [
+        {
+          "id": "blocker-1",
+          "status": "fail",
+          "required": true,
+          "explanation": "The branch has merge conflicts with \u0060master\u0060.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/pull/853"
+          ]
+        },
+        {
+          "id": "unavailable-1",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Required approvals: Branch protection is not readable with this token (it needs admin rights), and GitHub\u0027s review decision could not be read; the pull request has 0 approving review(s).",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/pull/853"
+          ]
+        },
+        {
+          "id": "head-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "A 40-character hexadecimal head commit was observed at collection start.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/pull/853"
+          ]
+        },
+        {
+          "id": "base-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/pull/853"
+          ]
+        },
+        {
+          "id": "collection-consistency",
+          "status": "pass",
+          "required": true,
+          "explanation": "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/pull/853"
+          ]
+        },
+        {
+          "id": "required-check-policy",
+          "status": "pass",
+          "required": true,
+          "explanation": "Required check names were read from GitHub policy sources.",
+          "sources": [
+            "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+            "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews",
+            "https://api.github.com/repos/IanFrelinger/Ashlar/rules/branches/master",
+            "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master"
+          ]
+        },
+        {
+          "id": "rulesets",
+          "status": "pass",
+          "required": true,
+          "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+          "sources": [
+            "https://api.github.com/repos/IanFrelinger/Ashlar/rules/branches/master"
+          ]
+        },
+        {
+          "id": "required-check-origin",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Required check app/provider bindings could not be verified; a matching check name alone is insufficient.",
+          "sources": [
+            "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+            "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews",
+            "https://api.github.com/repos/IanFrelinger/Ashlar/rules/branches/master",
+            "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master"
+          ]
+        },
+        {
+          "id": "approval-policy",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Approval count alone does not establish current code-owner, last-push or stale-review requirements.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/pull/853"
+          ]
+        },
+        {
+          "id": "required-check-10",
+          "status": "pass",
+          "required": true,
+          "explanation": "Observed required check \u0060cert-gate\u0060 has a passing conclusion.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555673/job/121068063234"
+          ]
+        },
+        {
+          "id": "required-check-11",
+          "status": "pass",
+          "required": true,
+          "explanation": "Observed required check \u0060build-core\u0060 has a passing conclusion.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555703/job/121068062721"
+          ]
+        },
+        {
+          "id": "required-check-12",
+          "status": "pass",
+          "required": true,
+          "explanation": "Observed required check \u0060shell-lint\u0060 has a passing conclusion.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555687/job/121068062509"
+          ]
+        },
+        {
+          "id": "required-check-13",
+          "status": "pass",
+          "required": true,
+          "explanation": "Observed required check \u0060lychee (README \u002B docs)\u0060 has a passing conclusion.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555665/job/121068062574"
+          ]
+        },
+        {
+          "id": "required-check-14",
+          "status": "pass",
+          "required": true,
+          "explanation": "Observed required check \u0060Readiness summary\u0060 has a passing conclusion.",
+          "sources": [
+            "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121080265709",
+            "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121073604995"
+          ]
+        }
+      ],
+      "limitations": [
+        "Human release decision required; this pack does not prove compliance or authorize a release.",
+        "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+        "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+        "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+        "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+      ],
+      "freshness": {
+        "collectionConsistency": "stable",
+        "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+      }
+    },
+    "evidenceMarkdown": "## Pull-request evidence snapshot\n\n[\u0060IanFrelinger/Ashlar\u0060 PR #853](https://github.com/IanFrelinger/Ashlar/pull/853)\n\nGitHub verdict: **blocked**. Scoped assurance: **fail**.\n\nHead: \u00608b9fda6a16e3bde4b9051e1ae385e813c0df87f6\u0060; base: \u0060master\u0060 (\u00606bc6f1b7eb327c6de4870f37bb2cc4d6361b64a5\u0060).\n\nCollected: 2026-11-02T01:09:06.6716729\u002B00:00; schema 1.0; Ashlar \u00600.4.2\u002B47a7c8506b89670d977265ce342a962d35858cd5\u0060; brick \u00601.3.0\u0060.\n\n- **fail**: The branch has merge conflicts with \u0060master\u0060. [source](https://github.com/IanFrelinger/Ashlar/pull/853)\n\n- **unknown**: Required approvals: Branch protection is not readable with this token (it needs admin rights), and GitHub\u0027s review decision could not be read; the pull request has 0 approving review(s). [source](https://github.com/IanFrelinger/Ashlar/pull/853)\n\n- **pass**: A 40-character hexadecimal head commit was observed at collection start. [source](https://github.com/IanFrelinger/Ashlar/pull/853)\n\n- **pass**: The relevant base reference and 40-character hexadecimal commit were observed. [source](https://github.com/IanFrelinger/Ashlar/pull/853)\n\n- **pass**: The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot. [source](https://github.com/IanFrelinger/Ashlar/pull/853)\n\n- **pass**: Required check names were read from GitHub policy sources. [source](https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks) [source](https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews) [source](https://api.github.com/repos/IanFrelinger/Ashlar/rules/branches/master) [source](https://api.github.com/repos/IanFrelinger/Ashlar/branches/master)\n\n- **pass**: Active branch rules were read (this collector evaluates check and review requirements only). [source](https://api.github.com/repos/IanFrelinger/Ashlar/rules/branches/master)\n\n- **unknown**: Required check app/provider bindings could not be verified; a matching check name alone is insufficient. [source](https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks) [source](https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews) [source](https://api.github.com/repos/IanFrelinger/Ashlar/rules/branches/master) [source](https://api.github.com/repos/IanFrelinger/Ashlar/branches/master)\n\n- **unknown**: Approval count alone does not establish current code-owner, last-push or stale-review requirements. [source](https://github.com/IanFrelinger/Ashlar/pull/853)\n\n- **pass**: Observed required check \u0060cert-gate\u0060 has a passing conclusion. [source](https://github.com/IanFrelinger/Ashlar/actions/runs/40159555673/job/121068063234)\n\n- **pass**: Observed required check \u0060build-core\u0060 has a passing conclusion. [source](https://github.com/IanFrelinger/Ashlar/actions/runs/40159555703/job/121068062721)\n\n- **pass**: Observed required check \u0060shell-lint\u0060 has a passing conclusion. [source](https://github.com/IanFrelinger/Ashlar/actions/runs/40159555687/job/121068062509)\n\n- **pass**: Observed required check \u0060lychee (README \u002B docs)\u0060 has a passing conclusion. [source](https://github.com/IanFrelinger/Ashlar/actions/runs/40159555665/job/121068062574)\n\n- **pass**: Observed required check \u0060Readiness summary\u0060 has a passing conclusion. [source](https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121080265709) [source](https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121073604995)\n\nLimitations:\n\n- Human release decision required; this pack does not prove compliance or authorize a release.\n\n- No repository code, PR body, diff, private file content, artifact payload or access token is included.\n\n- GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.\n\n- API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.\n\n- No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately.\n"
+  }
+}

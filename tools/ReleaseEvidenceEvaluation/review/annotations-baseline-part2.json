@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "47a7c8506b89670d977265ce342a962d35858cd5",
+  "ground_truth_sha256": "85b97df9b1b08dfe1585855b684324171f0ebec50ea3eac4902805de0db5c3e1",
+  "run_manifest_sha256": "32c50d15ff6d8d4ca40440439f0728f4c0feeacd9c68032e8ea9c41a1a944cd0",
+  "review": {
+    "ai_only": true,
+    "performed_after_outputs": true,
+    "ground_truth_unchanged": true,
+    "reviewer": "Second blinded ground-truth AI reviewer, now performing explicit post-output matching for assigned part2; no relabeling."
+  },
+  "cases": [
+    {
+      "id": "e16-policy-permission-denied",
+      "status": "resolved",
+      "evidence_sha256": "ae6e4902222e823220f09bbc1a605f585c8ca2d835fd90593ec74a2e95d09b15",
+      "legacy_sha256": "19fdc77d427bafe7737c2d89b21b615e70d9321c52dcd8436ee334bfc34bc45d",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e17-private-pr-not-found",
+      "status": "resolved",
+      "evidence_sha256": "f3ba9001a3993b79124470cc7bbf0db0f61c69a4d50433eb23a66dfe167e068c",
+      "legacy_sha256": "2c1acb1b40bec19ded4fba89b384bf475c26336c3c84d8bdc061ca21d15eb644",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e18-checks-and-reviews-denied",
+      "status": "resolved",
+      "evidence_sha256": "b24d4b6b50f7e71f671d9fa8a4465121ebbc17c0b87afc81a8a9877493134c96",
+      "legacy_sha256": "5f3bd6386bdf624c6e6ca97bf25b4812bc753459b86e9579d39fb8bc07311143",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e19-rate-limited-policy",
+      "status": "resolved",
+      "evidence_sha256": "fadd77da73e02e05dd4e6cce3f84afb27f69b6bef5835203164fc6817e7ee860",
+      "legacy_sha256": "25e586524b1cbc9f7a410907c7788a81e540a0c313ce87ba68c1e42f6caa9eca",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e20-review-transport-timeout",
+      "status": "resolved",
+      "evidence_sha256": "310a6fca3864b9d8f007dab14c04c25733a39fba00bc3e0411c70190f0d3423c",
+      "legacy_sha256": "021dd3d6b160fc2b3c44f12494cc2594198413d466dcf85c3a8bb9d0c7afa9b3",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e21-malformed-policy-json",
+      "status": "resolved",
+      "evidence_sha256": "a9c101a73b4734225061900c9d78ab01da135dcf73863fbd87476980e0081764",
+      "legacy_sha256": "f1ea862b61584eb0a6987dba1b6bbb7c9bfcd038766795f4ff8dc2d9220288bc",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e22-truncated-second-page",
+      "status": "resolved",
+      "evidence_sha256": "39f18c480c24bcfe1074a7b3405b6aa2b81dfc278d642f3f305eb98631d8508c",
+      "legacy_sha256": "61a02eedf93d0dab13605e84aa000aee9883e09628b6d1c05e5675e492b94a1d",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e23-head-moves-during-read",
+      "status": "resolved",
+      "evidence_sha256": "91ec771fb950c11187a2c121ff45bc932d58fa8328cc26d2831d403daad0331c",
+      "legacy_sha256": "a760fc51d1691c5c07d979bffb1ee442918a30177c592b638a2806f76e66cfb6",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e24-base-moves-during-read",
+      "status": "resolved",
+      "evidence_sha256": "48f3d429d6cea3aea88d235d892c2744d743847ff489bbddeb4a71df5f0ab44b",
+      "legacy_sha256": "ed7a2632851a87f4e8fad3d2d791e2711181e76555089b8c69d10dd2bc7b444f",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e25-approval-on-older-commit",
+      "status": "resolved",
+      "evidence_sha256": "fcf8fd5873585544d99063aecc729b1b74234f2ef5b5653947cad35050d39fb3",
+      "legacy_sha256": "345512eddef96c2739af89f05a20e75e6573a54bffe052aa0722958c91d9c7a8",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e26-facts-change-same-head",
+      "status": "resolved",
+      "evidence_sha256": "5f864521c8041b96c17d2557ea1e6ba80401104974f00c39f14779bfac566421",
+      "legacy_sha256": "2043e9297d5388f1237ba549d0ff5c2f3cf35307eaee18f4cab80f714281c7df",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e27-hostile-check-metadata",
+      "status": "resolved",
+      "evidence_sha256": "3b5c59ea2d549593ef43c5600a6d84644c8051035b5700c0dbcea65c9fe2205e",
+      "legacy_sha256": "5494bf6303487c2206dbf2d359a5e87e40ca8bc72fa9d98fd739289458e0da7b",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e28-malformed-pr-source-metadata",
+      "status": "resolved",
+      "evidence_sha256": "53865e4f8a7409297cc7c69d7e628aba0934f37065565874f257184672913a28",
+      "legacy_sha256": "30eff3dddc1f9d94c1fe37e26c22ba5545d63c46a594eec386ec865094a4375b",
+      "evidence_matches": [],
+      "legacy_matches": []
+    },
+    {
+      "id": "e29-app-bound-and-deployment-rule",
+      "status": "resolved",
+      "evidence_sha256": "e86686664a7b883af7b313fb1827737aba746dda5678a7b3df53b79ac084b466",
+      "legacy_sha256": "da425661ab98cf444014a96ac92deefb3816f7493747083024f7a6292f3efbe6",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [],
+          "classification": "incorrect",
+          "rationale": "Frozen policy binds ci / unit to app/integration 44444, whose current-head run succeeded. The blamed failure belongs to app 55555 and raw GraphQL marks it optional. It is not a frozen confirmed blocker; unknown production deployment satisfaction cannot turn this optional failure into a mandatory CI blocker."
+        },
+        {
+          "result_id": "required-check-10",
+          "ground_truth_ids": [],
+          "classification": "incorrect",
+          "rationale": "Frozen policy binds ci / unit to app/integration 44444, whose current-head run succeeded. The blamed failure belongs to app 55555 and raw GraphQL marks it optional. It is not a frozen confirmed blocker; unknown production deployment satisfaction cannot turn this optional failure into a mandatory CI blocker."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [],
+          "classification": "incorrect",
+          "rationale": "Frozen policy binds ci / unit to app/integration 44444, whose current-head run succeeded. The blamed failure belongs to app 55555 and raw GraphQL marks it optional. It is not a frozen confirmed blocker; unknown production deployment satisfaction cannot turn this optional failure into a mandatory CI blocker."
+        }
+      ]
+    },
+    {
+      "id": "e30-required-collection-check",
+      "status": "resolved",
+      "evidence_sha256": "28d78583a2513ade7563f66249b89270c82ca3a89c16366bb06e715025078d39",
+      "legacy_sha256": "57faadb07d104cb702d91e06a27d7b81b4707163d2c2717b152b8bee18e5f428",
+      "evidence_matches": [],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "own-required-check-incomplete"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen required-status policy explicitly lists Ashlar release evidence, and its run is in progress with null conclusion. The legacy item names that exact check and pending state. The evidence findings remain unknown and therefore supply no status=fail assertion for this surface."
+        }
+      ]
+    },
+    {
+      "id": "public-04",
+      "status": "resolved",
+      "evidence_sha256": "ad2ea0ece5028ab7f21f8d3f476b3d4290e0e0c9004f553c0ad05a46d852e22e",
+      "legacy_sha256": "54e03ab940d9bea68ac6c28401dfadc6bac7e164754238aa9e92af14b4f115e8",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen blocker review-required cites effective GitHub REVIEW_REQUIRED for PR14845; captured reviews contain comments but no approval. This finding asserts that same unmet approval requirement, without inventing another blocker from the incomplete classic-policy inventory."
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen blocker review-required cites effective GitHub REVIEW_REQUIRED for PR14845; captured reviews contain comments but no approval. This finding asserts that same unmet approval requirement, without inventing another blocker from the incomplete classic-policy inventory."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen blocker review-required cites effective GitHub REVIEW_REQUIRED for PR14845; captured reviews contain comments but no approval. This finding asserts that same unmet approval requirement, without inventing another blocker from the incomplete classic-policy inventory."
+        }
+      ]
+    },
+    {
+      "id": "public-05",
+      "status": "resolved",
+      "evidence_sha256": "c8e0229b619b782237815ee10906d6e6cb8292063bbe0927ed9288dcc39c473f",
+      "legacy_sha256": "fe3f29ebb25e0e28fc8a45a287c4fe0c0ecc85a305974acff7db8a1c7d0081af",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen blocker review-required is supported by current-head GitHub REVIEW_REQUIRED and the active organization rule requiring one approval; the only captured review is COMMENTED. The assertion of zero required approvals obtained matches that same blocker."
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen blocker review-required is supported by current-head GitHub REVIEW_REQUIRED and the active organization rule requiring one approval; the only captured review is COMMENTED. The assertion of zero required approvals obtained matches that same blocker."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen blocker review-required is supported by current-head GitHub REVIEW_REQUIRED and the active organization rule requiring one approval; the only captured review is COMMENTED. The assertion of zero required approvals obtained matches that same blocker."
+        }
+      ]
+    },
+    {
+      "id": "public-06",
+      "status": "resolved",
+      "evidence_sha256": "c13676cb614d2aae09b62cf2e97c05999596770fd1f04b0878ac0f45638208ab",
+      "legacy_sha256": "8267b2fda1e06201dcd3481bd0d328cbffc5357b0d320d7a1c80efc3a023da84",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen raw PR draft=true independently establishes the draft blocker; this finding names it."
+        },
+        {
+          "result_id": "blocker-2",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen organization approval rule requires one approval, no approvals are captured, and effective GitHub REVIEW_REQUIRED confirms the unmet requirement."
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "This second evidence assertion repeats the same frozen effective REVIEW_REQUIRED blocker; it does not create an additional reference blocker instance."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "The legacy item states draft, matching frozen PR draft=true."
+        },
+        {
+          "result_id": "blocker:1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The legacy item states zero of one required approvals, matching the organization rule and effective REVIEW_REQUIRED."
+        },
+        {
+          "result_id": "blocker:2",
+          "ground_truth_ids": [
+            "required-check-2-pending"
+          ],
+          "classification": "matched",
+          "rationale": "Frozen branch policy binds Build Analysis to app216604, and the exact run125025485320 from that app is in progress with null conclusion. The legacy item names this pending required check. Evidence marks it unknown, so no evidence fail assertion matches it."
+        }
+      ]
+    }
+  ]
+}

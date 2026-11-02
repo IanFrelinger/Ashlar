@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "1.0",
+  "repository": "eval/fixture",
+  "pullRequest": 1,
+  "url": "https://github.com/eval/fixture/pull/1",
+  "headSha": "15c780bf53d3fb1249b6291702668dc62e91ae10",
+  "baseRef": "main",
+  "baseSha": "61fda2d15fad717e0e3d9fc1f4d0dd31c9ff70aa",
+  "collectionStartedAt": "2026-11-02T01:09:06.4177246\u002B00:00",
+  "collectedAt": "2026-11-02T01:09:06.4227285\u002B00:00",
+  "ashlarVersion": "0.4.2\u002B47a7c8506b89670d977265ce342a962d35858cd5",
+  "brickVersion": "1.3.0",
+  "auditId": null,
+  "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+  "authorization": {
+    "credential": "supplied-to-client",
+    "effectivePermissions": "not-enumerated",
+    "authenticatedActor": "unknown"
+  },
+  "verdict": "blocked",
+  "assurance": "fail",
+  "findings": [
+    {
+      "id": "blocker-1",
+      "status": "fail",
+      "required": true,
+      "explanation": "The branch is behind \u0060main\u0060, and the base branch requires branches to be up to date.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "head-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "A 40-character hexadecimal head commit was observed at collection start.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "base-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "collection-consistency",
+      "status": "pass",
+      "required": true,
+      "explanation": "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "required-check-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check names were read from GitHub policy sources.",
+      "sources": [
+        "https://api.github.com/repos/eval/fixture/branches/main/protection/required_status_checks",
+        "https://api.github.com/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+        "https://api.github.com/repos/eval/fixture/rules/branches/main",
+        "https://api.github.com/repos/eval/fixture/branches/main"
+      ]
+    },
+    {
+      "id": "rulesets",
+      "status": "pass",
+      "required": true,
+      "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+      "sources": [
+        "https://api.github.com/repos/eval/fixture/rules/branches/main"
+      ]
+    },
+    {
+      "id": "approval-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "GitHub\u0027s review decision, or a fully read zero-approval rule, establishes the review requirement.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "required-check-8",
+      "status": "pass",
+      "required": true,
+      "explanation": "Observed required check \u0060ci / integration\u0060 has a passing conclusion.",
+      "sources": [
+        "https://github.com/eval/fixture/actions/runs/200100"
+      ]
+    }
+  ],
+  "limitations": [
+    "Human release decision required; this pack does not prove compliance or authorize a release.",
+    "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+    "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+    "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+    "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+  ],
+  "freshness": {
+    "collectionConsistency": "stable",
+    "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+  }
+}

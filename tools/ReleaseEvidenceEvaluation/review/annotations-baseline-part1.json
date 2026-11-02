@@ -1,0 +1,490 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "47a7c8506b89670d977265ce342a962d35858cd5",
+  "ground_truth_sha256": "85b97df9b1b08dfe1585855b684324171f0ebec50ea3eac4902805de0db5c3e1",
+  "run_manifest_sha256": "32c50d15ff6d8d4ca40440439f0728f4c0feeacd9c68032e8ea9c41a1a944cd0",
+  "review": {
+    "ai_only": true,
+    "performed_after_outputs": true,
+    "ground_truth_unchanged": true,
+    "reviewer": "First independent AI ground-truth reviewer, post-output blocker matching part 1 (18 cases). Same-family AI correlation possible; no human/customer review."
+  },
+  "cases": [
+    {
+      "id": "e01-no-configured-requirements",
+      "status": "resolved",
+      "evidence_sha256": "ab5dd49afad4e0fc5e1641210cdfa5fbb211d34fc38d109f7f82b6af566761c7",
+      "legacy_sha256": "d09d57c373dc160c88fd670ac9372d6db0e70d4e8508719e281789fa89f3acf2",
+      "transcript_sha256": "d2fc140c3fabd2e4f81285c7b4366b9a3b10af38f186099b15d33b36ebb8eea5",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No literal fail findings or legacy blocker items were emitted; empty mappings retain the case."
+    },
+    {
+      "id": "e02-required-external-status",
+      "status": "resolved",
+      "evidence_sha256": "a8b2f01bb176e2fa6fc76f23d4777039e3188a88a47abafbc673605e190a81da",
+      "legacy_sha256": "ec4a73fb998d001fc84d5a065bbdbf84f77cdbd4cf6f8acd36cf05c9e45bab50",
+      "transcript_sha256": "3872da79bcfb6a7d2d97bb5a290442aedfc87e3899920b50d396fa517e54a2c9",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No literal fail findings or legacy blocker items were emitted; empty mappings retain the case."
+    },
+    {
+      "id": "e03-two-approvals",
+      "status": "resolved",
+      "evidence_sha256": "b75d8a602dd22ac85ec3bbe785f36f763a07928566b6033f6e70cbae98e7c5be",
+      "legacy_sha256": "c7abd8713e5ebf10edac57893bd0688d9552d40e31ad631c41f736d93d06191c",
+      "transcript_sha256": "afabb88b970166961def794d6d046cbc45d1dddb60b18c52410e0b38570b45df",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No literal fail findings or legacy blocker items were emitted; empty mappings retain the case."
+    },
+    {
+      "id": "e04-mixed-optional-ci",
+      "status": "resolved",
+      "evidence_sha256": "83c22adfc486136ec3773a5c9be3b968569ebcd5408571f40e8196f66afb5300",
+      "legacy_sha256": "1c1982e028fae54e21c742465ee3dd1b77ddd87b226cd009e07b0f4526c453a5",
+      "transcript_sha256": "76a0e91cae9b3785ffe2a1818f4fc8173bab1adbe860d0aab5451893b9bc8138",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No literal fail findings or legacy blocker items were emitted; empty mappings retain the case."
+    },
+    {
+      "id": "e05-required-check-failure",
+      "status": "resolved",
+      "evidence_sha256": "bce0562311a04bcc1fbfb23585ec3a4dc4d5f54b4070cf1e829c51900e390e87",
+      "legacy_sha256": "3491155e4cdb788e64a61f3f07198480a9591afaf74ad78e6fbde464e064d594",
+      "transcript_sha256": "9aef02041a5c9b8278933783236910985392bcf2e0391bd314e67db3fb4ff623",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "required-ci-failure"
+          ],
+          "classification": "matched",
+          "rationale": "The finding names ci / unit failure on run 200050. Frozen policy requires that context and the cited current-head run concludes failure."
+        },
+        {
+          "result_id": "required-check-8",
+          "ground_truth_ids": [
+            "required-ci-failure"
+          ],
+          "classification": "matched",
+          "rationale": "The required-context finding describes the same frozen current-head ci / unit failure; duplicate coverage counts this truth blocker only once."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "required-ci-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy item cites current-head ci / unit run 200050 failure, matching the frozen required-CI blocker."
+        }
+      ]
+    },
+    {
+      "id": "e06-merge-conflict",
+      "status": "resolved",
+      "evidence_sha256": "e83c7a9bcff070f9c7717b2de8545a119a8e54af07ee35d765d6ddfe40f37249",
+      "legacy_sha256": "53fea879b6e5141312c6ed9fe07f0e14f6d1ceba99a4280a269e95f2b4f2a5da",
+      "transcript_sha256": "4516b2ae90b7c3e91e41894691c44ff9803424f2c7ca2269c4ac56f19b17a5b7",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "merge-conflict"
+          ],
+          "classification": "matched",
+          "rationale": "The output states conflict with main, exactly supported by frozen mergeable=false and dirty observations."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "merge-conflict"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy conflict with main matches the frozen PR merge-conflict fact."
+        }
+      ]
+    },
+    {
+      "id": "e07-draft-pr",
+      "status": "resolved",
+      "evidence_sha256": "237525b9992ce9b9a4bbc2e52d4ae8f9e8c1f5e53fb8eed8f9b57ac21b09162a",
+      "legacy_sha256": "5d3de2ed5b6f9cb4883d73fe9f77172c239480d694f2f2011dd630de280695a0",
+      "transcript_sha256": "91a13d6d70d09ea981b22a09536b51d07d3b2ecac5042691f93b957a8034fac8",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "The finding reports draft status, matching draft=true on both frozen PR reads."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy draft statement matches the frozen draft blocker, independently of successful Buildkite CI."
+        }
+      ]
+    },
+    {
+      "id": "e08-review-threshold",
+      "status": "resolved",
+      "evidence_sha256": "6c71a5fa0fd8137348d611d5921902172e26f50ac7a30f7177008dbf0aad48ad",
+      "legacy_sha256": "fc61fcd05a47419c35f946ec3584b87e789d4f584878b03f39af41b032e4e3ec",
+      "transcript_sha256": "2d2f8007c0c1f4f499b9edb2446ee959f64803ac32dd85fb9837444c974258a4",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "One of two approvals is an explicit review-count deficit in frozen policy/review facts, corroborated by REVIEW_REQUIRED."
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "GitHub effective unsatisfied review approval matches frozen REVIEW_REQUIRED; this is duplicate evidence for one frozen blocker."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy 1 of 2 approvals matches frozen two-review requirement and the single observed approval."
+        }
+      ]
+    },
+    {
+      "id": "e09-changes-requested",
+      "status": "resolved",
+      "evidence_sha256": "59363247d7c052f2e53ff088bd05d0dff067fe9868ef2529ff6d8c669b1ae12f",
+      "legacy_sha256": "f9a0cb7e42ea56bde40af5d2425a8a2c8531ab970e34b9dd0b68d62632c0df6f",
+      "transcript_sha256": "4c6091991293cdc10b600c6880b685c10c74f7ca54567be02819d782fa502aa3",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "changes-requested"
+          ],
+          "classification": "matched",
+          "rationale": "The cited later review 400092 requests changes and supersedes this reviewer prior approval in the frozen facts."
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "changes-requested"
+          ],
+          "classification": "matched",
+          "rationale": "The unsatisfied effective approval finding matches frozen CHANGES_REQUESTED under the required-review policy."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "changes-requested"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy item cites the frozen later CHANGES_REQUESTED review 400092."
+        }
+      ]
+    },
+    {
+      "id": "e10-behind-strict-base",
+      "status": "resolved",
+      "evidence_sha256": "7e92a9f2514fce0f98f9f07705965e29f4d7b04b3cf7c8085ae8a7e54925153d",
+      "legacy_sha256": "f223bb419a6453d6d747ee8c006bd08d333b4a0382cf5ca2d91d21badd49202a",
+      "transcript_sha256": "96ee24711d62e8be2c6ab7a6205a539535144fb3156b23aa7fdeca904fdc13b4",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "strict-base-behind"
+          ],
+          "classification": "matched",
+          "rationale": "The output combines behind main with the up-to-date requirement, exactly matching frozen behind plus strict=true."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "strict-base-behind"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy behind-main blocker names the same strict=true current-base requirement in frozen facts."
+        }
+      ]
+    },
+    {
+      "id": "e11-queued-check",
+      "status": "resolved",
+      "evidence_sha256": null,
+      "legacy_sha256": null,
+      "transcript_sha256": "a280958e9bc56a7a22b8e32ce0c62a95a98f43f45e1c77dc862a5fadb6bee184",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "Collector error retained with no evidence or payload artifact and empty blocker mappings; it must remain in the reference and missed-blocker denominators. Error: Object reference not set to an instance of an object."
+    },
+    {
+      "id": "e12-missing-rule-context",
+      "status": "resolved",
+      "evidence_sha256": "770b97c8288ebb7eeecaaf80388d3b904b0c03dfe687e3e1f69627e619744b5f",
+      "legacy_sha256": "1c60347d18e7c8d0277b992807d23b1a1b6a7f76a7982ab841b4fa20f4a3b85f",
+      "transcript_sha256": "80220e9b693a13e0ab212caee450c21de0258f51a62cc109f3ba1ba879984aec",
+      "evidence_matches": [],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "required-context-missing"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy item reports required security / scan missing on the observed head, matching the frozen complete check/status absence and ruleset requirement."
+        }
+      ],
+      "review_note": "Evidence findings for the frozen blocker use literal status unknown and are not reportable blocker instances under SCORING.md. The legacy item is matched separately."
+    },
+    {
+      "id": "e13-conflicting-same-name",
+      "status": "resolved",
+      "evidence_sha256": "8d132002e52b4d1a9df2811424caa56b239713e141dc7ee32824e00fd1ca72ed",
+      "legacy_sha256": "dacb56bd6b46bd9b5fe096163c395d9c9f418be36d97de484a6ad5e6c3e6b025",
+      "transcript_sha256": "ec1b044d6e73d051013834b34afd0e167f5fc12fc1504f44ff0c0aa2fe10c7e3",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [],
+          "classification": "unassessable",
+          "rationale": "This item singles out failing producer run 200132 as the mandatory blocker. Frozen review establishes a generic GitHub merge block but explicitly leaves cross-App same-name selection unknown; the producer-specific blocking claim is unassessable."
+        },
+        {
+          "result_id": "required-check-8",
+          "ground_truth_ids": [
+            "github-merge-block"
+          ],
+          "classification": "matched",
+          "rationale": "This finding describes the failed or conflicting required name and cites both same-name runs, consistent with the frozen generic blocked state and conflicting required-name evidence. It does not identify which App GitHub selected."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [],
+          "classification": "unassessable",
+          "rationale": "Legacy item singles out run 200132 failure. Frozen labels preserve uncertainty about exact same-name producer selection, so this cause-specific blocker cannot be confirmed or declared incorrect."
+        }
+      ]
+    },
+    {
+      "id": "e14-running-no-conclusion",
+      "status": "resolved",
+      "evidence_sha256": "69bb73fef8673dd4b4209d43ee2c82b048459df8a1cb2abc1b8f56ef07f5e4a8",
+      "legacy_sha256": "81d56a905e932ff807956c9e945cc8c615fe518fe206fc04a812ad3ffb021492",
+      "transcript_sha256": "3c65478a8930aa8c68d2371aff4988d1eb46dfcf5f84d9dcec90497eae3a44e2",
+      "evidence_matches": [],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "required-ci-running"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy item states required ci / integration is still in progress, matching frozen in_progress/null-conclusion result and policy."
+        }
+      ],
+      "review_note": "Evidence findings for the frozen blocker use literal status unknown and are not reportable blocker instances under SCORING.md. The legacy item is matched separately."
+    },
+    {
+      "id": "e15-anonymous-graphql",
+      "status": "resolved",
+      "evidence_sha256": "d831aef709d4e042da128a90d9adbcd71112ec9fc2bc35b46f35c6e31052eaf4",
+      "legacy_sha256": "0b36b9c8a213194dcbbbd5f3d41d404d5de3983dfe49ee7bb00222a3eac81544",
+      "transcript_sha256": "b7581d0d1335c0bc1a4107039a305582cbcdeb93bb4ea2c0d5f067c95e88039c",
+      "evidence_matches": [],
+      "legacy_matches": [],
+      "review_note": "No literal fail findings or legacy blocker items were emitted; empty mappings retain the case."
+    },
+    {
+      "id": "public-01",
+      "status": "resolved",
+      "evidence_sha256": "a5492b5bf7e5b0d0ca3b14e5e93c3e7b4a3673598f9e695a2de45183532afcc9",
+      "legacy_sha256": "21da0c1040fe54cd6bf50c43de557989a2f6d004c666a4beccd0607678232224",
+      "transcript_sha256": "3b7df0f250a6cf0583e154c4748b2e2b7a669db26c8f10d054cad7b761b3b40e",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "required-check-5-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Readiness summary failure cites job 123954337446, the frozen current-head required App 15368 result."
+        },
+        {
+          "result_id": "blocker-2",
+          "ground_truth_ids": [
+            "required-check-2-failure"
+          ],
+          "classification": "matched",
+          "rationale": "build-core failure cites job 123953237389, the frozen current-head required App 15368 result."
+        },
+        {
+          "result_id": "blocker-3",
+          "ground_truth_ids": [
+            "required-check-1-failure"
+          ],
+          "classification": "matched",
+          "rationale": "cert-gate failure cites job 123953236854, the frozen current-head required App 15368 result."
+        },
+        {
+          "result_id": "required-check-12",
+          "ground_truth_ids": [
+            "required-check-1-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Required cert-gate failed/conflicting finding describes the frozen failure at job 123953236854; duplicate coverage does not add a truth blocker."
+        },
+        {
+          "result_id": "required-check-13",
+          "ground_truth_ids": [
+            "required-check-2-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Required build-core failed/conflicting finding describes the frozen failure at job 123953237389; duplicate coverage does not add a truth blocker."
+        },
+        {
+          "result_id": "required-check-16",
+          "ground_truth_ids": [
+            "required-check-5-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Required Readiness summary failed/conflicting finding describes frozen job 123954337446 failure; duplicate coverage does not add a truth blocker."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "required-check-5-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy Readiness summary item cites the same frozen failed required job 123954337446."
+        },
+        {
+          "result_id": "blocker:1",
+          "ground_truth_ids": [
+            "required-check-2-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy build-core item cites the same frozen failed required job 123953237389."
+        },
+        {
+          "result_id": "blocker:2",
+          "ground_truth_ids": [
+            "required-check-1-failure"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy cert-gate item cites the same frozen failed required job 123953236854."
+        }
+      ]
+    },
+    {
+      "id": "public-02",
+      "status": "resolved",
+      "evidence_sha256": "b53eed8e0ba78bfe3ab82d3288b300187776a4bc57770ce239a11096e9ab8878",
+      "legacy_sha256": "2edb7bc8e040f1e3673187e5e5e053dd8fe1ffa831c9187d26629ecaad0c92fc",
+      "transcript_sha256": "12693980bbe536ac12afea935c6167f76dac50912dbf13b3ee07a27c71320750",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "merge-conflict"
+          ],
+          "classification": "matched",
+          "rationale": "The output reports conflict with master, matching frozen mergeable=false and dirty PR observations."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "merge-conflict"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy conflict statement matches the frozen dirty PR and inability to create a clean merge."
+        }
+      ]
+    },
+    {
+      "id": "public-03",
+      "status": "resolved",
+      "evidence_sha256": "c3dc4eb15204d83479355044e6f0e04e435ec7059f5af5832b7da2bdfdca3e66",
+      "legacy_sha256": "ebf479a43c055751858f3c16064cfa8a0f43f582a29465ab3d900ecafba2d704",
+      "transcript_sha256": "f15997fe920e745fb2645cbb33d520c26e4589c615150c7b2e77c50b1589318d",
+      "evidence_matches": [
+        {
+          "result_id": "blocker-1",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "Output draft statement matches frozen draft=true PR metadata."
+        },
+        {
+          "result_id": "blocker-2",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "The required-review statement names REVIEW_REQUIRED and zero approvals, matching the frozen effective decision and review list."
+        },
+        {
+          "result_id": "approval-policy",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Effective unsatisfied approval finding duplicates the frozen REVIEW_REQUIRED blocker."
+        }
+      ],
+      "legacy_matches": [
+        {
+          "result_id": "blocker:0",
+          "ground_truth_ids": [
+            "draft"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy draft item matches frozen PR draft=true."
+        },
+        {
+          "result_id": "blocker:1",
+          "ground_truth_ids": [
+            "review-required"
+          ],
+          "classification": "matched",
+          "rationale": "Legacy required-review item explicitly names the frozen REVIEW_REQUIRED effective decision."
+        }
+      ]
+    }
+  ]
+}
