@@ -1,0 +1,75 @@
+{
+  "brickId": "github.blockers",
+  "brickVersion": "1.3.1",
+  "summary": "PR #1: no blocker found, but it is UNKNOWN whether anything blocks it; 1 unknown(s).",
+  "outputs": {
+    "verdict": "unknown",
+    "blockers": [],
+    "unknowns": [
+      {
+        "what": "The pull request",
+        "why": "The pull request was not found, or is not visible to this token."
+      }
+    ],
+    "notes": [],
+    "evidence": [
+      "https://github.com/eval/fixture/pull/1"
+    ],
+    "answer": "**What is blocking PR #1?** PR #1: no blocker found, but it is UNKNOWN whether anything blocks it; 1 unknown(s).\n\nUnknowns:\n- The pull request: The pull request was not found, or is not visible to this token.\n\nRead from https://github.com/eval/fixture/pull/1\n",
+    "assurance": "unknown",
+    "evidencePack": {
+      "schemaVersion": "1.0",
+      "repository": "eval/fixture",
+      "pullRequest": 1,
+      "url": "https://github.com/eval/fixture/pull/1",
+      "headSha": null,
+      "baseRef": null,
+      "baseSha": null,
+      "collectionStartedAt": "2026-11-02T02:05:53.8110579\u002B00:00",
+      "collectedAt": "2026-11-02T02:05:53.8122306\u002B00:00",
+      "ashlarVersion": "0.4.2\u002Bb4b77b7f47975c64873dd8dc458329a584228d36",
+      "brickVersion": "1.3.1",
+      "auditId": null,
+      "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+      "authorization": {
+        "credential": "supplied-to-client",
+        "effectivePermissions": "not-enumerated",
+        "authenticatedActor": "unknown"
+      },
+      "verdict": "unknown",
+      "assurance": "unknown",
+      "findings": [
+        {
+          "id": "unavailable-1",
+          "status": "unknown",
+          "required": true,
+          "explanation": "The pull request: The pull request was not found, or is not visible to this token.",
+          "sources": [
+            "https://github.com/eval/fixture/pull/1"
+          ]
+        },
+        {
+          "id": "pull-request",
+          "status": "unknown",
+          "required": true,
+          "explanation": "The pull request could not be inspected.",
+          "sources": [
+            "https://github.com/eval/fixture/pull/1"
+          ]
+        }
+      ],
+      "limitations": [
+        "Human release decision required; this pack does not prove compliance or authorize a release.",
+        "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+        "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+        "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+        "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+      ],
+      "freshness": {
+        "collectionConsistency": "not-checked",
+        "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+      }
+    },
+    "evidenceMarkdown": "## Pull-request evidence snapshot\n\n[\u0060eval/fixture\u0060 PR #1](https://github.com/eval/fixture/pull/1)\n\nGitHub verdict: **unknown**. Scoped assurance: **unknown**.\n\nHead: \u0060unknown\u0060; base: \u0060unknown\u0060 (\u0060unknown\u0060).\n\nCollected: 2026-11-02T02:05:53.8122306\u002B00:00; schema 1.0; Ashlar \u00600.4.2\u002Bb4b77b7f47975c64873dd8dc458329a584228d36\u0060; brick \u00601.3.1\u0060.\n\n- **unknown**: The pull request: The pull request was not found, or is not visible to this token. [source](https://github.com/eval/fixture/pull/1)\n\n- **unknown**: The pull request could not be inspected. [source](https://github.com/eval/fixture/pull/1)\n\nLimitations:\n\n- Human release decision required; this pack does not prove compliance or authorize a release.\n\n- No repository code, PR body, diff, private file content, artifact payload or access token is included.\n\n- GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.\n\n- API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.\n\n- No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately.\n"
+  }
+}

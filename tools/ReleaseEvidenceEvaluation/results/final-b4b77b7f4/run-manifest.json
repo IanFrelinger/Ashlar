@@ -1,0 +1,4021 @@
+{
+  "schemaVersion": "ashlar.release-evidence-evaluation-run/1",
+  "candidateCommit": "b4b77b7f47975c64873dd8dc458329a584228d36",
+  "baselineCandidateCommit": "47a7c8506b89670d977265ce342a962d35858cd5",
+  "candidateMode": "repaired-rerun",
+  "brickAssemblyVersion": "0.4.2\u002Bb4b77b7f47975c64873dd8dc458329a584228d36",
+  "mode": "offline-http-replay",
+  "startedAt": "2026-11-02T02:05:52.3564589+00:00",
+  "completedAt": "2026-11-02T02:05:54.1336528+00:00",
+  "mergeabilityDelay": "elided; request sequence preserved; replay timing is not API latency",
+  "fixtureManifestSha256": "7f13a41177dd6b0e639ead8dd173ab2556d2fb96683716a10d258d50b1d06ea5",
+  "fixtureManifestPath": "frozen-fixture-manifest.json",
+  "groundTruthSha256": "85b97df9b1b08dfe1585855b684324171f0ebec50ea3eac4902805de0db5c3e1",
+  "groundTruthPath": "frozen-ground-truth.json",
+  "cases": [
+    {
+      "caseId": "e01-no-configured-requirements",
+      "datasetPath": "e01-no-configured-requirements/input.json",
+      "datasetSha256": "52c57a0a7a768afc8d85c64c4f5e137f0e4acb89274f1bee640bc7afb01b5402",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e01-no-configured-requirements/release-evidence.json",
+      "markdownPath": "e01-no-configured-requirements/release-evidence.md",
+      "payloadPath": "e01-no-configured-requirements/payload.json",
+      "transcriptPath": "e01-no-configured-requirements/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "83d660c941d194a2ba53d8b6d6c54bf7f49855885f8f56beb52bfc1dad40f428",
+      "markdownSha256": "63eaa781b63848e6c5a1538ed09055f2463d4eb50a0f93b871e296dfc10b2f60",
+      "payloadSha256": "c67d8797fb6ec44212452050bf7197248f17f2cc6f6bf98433603b271706116a",
+      "transcriptSha256": "d2fc140c3fabd2e4f81285c7b4366b9a3b10af38f186099b15d33b36ebb8eea5",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 1210.4642,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/19ef22e8dd2b0720627f8a498573c6c5dd26d9e3/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/19ef22e8dd2b0720627f8a498573c6c5dd26d9e3/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e01-no-configured-requirements/release-evidence.json": "83d660c941d194a2ba53d8b6d6c54bf7f49855885f8f56beb52bfc1dad40f428",
+        "e01-no-configured-requirements/release-evidence.md": "63eaa781b63848e6c5a1538ed09055f2463d4eb50a0f93b871e296dfc10b2f60",
+        "e01-no-configured-requirements/payload.json": "c67d8797fb6ec44212452050bf7197248f17f2cc6f6bf98433603b271706116a",
+        "e01-no-configured-requirements/transcript.json": "d2fc140c3fabd2e4f81285c7b4366b9a3b10af38f186099b15d33b36ebb8eea5"
+      }
+    },
+    {
+      "caseId": "e02-required-external-status",
+      "datasetPath": "e02-required-external-status/input.json",
+      "datasetSha256": "e57a1b04aabd3e977ffa47e718a6000bcecad18c3ce97c13b937f9979c99efbb",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e02-required-external-status/release-evidence.json",
+      "markdownPath": "e02-required-external-status/release-evidence.md",
+      "payloadPath": "e02-required-external-status/payload.json",
+      "transcriptPath": "e02-required-external-status/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "23adf30463d13d3fbd7331e022e8123c249de14ee87305bcb1fa8d6c7adfeaa0",
+      "markdownSha256": "67583303b80a4ebf658f97f050989b475409d9c97a8c1ceabf8cb2f3d45c26cc",
+      "payloadSha256": "ad517357aa9199b3d42d78b8077490e6f99309d59b6565a43700f21f95363189",
+      "transcriptSha256": "3872da79bcfb6a7d2d97bb5a290442aedfc87e3899920b50d396fa517e54a2c9",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 41.5538,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/b01c033147c58e030ae0f356026f57f54fcdda2b/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/b01c033147c58e030ae0f356026f57f54fcdda2b/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e02-required-external-status/release-evidence.json": "23adf30463d13d3fbd7331e022e8123c249de14ee87305bcb1fa8d6c7adfeaa0",
+        "e02-required-external-status/release-evidence.md": "67583303b80a4ebf658f97f050989b475409d9c97a8c1ceabf8cb2f3d45c26cc",
+        "e02-required-external-status/payload.json": "ad517357aa9199b3d42d78b8077490e6f99309d59b6565a43700f21f95363189",
+        "e02-required-external-status/transcript.json": "3872da79bcfb6a7d2d97bb5a290442aedfc87e3899920b50d396fa517e54a2c9"
+      }
+    },
+    {
+      "caseId": "e03-two-approvals",
+      "datasetPath": "e03-two-approvals/input.json",
+      "datasetSha256": "77346ac74145d689d514bc1ce26ca806a19ee42968bde39b493321fd8cd441ee",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e03-two-approvals/release-evidence.json",
+      "markdownPath": "e03-two-approvals/release-evidence.md",
+      "payloadPath": "e03-two-approvals/payload.json",
+      "transcriptPath": "e03-two-approvals/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "eedb2835d01ead61d481a9a867bafd289c6d09d47aa3917ecfc35d99b3a0703c",
+      "markdownSha256": "27613e7277dabeac9275c1fbe1e3004804af674201a03129c735bfc00441392d",
+      "payloadSha256": "4b573f821b06a68ac0076e14fcef02b0602a3c110cc513a851d2c1deb1cf0c1e",
+      "transcriptSha256": "afabb88b970166961def794d6d046cbc45d1dddb60b18c52410e0b38570b45df",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 12.5343,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/19646c275e5d91eb748313db878b24b48df39e96/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/19646c275e5d91eb748313db878b24b48df39e96/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e03-two-approvals/release-evidence.json": "eedb2835d01ead61d481a9a867bafd289c6d09d47aa3917ecfc35d99b3a0703c",
+        "e03-two-approvals/release-evidence.md": "27613e7277dabeac9275c1fbe1e3004804af674201a03129c735bfc00441392d",
+        "e03-two-approvals/payload.json": "4b573f821b06a68ac0076e14fcef02b0602a3c110cc513a851d2c1deb1cf0c1e",
+        "e03-two-approvals/transcript.json": "afabb88b970166961def794d6d046cbc45d1dddb60b18c52410e0b38570b45df"
+      }
+    },
+    {
+      "caseId": "e04-mixed-optional-ci",
+      "datasetPath": "e04-mixed-optional-ci/input.json",
+      "datasetSha256": "05523845799d6cde5173f834f406808ebb8011b69f2d5b884bc33ffee5a97a88",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e04-mixed-optional-ci/release-evidence.json",
+      "markdownPath": "e04-mixed-optional-ci/release-evidence.md",
+      "payloadPath": "e04-mixed-optional-ci/payload.json",
+      "transcriptPath": "e04-mixed-optional-ci/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "9f5c642d293b523ee3a393d3414aa2460227a6a36dd56ba1517696461d00b48a",
+      "markdownSha256": "0a1c46813ac6721309c14c953dc0922029ed16c0854378202a33011f5c3a2442",
+      "payloadSha256": "d7e6326636b643df34053a04c65de7b63315e36399ee3f192a1200f4f5c42fd5",
+      "transcriptSha256": "76a0e91cae9b3785ffe2a1818f4fc8173bab1adbe860d0aab5451893b9bc8138",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 17.4481,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/5d52012209c48040e1077abbe3a54dacb514cd94/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/5d52012209c48040e1077abbe3a54dacb514cd94/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e04-mixed-optional-ci/release-evidence.json": "9f5c642d293b523ee3a393d3414aa2460227a6a36dd56ba1517696461d00b48a",
+        "e04-mixed-optional-ci/release-evidence.md": "0a1c46813ac6721309c14c953dc0922029ed16c0854378202a33011f5c3a2442",
+        "e04-mixed-optional-ci/payload.json": "d7e6326636b643df34053a04c65de7b63315e36399ee3f192a1200f4f5c42fd5",
+        "e04-mixed-optional-ci/transcript.json": "76a0e91cae9b3785ffe2a1818f4fc8173bab1adbe860d0aab5451893b9bc8138"
+      }
+    },
+    {
+      "caseId": "e05-required-check-failure",
+      "datasetPath": "e05-required-check-failure/input.json",
+      "datasetSha256": "f1df5db2c45d0dd664c2dc8b56c8bcee617474e8ed592b8e8b2afa4fdc8560b9",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e05-required-check-failure/release-evidence.json",
+      "markdownPath": "e05-required-check-failure/release-evidence.md",
+      "payloadPath": "e05-required-check-failure/payload.json",
+      "transcriptPath": "e05-required-check-failure/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "3757507c1bceb4420286c2e31dab821f091bdd46cfd51338986859f70dbe85e3",
+      "markdownSha256": "983c035aafb236f88826e20e006ce4f01b32e5fa047952c8c5b3f359df501215",
+      "payloadSha256": "2ba269858bcdd8bbd680d155c2ba6daa4266fde8adc4255a8fed03e5173222bf",
+      "transcriptSha256": "9aef02041a5c9b8278933783236910985392bcf2e0391bd314e67db3fb4ff623",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 11.824,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/35c179df616e95bc2ddcaa2cba4be00101a33370/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/35c179df616e95bc2ddcaa2cba4be00101a33370/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e05-required-check-failure/release-evidence.json": "3757507c1bceb4420286c2e31dab821f091bdd46cfd51338986859f70dbe85e3",
+        "e05-required-check-failure/release-evidence.md": "983c035aafb236f88826e20e006ce4f01b32e5fa047952c8c5b3f359df501215",
+        "e05-required-check-failure/payload.json": "2ba269858bcdd8bbd680d155c2ba6daa4266fde8adc4255a8fed03e5173222bf",
+        "e05-required-check-failure/transcript.json": "9aef02041a5c9b8278933783236910985392bcf2e0391bd314e67db3fb4ff623"
+      }
+    },
+    {
+      "caseId": "e06-merge-conflict",
+      "datasetPath": "e06-merge-conflict/input.json",
+      "datasetSha256": "dfcd9df7ed2740c955cee3b61a8b26173405e53ed1abaf7b0186bc2ec6ca5d46",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e06-merge-conflict/release-evidence.json",
+      "markdownPath": "e06-merge-conflict/release-evidence.md",
+      "payloadPath": "e06-merge-conflict/payload.json",
+      "transcriptPath": "e06-merge-conflict/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "2945412842ecd7687e884e2f1b778e1a827064e249623b046171d6474ba7e7d2",
+      "markdownSha256": "a5f524f39ac39a2734d53ecac03bf9ff2428e8462a2b03533eeb469effb4b453",
+      "payloadSha256": "27e9d68a6a68272aaaacffe4706e047ee95dfbe251963112e2c86806180b2938",
+      "transcriptSha256": "4516b2ae90b7c3e91e41894691c44ff9803424f2c7ca2269c4ac56f19b17a5b7",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 5.5983,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/b120e7a0469345d2cab21a56d52f3a7f62969a26/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/b120e7a0469345d2cab21a56d52f3a7f62969a26/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e06-merge-conflict/release-evidence.json": "2945412842ecd7687e884e2f1b778e1a827064e249623b046171d6474ba7e7d2",
+        "e06-merge-conflict/release-evidence.md": "a5f524f39ac39a2734d53ecac03bf9ff2428e8462a2b03533eeb469effb4b453",
+        "e06-merge-conflict/payload.json": "27e9d68a6a68272aaaacffe4706e047ee95dfbe251963112e2c86806180b2938",
+        "e06-merge-conflict/transcript.json": "4516b2ae90b7c3e91e41894691c44ff9803424f2c7ca2269c4ac56f19b17a5b7"
+      }
+    },
+    {
+      "caseId": "e07-draft-pr",
+      "datasetPath": "e07-draft-pr/input.json",
+      "datasetSha256": "50e93b3f9612731f547be661fc2fa5c5ca361f2ffc24f4fce755a15f860636ee",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e07-draft-pr/release-evidence.json",
+      "markdownPath": "e07-draft-pr/release-evidence.md",
+      "payloadPath": "e07-draft-pr/payload.json",
+      "transcriptPath": "e07-draft-pr/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "cf17a89081cf12ddf7c4e6015308550b589f6049676b5c044390a2cfc1785675",
+      "markdownSha256": "ecf5940b88664fb459457061fee6660cca2cfd7c87790c2ec8b938c20b67b57a",
+      "payloadSha256": "9300f0b18191d17a3cbe9c281405b89dc2d48fd0b9f077d32b8b6f6f13ab8cee",
+      "transcriptSha256": "91a13d6d70d09ea981b22a09536b51d07d3b2ecac5042691f93b957a8034fac8",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 4.7012,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/2e2f0a2a832d44e663444ff405fe011afaffb227/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/2e2f0a2a832d44e663444ff405fe011afaffb227/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e07-draft-pr/release-evidence.json": "cf17a89081cf12ddf7c4e6015308550b589f6049676b5c044390a2cfc1785675",
+        "e07-draft-pr/release-evidence.md": "ecf5940b88664fb459457061fee6660cca2cfd7c87790c2ec8b938c20b67b57a",
+        "e07-draft-pr/payload.json": "9300f0b18191d17a3cbe9c281405b89dc2d48fd0b9f077d32b8b6f6f13ab8cee",
+        "e07-draft-pr/transcript.json": "91a13d6d70d09ea981b22a09536b51d07d3b2ecac5042691f93b957a8034fac8"
+      }
+    },
+    {
+      "caseId": "e08-review-threshold",
+      "datasetPath": "e08-review-threshold/input.json",
+      "datasetSha256": "f0a26df85db34516d239f379318b787b6d7ef13491757b5ba17a7d39edfc1e44",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e08-review-threshold/release-evidence.json",
+      "markdownPath": "e08-review-threshold/release-evidence.md",
+      "payloadPath": "e08-review-threshold/payload.json",
+      "transcriptPath": "e08-review-threshold/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "3d0c9e796a23c1e0d20bbeeb2c0943dc98a174c3da3bb28002066732b3cd43eb",
+      "markdownSha256": "2ba08647b5f21025e96e99276b5ecb5e96c20e5fc86c85bb9d47c641fb1aded5",
+      "payloadSha256": "706ad59773462c3d40c8a6fb5381e42af486fbd420c4d0c56e705244236964d4",
+      "transcriptSha256": "2d2f8007c0c1f4f499b9edb2446ee959f64803ac32dd85fb9837444c974258a4",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 17.0988,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/d206332138379fae18b3bf178c56ca4d405ab702/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/d206332138379fae18b3bf178c56ca4d405ab702/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e08-review-threshold/release-evidence.json": "3d0c9e796a23c1e0d20bbeeb2c0943dc98a174c3da3bb28002066732b3cd43eb",
+        "e08-review-threshold/release-evidence.md": "2ba08647b5f21025e96e99276b5ecb5e96c20e5fc86c85bb9d47c641fb1aded5",
+        "e08-review-threshold/payload.json": "706ad59773462c3d40c8a6fb5381e42af486fbd420c4d0c56e705244236964d4",
+        "e08-review-threshold/transcript.json": "2d2f8007c0c1f4f499b9edb2446ee959f64803ac32dd85fb9837444c974258a4"
+      }
+    },
+    {
+      "caseId": "e09-changes-requested",
+      "datasetPath": "e09-changes-requested/input.json",
+      "datasetSha256": "c08a0799b182ad1d163d4cb635e6ba3f56ea6969d4c215ac40af2c1df0d6499a",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e09-changes-requested/release-evidence.json",
+      "markdownPath": "e09-changes-requested/release-evidence.md",
+      "payloadPath": "e09-changes-requested/payload.json",
+      "transcriptPath": "e09-changes-requested/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "ccbd7eeb4715fecdcfe04d38ef67d1da2373d6f86049f7b873c58601affeeca3",
+      "markdownSha256": "039b2d45f29cff8d43f09eb5be12babaeb0930b768e37013f1eafe0a9efb535a",
+      "payloadSha256": "a8163bbf5927ae8862e5d3af31e3779d3a073df9c993b07249ba724b4ab95f1d",
+      "transcriptSha256": "4c6091991293cdc10b600c6880b685c10c74f7ca54567be02819d782fa502aa3",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 8.5403,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/4af92d8a4bd1079a48371783ecb7041b86e4b7e6/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/4af92d8a4bd1079a48371783ecb7041b86e4b7e6/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e09-changes-requested/release-evidence.json": "ccbd7eeb4715fecdcfe04d38ef67d1da2373d6f86049f7b873c58601affeeca3",
+        "e09-changes-requested/release-evidence.md": "039b2d45f29cff8d43f09eb5be12babaeb0930b768e37013f1eafe0a9efb535a",
+        "e09-changes-requested/payload.json": "a8163bbf5927ae8862e5d3af31e3779d3a073df9c993b07249ba724b4ab95f1d",
+        "e09-changes-requested/transcript.json": "4c6091991293cdc10b600c6880b685c10c74f7ca54567be02819d782fa502aa3"
+      }
+    },
+    {
+      "caseId": "e10-behind-strict-base",
+      "datasetPath": "e10-behind-strict-base/input.json",
+      "datasetSha256": "1b60d1fcb7d95484bf787e7327d4b99a8179187a670c6a24bc3e851dec2524f5",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e10-behind-strict-base/release-evidence.json",
+      "markdownPath": "e10-behind-strict-base/release-evidence.md",
+      "payloadPath": "e10-behind-strict-base/payload.json",
+      "transcriptPath": "e10-behind-strict-base/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "e5577b9b2627efb06fac181de67430c49dd283c980acd900805bd5fdcb1de3f9",
+      "markdownSha256": "8cfb7b9121729052c02938a6fe98217d293241c0d5180f9b3d86a231d08aeb57",
+      "payloadSha256": "8c7c1ff9706bb9af0e0c9b30f9d41d8074d3d0d4840913c474b1c3a3466206c4",
+      "transcriptSha256": "96ee24711d62e8be2c6ab7a6205a539535144fb3156b23aa7fdeca904fdc13b4",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 5.7525,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/15c780bf53d3fb1249b6291702668dc62e91ae10/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/15c780bf53d3fb1249b6291702668dc62e91ae10/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e10-behind-strict-base/release-evidence.json": "e5577b9b2627efb06fac181de67430c49dd283c980acd900805bd5fdcb1de3f9",
+        "e10-behind-strict-base/release-evidence.md": "8cfb7b9121729052c02938a6fe98217d293241c0d5180f9b3d86a231d08aeb57",
+        "e10-behind-strict-base/payload.json": "8c7c1ff9706bb9af0e0c9b30f9d41d8074d3d0d4840913c474b1c3a3466206c4",
+        "e10-behind-strict-base/transcript.json": "96ee24711d62e8be2c6ab7a6205a539535144fb3156b23aa7fdeca904fdc13b4"
+      }
+    },
+    {
+      "caseId": "e11-queued-check",
+      "datasetPath": "e11-queued-check/input.json",
+      "datasetSha256": "1eaee85f305726b234a4e504f68237e381dcf692ce52bb275dda5f09a22f464c",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e11-queued-check/release-evidence.json",
+      "markdownPath": "e11-queued-check/release-evidence.md",
+      "payloadPath": "e11-queued-check/payload.json",
+      "transcriptPath": "e11-queued-check/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "5f7ba9c918cd5714a73e90c11f8ab1c5c65aa841653eb6ace478792485468cc8",
+      "markdownSha256": "b8c16dd32e1dfd6be330833ed149f2ba5b4579d622920f3a4a5be8c6f5417cd8",
+      "payloadSha256": "cd732587e1fb536193ef9c5a4ef67bed0af3a6ee38b4b5d1ba1537bb3e2c4104",
+      "transcriptSha256": "d8cd5c4cb3b46cebedd15c663f2089d15d553e8c51eb809b3e064a22e0252952",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 7.9109,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/8f7e63fa795edc1ddea4ce1ba6444c33a288aeb1/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/8f7e63fa795edc1ddea4ce1ba6444c33a288aeb1/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e11-queued-check/release-evidence.json": "5f7ba9c918cd5714a73e90c11f8ab1c5c65aa841653eb6ace478792485468cc8",
+        "e11-queued-check/release-evidence.md": "b8c16dd32e1dfd6be330833ed149f2ba5b4579d622920f3a4a5be8c6f5417cd8",
+        "e11-queued-check/payload.json": "cd732587e1fb536193ef9c5a4ef67bed0af3a6ee38b4b5d1ba1537bb3e2c4104",
+        "e11-queued-check/transcript.json": "d8cd5c4cb3b46cebedd15c663f2089d15d553e8c51eb809b3e064a22e0252952"
+      }
+    },
+    {
+      "caseId": "e12-missing-rule-context",
+      "datasetPath": "e12-missing-rule-context/input.json",
+      "datasetSha256": "bdae216b83abec009749a5740f435ae98c65eacabb70bbbb6eb49af8faaca4aa",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e12-missing-rule-context/release-evidence.json",
+      "markdownPath": "e12-missing-rule-context/release-evidence.md",
+      "payloadPath": "e12-missing-rule-context/payload.json",
+      "transcriptPath": "e12-missing-rule-context/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "f5d7c1bdade3363843f24789b3f70da004a368c004ca938d01f8d5313cb0e085",
+      "markdownSha256": "f767daae47110ce8a2d9c27c9552581e03ab570d50c604d761b222ad0f759ad9",
+      "payloadSha256": "106cb2b96978bf08608c0a4e0b2f2f16d90c70b3011a12039d2bb0b15b5cc6f1",
+      "transcriptSha256": "80220e9b693a13e0ab212caee450c21de0258f51a62cc109f3ba1ba879984aec",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 11.572,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/a41249d1708f3ff4151faf42ecd191fe8fd61734/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/a41249d1708f3ff4151faf42ecd191fe8fd61734/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e12-missing-rule-context/release-evidence.json": "f5d7c1bdade3363843f24789b3f70da004a368c004ca938d01f8d5313cb0e085",
+        "e12-missing-rule-context/release-evidence.md": "f767daae47110ce8a2d9c27c9552581e03ab570d50c604d761b222ad0f759ad9",
+        "e12-missing-rule-context/payload.json": "106cb2b96978bf08608c0a4e0b2f2f16d90c70b3011a12039d2bb0b15b5cc6f1",
+        "e12-missing-rule-context/transcript.json": "80220e9b693a13e0ab212caee450c21de0258f51a62cc109f3ba1ba879984aec"
+      }
+    },
+    {
+      "caseId": "e13-conflicting-same-name",
+      "datasetPath": "e13-conflicting-same-name/input.json",
+      "datasetSha256": "61ba8d11cad00a01adaf41333d3d522917052854f26c83fc93108ad1dfc4bb8c",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e13-conflicting-same-name/release-evidence.json",
+      "markdownPath": "e13-conflicting-same-name/release-evidence.md",
+      "payloadPath": "e13-conflicting-same-name/payload.json",
+      "transcriptPath": "e13-conflicting-same-name/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "3220d723b10e42c28021657779180b52d8441707427d7e1ac05841421801a80f",
+      "markdownSha256": "3ad51eff7222c7a2ba7302796e15beb330667db3520bfa679544df6451724adc",
+      "payloadSha256": "240706e0ff9b853f76c4f04ea311065df3ad1db8896237e45688c98184e55bf0",
+      "transcriptSha256": "ec1b044d6e73d051013834b34afd0e167f5fc12fc1504f44ff0c0aa2fe10c7e3",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 14.4208,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/68007672c9f55ee479c23482c1efbb92f3f2f940/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e13-conflicting-same-name/release-evidence.json": "3220d723b10e42c28021657779180b52d8441707427d7e1ac05841421801a80f",
+        "e13-conflicting-same-name/release-evidence.md": "3ad51eff7222c7a2ba7302796e15beb330667db3520bfa679544df6451724adc",
+        "e13-conflicting-same-name/payload.json": "240706e0ff9b853f76c4f04ea311065df3ad1db8896237e45688c98184e55bf0",
+        "e13-conflicting-same-name/transcript.json": "ec1b044d6e73d051013834b34afd0e167f5fc12fc1504f44ff0c0aa2fe10c7e3"
+      }
+    },
+    {
+      "caseId": "e14-running-no-conclusion",
+      "datasetPath": "e14-running-no-conclusion/input.json",
+      "datasetSha256": "f52c503d9439f3c5d610e28529921b56a33cf32ed49bad4df2381797140f4f5f",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e14-running-no-conclusion/release-evidence.json",
+      "markdownPath": "e14-running-no-conclusion/release-evidence.md",
+      "payloadPath": "e14-running-no-conclusion/payload.json",
+      "transcriptPath": "e14-running-no-conclusion/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "08f06e96cc9852d30abf74c32c970b48d0812633c5dea004cbb6387eb2474473",
+      "markdownSha256": "71ddae93bf43279ef094d7aacc2a460dba2712b58611422ca0ef87a32de2f6ea",
+      "payloadSha256": "7bd200bb010b318b2f9f104ccf07c217ac5e8c41ae330425d05877b18e1bfea4",
+      "transcriptSha256": "3c65478a8930aa8c68d2371aff4988d1eb46dfcf5f84d9dcec90497eae3a44e2",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 4.9048,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/0426efec7d5c1abb9ac4dd0be9afa8357551c89a/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/0426efec7d5c1abb9ac4dd0be9afa8357551c89a/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e14-running-no-conclusion/release-evidence.json": "08f06e96cc9852d30abf74c32c970b48d0812633c5dea004cbb6387eb2474473",
+        "e14-running-no-conclusion/release-evidence.md": "71ddae93bf43279ef094d7aacc2a460dba2712b58611422ca0ef87a32de2f6ea",
+        "e14-running-no-conclusion/payload.json": "7bd200bb010b318b2f9f104ccf07c217ac5e8c41ae330425d05877b18e1bfea4",
+        "e14-running-no-conclusion/transcript.json": "3c65478a8930aa8c68d2371aff4988d1eb46dfcf5f84d9dcec90497eae3a44e2"
+      }
+    },
+    {
+      "caseId": "e15-anonymous-graphql",
+      "datasetPath": "e15-anonymous-graphql/input.json",
+      "datasetSha256": "961b076d2cd3c4e143ff68fa6a4b3d8a668f1f235d606216526ed6d2c3d6d29b",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e15-anonymous-graphql/release-evidence.json",
+      "markdownPath": "e15-anonymous-graphql/release-evidence.md",
+      "payloadPath": "e15-anonymous-graphql/payload.json",
+      "transcriptPath": "e15-anonymous-graphql/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "ef6044ea2af2165bfd7d9c7ad5a616c2cd86eb47bd0d2d73e4bcfd9f915d4dce",
+      "markdownSha256": "3708f32d51392907ed6e081d73fa055ec9eed3355e96d5e9258efacc00abea5d",
+      "payloadSha256": "f62e98e04f3e1ab90aba5328767d90a79007ace68e6a6613b499f1d07f4e2b50",
+      "transcriptSha256": "b7581d0d1335c0bc1a4107039a305582cbcdeb93bb4ea2c0d5f067c95e88039c",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 11.7633,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/a2a1073bd5dc51fc9b98c36d813a3c9c6d81be67/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/a2a1073bd5dc51fc9b98c36d813a3c9c6d81be67/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e15-anonymous-graphql/release-evidence.json": "ef6044ea2af2165bfd7d9c7ad5a616c2cd86eb47bd0d2d73e4bcfd9f915d4dce",
+        "e15-anonymous-graphql/release-evidence.md": "3708f32d51392907ed6e081d73fa055ec9eed3355e96d5e9258efacc00abea5d",
+        "e15-anonymous-graphql/payload.json": "f62e98e04f3e1ab90aba5328767d90a79007ace68e6a6613b499f1d07f4e2b50",
+        "e15-anonymous-graphql/transcript.json": "b7581d0d1335c0bc1a4107039a305582cbcdeb93bb4ea2c0d5f067c95e88039c"
+      }
+    },
+    {
+      "caseId": "e16-policy-permission-denied",
+      "datasetPath": "e16-policy-permission-denied/input.json",
+      "datasetSha256": "cf64726d1a4387e0caaded56327be4c83eab3e99ed7c13db26436c8928473d12",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e16-policy-permission-denied/release-evidence.json",
+      "markdownPath": "e16-policy-permission-denied/release-evidence.md",
+      "payloadPath": "e16-policy-permission-denied/payload.json",
+      "transcriptPath": "e16-policy-permission-denied/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "532ed8f840bb575a6564be83b4c5e3ab812e1930433427c6f0b99f0079a51bdc",
+      "markdownSha256": "eae4b198a18c6bb0f58145edc9cb5a646410daef1c821403a8095c6f28668d70",
+      "payloadSha256": "24a817ecd187c336b5674986a8f665197e7853feba1cc3b4bf7c3e260b0401dc",
+      "transcriptSha256": "9084a9bfb62a0dacf5fab89a663ba4b0d965d8c050c5065d0e9b8d854f09b8b7",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 6.6812,
+      "requestCount": 10,
+      "unusedRoutes": [],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/f29d174207d30ab92dcc0e398725edd7d8c5db9f/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/f29d174207d30ab92dcc0e398725edd7d8c5db9f/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e16-policy-permission-denied/release-evidence.json": "532ed8f840bb575a6564be83b4c5e3ab812e1930433427c6f0b99f0079a51bdc",
+        "e16-policy-permission-denied/release-evidence.md": "eae4b198a18c6bb0f58145edc9cb5a646410daef1c821403a8095c6f28668d70",
+        "e16-policy-permission-denied/payload.json": "24a817ecd187c336b5674986a8f665197e7853feba1cc3b4bf7c3e260b0401dc",
+        "e16-policy-permission-denied/transcript.json": "9084a9bfb62a0dacf5fab89a663ba4b0d965d8c050c5065d0e9b8d854f09b8b7"
+      }
+    },
+    {
+      "caseId": "e17-private-pr-not-found",
+      "datasetPath": "e17-private-pr-not-found/input.json",
+      "datasetSha256": "476a706553b88a11d5ff3ab95293f1966e3d1631b6a70782a8b699a6f0f86a78",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e17-private-pr-not-found/release-evidence.json",
+      "markdownPath": "e17-private-pr-not-found/release-evidence.md",
+      "payloadPath": "e17-private-pr-not-found/payload.json",
+      "transcriptPath": "e17-private-pr-not-found/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "9f46b9a443e09ff54965ce30740c8a04b8458275bdc95726af33d662c9626860",
+      "markdownSha256": "49be6f33c7343650605fea0c740aecfba2238a223b5daa644b25b5aeb53b4c20",
+      "payloadSha256": "ad74dc0d28183c6c3d2b0b6c5c77083700ef05006f6d7d105f94d95031cf0a91",
+      "transcriptSha256": "b298b89b7802276cfbea6df5bfc1e873e119114012f1a226fb3744daa9ff235d",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 4.8629,
+      "requestCount": 1,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/pulls/1/reviews",
+        "GET /repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/check-runs",
+        "GET /repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/status",
+        "GET /repos/eval/fixture/branches/main/protection/required_status_checks",
+        "GET /repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+        "GET /repos/eval/fixture/rules/branches/main?per_page=100",
+        "GET /repos/eval/fixture/branches/main",
+        "POST /graphql"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/check-runs",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/status",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e17-private-pr-not-found/release-evidence.json": "9f46b9a443e09ff54965ce30740c8a04b8458275bdc95726af33d662c9626860",
+        "e17-private-pr-not-found/release-evidence.md": "49be6f33c7343650605fea0c740aecfba2238a223b5daa644b25b5aeb53b4c20",
+        "e17-private-pr-not-found/payload.json": "ad74dc0d28183c6c3d2b0b6c5c77083700ef05006f6d7d105f94d95031cf0a91",
+        "e17-private-pr-not-found/transcript.json": "b298b89b7802276cfbea6df5bfc1e873e119114012f1a226fb3744daa9ff235d"
+      }
+    },
+    {
+      "caseId": "e18-checks-and-reviews-denied",
+      "datasetPath": "e18-checks-and-reviews-denied/input.json",
+      "datasetSha256": "1100d9625c8813c6022afaa6c46bec46dbb3a9721c814914856d035620cd6d3d",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e18-checks-and-reviews-denied/release-evidence.json",
+      "markdownPath": "e18-checks-and-reviews-denied/release-evidence.md",
+      "payloadPath": "e18-checks-and-reviews-denied/payload.json",
+      "transcriptPath": "e18-checks-and-reviews-denied/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "92f0003f89e717dce3f0daa7e1bee373f677fa2a08d5553358eaa829eb173308",
+      "markdownSha256": "4fc7b5c4d8355724dde1614d952bf3e30065e983b42b6e3f84852d3b8dd21426",
+      "payloadSha256": "ceadb21233fb18cae068029d7abac8fbe0399a225302274e67247202a89da22b",
+      "transcriptSha256": "622de0b35d37df4e80de7b194f00407bfa0642cc12adec4a8333815c06ea9bd7",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 11.6907,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/81d2a3305a8c57bbf01dadf5d5573be59f1be965/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/81d2a3305a8c57bbf01dadf5d5573be59f1be965/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e18-checks-and-reviews-denied/release-evidence.json": "92f0003f89e717dce3f0daa7e1bee373f677fa2a08d5553358eaa829eb173308",
+        "e18-checks-and-reviews-denied/release-evidence.md": "4fc7b5c4d8355724dde1614d952bf3e30065e983b42b6e3f84852d3b8dd21426",
+        "e18-checks-and-reviews-denied/payload.json": "ceadb21233fb18cae068029d7abac8fbe0399a225302274e67247202a89da22b",
+        "e18-checks-and-reviews-denied/transcript.json": "622de0b35d37df4e80de7b194f00407bfa0642cc12adec4a8333815c06ea9bd7"
+      }
+    },
+    {
+      "caseId": "e19-rate-limited-policy",
+      "datasetPath": "e19-rate-limited-policy/input.json",
+      "datasetSha256": "f7f35d6eee2cd4e768dde60572b4b889835e042d8169a13ca785fbb30b70a084",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e19-rate-limited-policy/release-evidence.json",
+      "markdownPath": "e19-rate-limited-policy/release-evidence.md",
+      "payloadPath": "e19-rate-limited-policy/payload.json",
+      "transcriptPath": "e19-rate-limited-policy/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "d103a75e59cab421c7bf49c9ece31a30c12eb27dcff24e5e24f57cecf2dac5aa",
+      "markdownSha256": "d0d25d865dd9eab2ac477a1acabf4a418505e66d0f8647dc8434078463a6b7c5",
+      "payloadSha256": "4e82af5f852f3a4d57049ace9968c033f493da7b03faa63d79b79b898b90584a",
+      "transcriptSha256": "1e06bc45f5dbb05a4198a7379973593586194e33969a97f045cf50d09d654410",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 5.7048,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/d6dd1bc61244a980faab96218c961c728c9217ea/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/d6dd1bc61244a980faab96218c961c728c9217ea/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e19-rate-limited-policy/release-evidence.json": "d103a75e59cab421c7bf49c9ece31a30c12eb27dcff24e5e24f57cecf2dac5aa",
+        "e19-rate-limited-policy/release-evidence.md": "d0d25d865dd9eab2ac477a1acabf4a418505e66d0f8647dc8434078463a6b7c5",
+        "e19-rate-limited-policy/payload.json": "4e82af5f852f3a4d57049ace9968c033f493da7b03faa63d79b79b898b90584a",
+        "e19-rate-limited-policy/transcript.json": "1e06bc45f5dbb05a4198a7379973593586194e33969a97f045cf50d09d654410"
+      }
+    },
+    {
+      "caseId": "e20-review-transport-timeout",
+      "datasetPath": "e20-review-transport-timeout/input.json",
+      "datasetSha256": "ff9cd5dad3dfbed2c229c4cd0e59d3ecc619316588a3c08ee6d61983796f5210",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e20-review-transport-timeout/release-evidence.json",
+      "markdownPath": "e20-review-transport-timeout/release-evidence.md",
+      "payloadPath": "e20-review-transport-timeout/payload.json",
+      "transcriptPath": "e20-review-transport-timeout/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "1720bf0489f81579ba50f02527233cfb1aaf5623cec7d60c9b8921383eb3e8b0",
+      "markdownSha256": "5816a66f6233c4eb7ed7bf1670c5be0d93870d1ccebd4b88b71eaccf92d93538",
+      "payloadSha256": "066ad44a878dadb20b10e95a20f5524f6ee0a042a861f78a51becace1bd7a45d",
+      "transcriptSha256": "e689e51614f50a289f5d52904527f6a7231a852b38b44438d0295d8df7f5e2d7",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 5.7858,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/dd77afc571f949c56277e4dd98ff8fe2851472c6/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/dd77afc571f949c56277e4dd98ff8fe2851472c6/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e20-review-transport-timeout/release-evidence.json": "1720bf0489f81579ba50f02527233cfb1aaf5623cec7d60c9b8921383eb3e8b0",
+        "e20-review-transport-timeout/release-evidence.md": "5816a66f6233c4eb7ed7bf1670c5be0d93870d1ccebd4b88b71eaccf92d93538",
+        "e20-review-transport-timeout/payload.json": "066ad44a878dadb20b10e95a20f5524f6ee0a042a861f78a51becace1bd7a45d",
+        "e20-review-transport-timeout/transcript.json": "e689e51614f50a289f5d52904527f6a7231a852b38b44438d0295d8df7f5e2d7"
+      }
+    },
+    {
+      "caseId": "e21-malformed-policy-json",
+      "datasetPath": "e21-malformed-policy-json/input.json",
+      "datasetSha256": "015f5eec24c28ee0e5f6410a0cc2860442fa1495b46dfac633afc870fbeff242",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e21-malformed-policy-json/release-evidence.json",
+      "markdownPath": "e21-malformed-policy-json/release-evidence.md",
+      "payloadPath": "e21-malformed-policy-json/payload.json",
+      "transcriptPath": "e21-malformed-policy-json/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "9c8af7e4bae702b167bbba44994090709f17a17c23d6c52794422bd16b7fd97f",
+      "markdownSha256": "a54430ac11f9c4a5b814aeb032a77f3aa757c87b78ea431a45e959bdf64be5fd",
+      "payloadSha256": "cbf103dddbea02fa8f4b4ceda906b5681cb909a01c849544888d8e59d829ab22",
+      "transcriptSha256": "737b04298424174325f549db87055362bf01dc9b06529c2d9c1b9845f95db33a",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 5.8921,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/2cb66f2939ca0776ce1f15f43e02cd1fecf725eb/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/2cb66f2939ca0776ce1f15f43e02cd1fecf725eb/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e21-malformed-policy-json/release-evidence.json": "9c8af7e4bae702b167bbba44994090709f17a17c23d6c52794422bd16b7fd97f",
+        "e21-malformed-policy-json/release-evidence.md": "a54430ac11f9c4a5b814aeb032a77f3aa757c87b78ea431a45e959bdf64be5fd",
+        "e21-malformed-policy-json/payload.json": "cbf103dddbea02fa8f4b4ceda906b5681cb909a01c849544888d8e59d829ab22",
+        "e21-malformed-policy-json/transcript.json": "737b04298424174325f549db87055362bf01dc9b06529c2d9c1b9845f95db33a"
+      }
+    },
+    {
+      "caseId": "e22-truncated-second-page",
+      "datasetPath": "e22-truncated-second-page/input.json",
+      "datasetSha256": "b24cc09240b186d446fb460d0661a4d39637681eadc0009ad0e811dc8dc00180",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e22-truncated-second-page/release-evidence.json",
+      "markdownPath": "e22-truncated-second-page/release-evidence.md",
+      "payloadPath": "e22-truncated-second-page/payload.json",
+      "transcriptPath": "e22-truncated-second-page/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "11f51922851d37b78825adb5152bd793e51f695a9be63ab530bfa186f25478cd",
+      "markdownSha256": "971df798f2677617572adc7fe93b752d073b735575b3d8d4f1efcd94c09ca01e",
+      "payloadSha256": "89c684d5b76214993aee1a3f76b9a4565c14b2d2a1702fb334d19b2fd6bc9f82",
+      "transcriptSha256": "e1339563c199b57112c1d2458126a40b946e1bf13ce2fc1346e772bab85cb563",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 9.8151,
+      "requestCount": 10,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/992d9348f6457fa0f6e044b566565be80b47dc01/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/992d9348f6457fa0f6e044b566565be80b47dc01/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/992d9348f6457fa0f6e044b566565be80b47dc01/check-runs?per_page=100\u0026page=2",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e22-truncated-second-page/release-evidence.json": "11f51922851d37b78825adb5152bd793e51f695a9be63ab530bfa186f25478cd",
+        "e22-truncated-second-page/release-evidence.md": "971df798f2677617572adc7fe93b752d073b735575b3d8d4f1efcd94c09ca01e",
+        "e22-truncated-second-page/payload.json": "89c684d5b76214993aee1a3f76b9a4565c14b2d2a1702fb334d19b2fd6bc9f82",
+        "e22-truncated-second-page/transcript.json": "e1339563c199b57112c1d2458126a40b946e1bf13ce2fc1346e772bab85cb563"
+      }
+    },
+    {
+      "caseId": "e23-head-moves-during-read",
+      "datasetPath": "e23-head-moves-during-read/input.json",
+      "datasetSha256": "f88a57d604e9c121d762c2b25fa98d0aef73b6ed41419bffc761edf02bca35c6",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e23-head-moves-during-read/release-evidence.json",
+      "markdownPath": "e23-head-moves-during-read/release-evidence.md",
+      "payloadPath": "e23-head-moves-during-read/payload.json",
+      "transcriptPath": "e23-head-moves-during-read/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "19cb6068ef5add469804de365cd6fda4b9e98e7ed8f49fc365e807014490dbf4",
+      "markdownSha256": "24d19665155bc93eec4df6dff410f1981998b5b3ae694e9d7d8816ba54214dbe",
+      "payloadSha256": "e36c824af34cab9e71da4779ac181449ce1c4304e53a403d8def050e332cc684",
+      "transcriptSha256": "bee55fa8c912f857232de849011dd75342f0c0c36d2950c6e7e0de009c92dc53",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 3.9935,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main",
+        "GET /repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/check-runs",
+        "GET /repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/status"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/c86c530ceec250ed8d89290820140f41d5095f78/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/c86c530ceec250ed8d89290820140f41d5095f78/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/check-runs",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/e0869540c0a820b5579b17edcb6187e00f9ee07e/status",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e23-head-moves-during-read/release-evidence.json": "19cb6068ef5add469804de365cd6fda4b9e98e7ed8f49fc365e807014490dbf4",
+        "e23-head-moves-during-read/release-evidence.md": "24d19665155bc93eec4df6dff410f1981998b5b3ae694e9d7d8816ba54214dbe",
+        "e23-head-moves-during-read/payload.json": "e36c824af34cab9e71da4779ac181449ce1c4304e53a403d8def050e332cc684",
+        "e23-head-moves-during-read/transcript.json": "bee55fa8c912f857232de849011dd75342f0c0c36d2950c6e7e0de009c92dc53"
+      }
+    },
+    {
+      "caseId": "e24-base-moves-during-read",
+      "datasetPath": "e24-base-moves-during-read/input.json",
+      "datasetSha256": "2b0b91b34f6d18f05419b27456b59521fd4b2ee47f9942e7421d484583ea8fc9",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e24-base-moves-during-read/release-evidence.json",
+      "markdownPath": "e24-base-moves-during-read/release-evidence.md",
+      "payloadPath": "e24-base-moves-during-read/payload.json",
+      "transcriptPath": "e24-base-moves-during-read/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "22869d61a2767739a957abda660faf744a2d9aded21aba37532e2957879dd9d9",
+      "markdownSha256": "3ee96bce6ac64731f80c5132533f5fc1f18ff32bfbb4e37c6a5ba1e119d8aec5",
+      "payloadSha256": "ed9dfa944fb7f6781fe9ff44e7c7f18436db09bb90c6308d24a8f27aa3f6ef3f",
+      "transcriptSha256": "c089b57dce6b20597ac1a3c8522fff07bf7b94bf2fb97cee1745ab451d8a8048",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 21.4127,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/ef8620798f8719494e3a027e336a39625e73c896/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/ef8620798f8719494e3a027e336a39625e73c896/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            0,
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e24-base-moves-during-read/release-evidence.json": "22869d61a2767739a957abda660faf744a2d9aded21aba37532e2957879dd9d9",
+        "e24-base-moves-during-read/release-evidence.md": "3ee96bce6ac64731f80c5132533f5fc1f18ff32bfbb4e37c6a5ba1e119d8aec5",
+        "e24-base-moves-during-read/payload.json": "ed9dfa944fb7f6781fe9ff44e7c7f18436db09bb90c6308d24a8f27aa3f6ef3f",
+        "e24-base-moves-during-read/transcript.json": "c089b57dce6b20597ac1a3c8522fff07bf7b94bf2fb97cee1745ab451d8a8048"
+      }
+    },
+    {
+      "caseId": "e25-approval-on-older-commit",
+      "datasetPath": "e25-approval-on-older-commit/input.json",
+      "datasetSha256": "74d257e6eebd6648585be88adc2b8f3b8e7aa6e15d3d75f8e884effc4bb491b0",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e25-approval-on-older-commit/release-evidence.json",
+      "markdownPath": "e25-approval-on-older-commit/release-evidence.md",
+      "payloadPath": "e25-approval-on-older-commit/payload.json",
+      "transcriptPath": "e25-approval-on-older-commit/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "5a79129e46b16b7481c58267ec116c9ccd6cc50826d66bf8e46ddffda219fb5f",
+      "markdownSha256": "55f090bc8ebc1dafd4eb64e2d2c6ae0b2d4bc003252f6ace4930828c704e0f5b",
+      "payloadSha256": "cc09bcbd9ef9a7bcb3a818fe2c5ce9f779002bb83623adc51cca87470250e243",
+      "transcriptSha256": "6bc50cdbbf9e353dea457edcfc4f9032414b8ad2ce6dfc880d769ac052ab9dfe",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 7.675,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/01c3e0e867141b57bd3eccaec412b99a29d3822f/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/01c3e0e867141b57bd3eccaec412b99a29d3822f/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e25-approval-on-older-commit/release-evidence.json": "5a79129e46b16b7481c58267ec116c9ccd6cc50826d66bf8e46ddffda219fb5f",
+        "e25-approval-on-older-commit/release-evidence.md": "55f090bc8ebc1dafd4eb64e2d2c6ae0b2d4bc003252f6ace4930828c704e0f5b",
+        "e25-approval-on-older-commit/payload.json": "cc09bcbd9ef9a7bcb3a818fe2c5ce9f779002bb83623adc51cca87470250e243",
+        "e25-approval-on-older-commit/transcript.json": "6bc50cdbbf9e353dea457edcfc4f9032414b8ad2ce6dfc880d769ac052ab9dfe"
+      }
+    },
+    {
+      "caseId": "e26-facts-change-same-head",
+      "datasetPath": "e26-facts-change-same-head/input.json",
+      "datasetSha256": "72afad0c4f020300a97e9051a2ac593bff9fd02443063a55a072e803ab54c08b",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e26-facts-change-same-head/release-evidence.json",
+      "markdownPath": "e26-facts-change-same-head/release-evidence.md",
+      "payloadPath": "e26-facts-change-same-head/payload.json",
+      "transcriptPath": "e26-facts-change-same-head/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "cad0fd681420d0f04ce78058bed0d88b4884927a477bb8d163314f3c677f3f2b",
+      "markdownSha256": "27cf0ace698155a9cf15d0ac0887f31c1231d85f66482c5ed7ac6b0fbc22845c",
+      "payloadSha256": "562b3c522432f8c1fab436650a75fa32418fcde3fd6e4198d693c01bec6f266a",
+      "transcriptSha256": "0939c7ecd2e700b04cf2329ff4d2e2f30d539ee0f9f15f707d8bb4d027faa81b",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 8.606,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/c66930012bbe52fcfd1a1ac138610a3524c92f7d/check-runs",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/c66930012bbe52fcfd1a1ac138610a3524c92f7d/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e26-facts-change-same-head/release-evidence.json": "cad0fd681420d0f04ce78058bed0d88b4884927a477bb8d163314f3c677f3f2b",
+        "e26-facts-change-same-head/release-evidence.md": "27cf0ace698155a9cf15d0ac0887f31c1231d85f66482c5ed7ac6b0fbc22845c",
+        "e26-facts-change-same-head/payload.json": "562b3c522432f8c1fab436650a75fa32418fcde3fd6e4198d693c01bec6f266a",
+        "e26-facts-change-same-head/transcript.json": "0939c7ecd2e700b04cf2329ff4d2e2f30d539ee0f9f15f707d8bb4d027faa81b"
+      }
+    },
+    {
+      "caseId": "e27-hostile-check-metadata",
+      "datasetPath": "e27-hostile-check-metadata/input.json",
+      "datasetSha256": "a3e5ba93c8a8477002bf427e845331db0feefa0a762b3b4645e47724e4ec9a96",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e27-hostile-check-metadata/release-evidence.json",
+      "markdownPath": "e27-hostile-check-metadata/release-evidence.md",
+      "payloadPath": "e27-hostile-check-metadata/payload.json",
+      "transcriptPath": "e27-hostile-check-metadata/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "6da96d32958211697b2df67a95613d0f53492682d33d74d64eb101f531960344",
+      "markdownSha256": "ddf1c6ab4084c49cc780469031029cbf58bf646b2df569504fa26d1c485549b5",
+      "payloadSha256": "87296ce51a9e8a4229edc71a7ce6df9c0d080b0251fe21803d59b9830ef094b3",
+      "transcriptSha256": "a12cdc7e18f2d81da6a05e6d6e85d5770b889c0547309e33928c4c11a07b9dbc",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 32.6394,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/426c3064d268cc95a6a5626641c4cce68d550222/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/426c3064d268cc95a6a5626641c4cce68d550222/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e27-hostile-check-metadata/release-evidence.json": "6da96d32958211697b2df67a95613d0f53492682d33d74d64eb101f531960344",
+        "e27-hostile-check-metadata/release-evidence.md": "ddf1c6ab4084c49cc780469031029cbf58bf646b2df569504fa26d1c485549b5",
+        "e27-hostile-check-metadata/payload.json": "87296ce51a9e8a4229edc71a7ce6df9c0d080b0251fe21803d59b9830ef094b3",
+        "e27-hostile-check-metadata/transcript.json": "a12cdc7e18f2d81da6a05e6d6e85d5770b889c0547309e33928c4c11a07b9dbc"
+      }
+    },
+    {
+      "caseId": "e28-malformed-pr-source-metadata",
+      "datasetPath": "e28-malformed-pr-source-metadata/input.json",
+      "datasetSha256": "8bd8681f7c6a99196d4e6853a92a07bc1ee4c48848662773b4afb6a5afb23fd4",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e28-malformed-pr-source-metadata/release-evidence.json",
+      "markdownPath": "e28-malformed-pr-source-metadata/release-evidence.md",
+      "payloadPath": "e28-malformed-pr-source-metadata/payload.json",
+      "transcriptPath": "e28-malformed-pr-source-metadata/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "36fde2e7eb64e9d0a97ee87fe57f360c74a4f6d8c6f1a2508641dfad2ee86016",
+      "markdownSha256": "9a3be29d0a16b7c2ab94f58d92f855f92c6f60e9a09d79e8834ed3e2335b4402",
+      "payloadSha256": "d45c33795e032a35658fdb2f40179bc2a76ee7b97ea2f249f4e5b72f7c6c4d0f",
+      "transcriptSha256": "95b435056a2fad2d987f8fdb909b5e87b0c8864725b57f6120113f5e00de9f1c",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 11.2542,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/0d01ba026aa717328b476d9dc35646a13e4231bf/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/0d01ba026aa717328b476d9dc35646a13e4231bf/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e28-malformed-pr-source-metadata/release-evidence.json": "36fde2e7eb64e9d0a97ee87fe57f360c74a4f6d8c6f1a2508641dfad2ee86016",
+        "e28-malformed-pr-source-metadata/release-evidence.md": "9a3be29d0a16b7c2ab94f58d92f855f92c6f60e9a09d79e8834ed3e2335b4402",
+        "e28-malformed-pr-source-metadata/payload.json": "d45c33795e032a35658fdb2f40179bc2a76ee7b97ea2f249f4e5b72f7c6c4d0f",
+        "e28-malformed-pr-source-metadata/transcript.json": "95b435056a2fad2d987f8fdb909b5e87b0c8864725b57f6120113f5e00de9f1c"
+      }
+    },
+    {
+      "caseId": "e29-app-bound-and-deployment-rule",
+      "datasetPath": "e29-app-bound-and-deployment-rule/input.json",
+      "datasetSha256": "469feda8f2a8d181297c78c89b8d67b00c84e60881239b9da546a42949823604",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e29-app-bound-and-deployment-rule/release-evidence.json",
+      "markdownPath": "e29-app-bound-and-deployment-rule/release-evidence.md",
+      "payloadPath": "e29-app-bound-and-deployment-rule/payload.json",
+      "transcriptPath": "e29-app-bound-and-deployment-rule/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "750856c340c05cc6a3d106e642e238883e42d17506382e378c4afc1ac40a52c5",
+      "markdownSha256": "0fe9bd2a700321a9e6f07dc24657480af207ed022ad8e41a850953edc3ae6a9a",
+      "payloadSha256": "16c6260a4ea09ed5f9cba446e7dab6f67254419b47c22ccbebf65071d457ddb7",
+      "transcriptSha256": "8a37129f0acbc7bcbc8e7cc0d802b9a73bbd0f5959f72a59b32ba689294eaefc",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 9.8501,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/ee90d0ebec2b37ef365f5dc0b3af424400daf359/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/ee90d0ebec2b37ef365f5dc0b3af424400daf359/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e29-app-bound-and-deployment-rule/release-evidence.json": "750856c340c05cc6a3d106e642e238883e42d17506382e378c4afc1ac40a52c5",
+        "e29-app-bound-and-deployment-rule/release-evidence.md": "0fe9bd2a700321a9e6f07dc24657480af207ed022ad8e41a850953edc3ae6a9a",
+        "e29-app-bound-and-deployment-rule/payload.json": "16c6260a4ea09ed5f9cba446e7dab6f67254419b47c22ccbebf65071d457ddb7",
+        "e29-app-bound-and-deployment-rule/transcript.json": "8a37129f0acbc7bcbc8e7cc0d802b9a73bbd0f5959f72a59b32ba689294eaefc"
+      }
+    },
+    {
+      "caseId": "e30-required-collection-check",
+      "datasetPath": "e30-required-collection-check/input.json",
+      "datasetSha256": "6f507bef7ed10911240a46eb4ff70f277aefe60641b4cb67f473e6e5cbcfe27a",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "e30-required-collection-check/release-evidence.json",
+      "markdownPath": "e30-required-collection-check/release-evidence.md",
+      "payloadPath": "e30-required-collection-check/payload.json",
+      "transcriptPath": "e30-required-collection-check/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "aee91d97f685d719d9f4026e9048cbd792eedc2b75300a093e6ec2c1af60b6d6",
+      "markdownSha256": "fbe610d26e761ef1e187b5d3a8a1ad2d3849cdc5553176812b3f91f53c3e2c52",
+      "payloadSha256": "9100582a0f0431f461d0d0670337835aa45e42ba4735135444c2765be2b230f9",
+      "transcriptSha256": "7278cd91fe4d21a9628370772de7314cf1eaf77e266bbb1625027a61a07f67e8",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 5.9732,
+      "requestCount": 9,
+      "unusedRoutes": [
+        "GET /repos/eval/fixture/branches/main"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/pulls/1/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/bd195341a64d5163abe18a41be2174bd9f34228e/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/commits/bd195341a64d5163abe18a41be2174bd9f34228e/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/eval/fixture/branches/main",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "e30-required-collection-check/release-evidence.json": "aee91d97f685d719d9f4026e9048cbd792eedc2b75300a093e6ec2c1af60b6d6",
+        "e30-required-collection-check/release-evidence.md": "fbe610d26e761ef1e187b5d3a8a1ad2d3849cdc5553176812b3f91f53c3e2c52",
+        "e30-required-collection-check/payload.json": "9100582a0f0431f461d0d0670337835aa45e42ba4735135444c2765be2b230f9",
+        "e30-required-collection-check/transcript.json": "7278cd91fe4d21a9628370772de7314cf1eaf77e266bbb1625027a61a07f67e8"
+      }
+    },
+    {
+      "caseId": "public-01",
+      "datasetPath": "public-01/input.json",
+      "datasetSha256": "92a61455b4355273bc5dbc29b5f57763983e1304a4fb65888f6b83f2a69ea781",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "public-01/release-evidence.json",
+      "markdownPath": "public-01/release-evidence.md",
+      "payloadPath": "public-01/payload.json",
+      "transcriptPath": "public-01/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "d768e75880abda55ade0d9763dc7375ef12371ce4fcee10be7769f619fc1c2bb",
+      "markdownSha256": "5190f7bbed75a73442eec6cdef9e2815cb17a23581285bc25584984ce365d759",
+      "payloadSha256": "80f75320e71b9010ff6f05538712acd36901f053965605f5467e4b931383f62f",
+      "transcriptSha256": "3b7df0f250a6cf0583e154c4748b2e2b7a669db26c8f10d054cad7b761b3b40e",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 32.1479,
+      "requestCount": 11,
+      "unusedRoutes": [
+        "GET /repos/IanFrelinger/Ashlar/statuses/023e90a698abc11456a1c7d7665a629ae0b3436c?per_page=100"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/pulls/900",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/pulls/900/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/1031633230/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/check-runs?page=2",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/statuses/023e90a698abc11456a1c7d7665a629ae0b3436c?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/commits/023e90a698abc11456a1c7d7665a629ae0b3436c/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/branches/master",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/rules/branches/master?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "public-01/release-evidence.json": "d768e75880abda55ade0d9763dc7375ef12371ce4fcee10be7769f619fc1c2bb",
+        "public-01/release-evidence.md": "5190f7bbed75a73442eec6cdef9e2815cb17a23581285bc25584984ce365d759",
+        "public-01/payload.json": "80f75320e71b9010ff6f05538712acd36901f053965605f5467e4b931383f62f",
+        "public-01/transcript.json": "3b7df0f250a6cf0583e154c4748b2e2b7a669db26c8f10d054cad7b761b3b40e"
+      }
+    },
+    {
+      "caseId": "public-02",
+      "datasetPath": "public-02/input.json",
+      "datasetSha256": "a0b198d807ea02d149bc4ab88ab7c7de9f95452c06c6a465b65bea2908a9df63",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "public-02/release-evidence.json",
+      "markdownPath": "public-02/release-evidence.md",
+      "payloadPath": "public-02/payload.json",
+      "transcriptPath": "public-02/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "ee2bd285a99ae4115fecd0c55f5c77891d4a8da89182ad4965af7afc25942b3d",
+      "markdownSha256": "7b73f05bf23eeaf8e574276cb216866e35af70533b4cfdad3f9e8b330cb158c7",
+      "payloadSha256": "202ebcf8d6d790a84c677c825843fbb00af242ae1b126a9068cf2d316a00f389",
+      "transcriptSha256": "12693980bbe536ac12afea935c6167f76dac50912dbf13b3ee07a27c71320750",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 24.3519,
+      "requestCount": 11,
+      "unusedRoutes": [
+        "GET /repos/IanFrelinger/Ashlar/statuses/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6?per_page=100"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/pulls/853",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/pulls/853/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=2",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/statuses/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/branches/master",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/IanFrelinger/Ashlar/rules/branches/master?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "public-02/release-evidence.json": "ee2bd285a99ae4115fecd0c55f5c77891d4a8da89182ad4965af7afc25942b3d",
+        "public-02/release-evidence.md": "7b73f05bf23eeaf8e574276cb216866e35af70533b4cfdad3f9e8b330cb158c7",
+        "public-02/payload.json": "202ebcf8d6d790a84c677c825843fbb00af242ae1b126a9068cf2d316a00f389",
+        "public-02/transcript.json": "12693980bbe536ac12afea935c6167f76dac50912dbf13b3ee07a27c71320750"
+      }
+    },
+    {
+      "caseId": "public-03",
+      "datasetPath": "public-03/input.json",
+      "datasetSha256": "4d8949b8492bef17b10a782feb9ca9bc620db6852aa4ff5ddeb2bd5b560e1e27",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "public-03/release-evidence.json",
+      "markdownPath": "public-03/release-evidence.md",
+      "payloadPath": "public-03/payload.json",
+      "transcriptPath": "public-03/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "183f2c79741b9393b8042f73a46ed50a402090873439ccdb2cf03c4d913d9381",
+      "markdownSha256": "0b4656b7a2af30ea2575048bd272a1214eb4d1ef1dc618e2ac3b2da49e3ca961",
+      "payloadSha256": "65dfd83dabed8b66cdd2144f1c985111a490e66c66bf9c3f4f5b3242ae53dafd",
+      "transcriptSha256": "f15997fe920e745fb2645cbb33d520c26e4589c615150c7b2e77c50b1589318d",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 12.1282,
+      "requestCount": 10,
+      "unusedRoutes": [
+        "GET /repos/cli/cli/statuses/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7?per_page=100"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/pulls/14781",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/pulls/14781/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/statuses/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/branches/trunk",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/rules/branches/trunk?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "public-03/release-evidence.json": "183f2c79741b9393b8042f73a46ed50a402090873439ccdb2cf03c4d913d9381",
+        "public-03/release-evidence.md": "0b4656b7a2af30ea2575048bd272a1214eb4d1ef1dc618e2ac3b2da49e3ca961",
+        "public-03/payload.json": "65dfd83dabed8b66cdd2144f1c985111a490e66c66bf9c3f4f5b3242ae53dafd",
+        "public-03/transcript.json": "f15997fe920e745fb2645cbb33d520c26e4589c615150c7b2e77c50b1589318d"
+      }
+    },
+    {
+      "caseId": "public-04",
+      "datasetPath": "public-04/input.json",
+      "datasetSha256": "955451e323116cc2ccdbd9fe2104cb9eb615e516451c45382ac309570cf61804",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "public-04/release-evidence.json",
+      "markdownPath": "public-04/release-evidence.md",
+      "payloadPath": "public-04/payload.json",
+      "transcriptPath": "public-04/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "3df1ffe24951aa008e7b9ddbcc4a4aa2db0d6fe681423a23a1f9e247e7caa951",
+      "markdownSha256": "6efa84ddcd23cfdb185d8346da21b90e72623056fd70822ffb08fbeceb3f5708",
+      "payloadSha256": "9489bbe116715678de491bc9eda1414ff62e874d7ed6c58f0bd7f6289df87427",
+      "transcriptSha256": "c0453b051f6b0ea06d493f2090c6b8cfef819b1e097f8126f9ea91a41f4c5ba4",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 6.909,
+      "requestCount": 10,
+      "unusedRoutes": [
+        "GET /repos/cli/cli/statuses/04c4ebf52e7033a83eb38e9741c8ace05bf8617b?per_page=100"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/pulls/14845",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/pulls/14845/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/commits/04c4ebf52e7033a83eb38e9741c8ace05bf8617b/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/statuses/04c4ebf52e7033a83eb38e9741c8ace05bf8617b?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/commits/04c4ebf52e7033a83eb38e9741c8ace05bf8617b/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/branches/trunk",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/cli/cli/rules/branches/trunk?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "public-04/release-evidence.json": "3df1ffe24951aa008e7b9ddbcc4a4aa2db0d6fe681423a23a1f9e247e7caa951",
+        "public-04/release-evidence.md": "6efa84ddcd23cfdb185d8346da21b90e72623056fd70822ffb08fbeceb3f5708",
+        "public-04/payload.json": "9489bbe116715678de491bc9eda1414ff62e874d7ed6c58f0bd7f6289df87427",
+        "public-04/transcript.json": "c0453b051f6b0ea06d493f2090c6b8cfef819b1e097f8126f9ea91a41f4c5ba4"
+      }
+    },
+    {
+      "caseId": "public-05",
+      "datasetPath": "public-05/input.json",
+      "datasetSha256": "44f263061bedeeae66afcbe914bc267a95e92f76eb51bfaf75314540e05cdba0",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "public-05/release-evidence.json",
+      "markdownPath": "public-05/release-evidence.md",
+      "payloadPath": "public-05/payload.json",
+      "transcriptPath": "public-05/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "ebf12a8e798a4c4fafa071761b86a3526ebdb31e60071415e7f763307da2e1af",
+      "markdownSha256": "7ef198a94b2e718e7bb62c645775d894495e6a5024e371887520e8960e5ed9da",
+      "payloadSha256": "ff33f1b997efeb62d9738c4addc1d55580c70da2a0cc323f937a05a44a741dcc",
+      "transcriptSha256": "e461c1cd2da6dd14c50ace68e91c634f5c531f25c89c1596d24f089eb2cd021d",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 27.6946,
+      "requestCount": 13,
+      "unusedRoutes": [
+        "GET /repos/dotnet/runtime/statuses/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42?per_page=100"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/pulls/136790",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/pulls/136790/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=2",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=3",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=4",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/statuses/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/branches/main",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "public-05/release-evidence.json": "ebf12a8e798a4c4fafa071761b86a3526ebdb31e60071415e7f763307da2e1af",
+        "public-05/release-evidence.md": "7ef198a94b2e718e7bb62c645775d894495e6a5024e371887520e8960e5ed9da",
+        "public-05/payload.json": "ff33f1b997efeb62d9738c4addc1d55580c70da2a0cc323f937a05a44a741dcc",
+        "public-05/transcript.json": "e461c1cd2da6dd14c50ace68e91c634f5c531f25c89c1596d24f089eb2cd021d"
+      }
+    },
+    {
+      "caseId": "public-06",
+      "datasetPath": "public-06/input.json",
+      "datasetSha256": "328a8fe737ecf96aa33233bb0835bc1adf5f634b471e2c2090c46ef7160e4dfd",
+      "status": "answered",
+      "exportStatus": "success",
+      "evidencePath": "public-06/release-evidence.json",
+      "markdownPath": "public-06/release-evidence.md",
+      "payloadPath": "public-06/payload.json",
+      "transcriptPath": "public-06/transcript.json",
+      "errorPath": null,
+      "evidenceSha256": "69de4e15bbc2762085ca8119677eaebe7f019095247b891fd00ae4ea8f39217c",
+      "markdownSha256": "993ecf033e8c1e9157ab008163aada7d6c236c3381acc81086008623436942dd",
+      "payloadSha256": "d8db620d7af308cb542e556265175d02faa33477da7b5c3d019391337662c369",
+      "transcriptSha256": "e244e229aab4c05db4de3db1676897e193ac219d5e4a80ae7d0c6b7d7d0f0c26",
+      "errorSha256": null,
+      "errorType": null,
+      "errorMessage": null,
+      "replayElapsedMilliseconds": 27.8398,
+      "requestCount": 14,
+      "unusedRoutes": [
+        "GET /repos/dotnet/runtime/statuses/33eb87c9872b320aeed78454a76070b3f768a355?per_page=100"
+      ],
+      "routeCoverage": [
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/pulls/136812",
+          "requests": 2,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/pulls/136812/reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=2",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=3",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=4",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repositories/210716005/commits/33eb87c9872b320aeed78454a76070b3f768a355/check-runs?page=5",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/statuses/33eb87c9872b320aeed78454a76070b3f768a355?per_page=100",
+          "requests": 0,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [
+            0
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/commits/33eb87c9872b320aeed78454a76070b3f768a355/status",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/branches/main",
+          "requests": 1,
+          "recordedResponses": 2,
+          "unconsumedResponseIndices": [
+            1
+          ],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/branches/main/protection/required_status_checks",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "GET",
+          "path": "/repos/dotnet/runtime/rules/branches/main?per_page=100",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        },
+        {
+          "method": "POST",
+          "path": "/graphql",
+          "requests": 1,
+          "recordedResponses": 1,
+          "unconsumedResponseIndices": [],
+          "lastResponseReused": 0
+        }
+      ],
+      "artifactSha256": {
+        "public-06/release-evidence.json": "69de4e15bbc2762085ca8119677eaebe7f019095247b891fd00ae4ea8f39217c",
+        "public-06/release-evidence.md": "993ecf033e8c1e9157ab008163aada7d6c236c3381acc81086008623436942dd",
+        "public-06/payload.json": "d8db620d7af308cb542e556265175d02faa33477da7b5c3d019391337662c369",
+        "public-06/transcript.json": "e244e229aab4c05db4de3db1676897e193ac219d5e4a80ae7d0c6b7d7d0f0c26"
+      }
+    }
+  ]
+}
