@@ -3,7 +3,7 @@
   "files": [
     {
       "path": "README.md",
-      "sha256": "62e684beef7537a47631163e375d5096d9d08d4cead56b2826476d74ea189537"
+      "sha256": "42d63ed389e9dc4e13133622ea8fb1d0a079a679710fb8d572a693eefd8d48a4"
     },
     {
       "path": "archive-index.json",
@@ -484,6 +484,14 @@
     {
       "path": "provider/stop",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "repo-gates-summary.json",
+      "sha256": "38f96a538c574734d5986757b6c270426e0a2355a05a0a020a282a5e675ed42a"
+    },
+    {
+      "path": "repo-gates.txt.gz",
+      "sha256": "64d9b17d418431fdbaecea144226e5bf8e94cbc4c491f0a5605affef2cddc116"
     },
     {
       "path": "retained-runs.txt.gz",

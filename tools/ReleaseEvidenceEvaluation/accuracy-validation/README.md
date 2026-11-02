@@ -62,7 +62,8 @@ TRXs, patches and whitespace-bearing traces use deterministic gzip. Temporary cl
 `verified-counts.json` independently parses actual TRXs. Hashes establish local consistency, not
 independent custody, signer identity or evidence truth.
 
-Final repository-gate/schema records are added after packaging. The repository-gate session uses
+Final packaging checks: **48 repository gates pass**, all **149** retained JSON packs validate with
+JSON Schema 2020-12 plus format checking, and their Markdown pairs exist. The repository-gate session uses
 the identical archived Linux subreaper from the prior phase because this environment's PID 1 does
 not reap orphans; this is not a native PID-1 pass or a product isolation claim. Hosted Readiness and
 networked lychee were not run. No pushes, releases, deployments or outreach occurred.
