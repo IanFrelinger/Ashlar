@@ -190,8 +190,7 @@ internal static class Program
          {"method":"GET","path":"/timeout","responses":[{"status":0,"fault":"timeout"}]},
          {"method":"GET","path":"/not-requested","responses":[{"status":200,"body":{}}]}]
         """);
-        var handler = new ReplayHandler(routes.RootElement);
-        using var invoker = new HttpMessageInvoker(handler);
+        using var handler = new ReplayHandler(routes.RootElement);
         var assertions = 0;
         void Check(bool value, string message)
         {
@@ -202,7 +201,7 @@ internal static class Program
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com" + path);
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "must-not-be-retained");
-            using var response = await invoker.SendAsync(request, CancellationToken.None);
+            using var response = await handler.DispatchRecordedAsync(request, CancellationToken.None);
             using var parsed = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             return parsed.RootElement.Clone();
         }
@@ -218,7 +217,7 @@ internal static class Program
         try { await Get("/missing"); } catch (ReplayFailure) { unmatched = true; }
         Check(unmatched && handler.Errors.Count == 1, "unmatched endpoint fails loudly");
         var foreign = false;
-        try { await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "https://example.invalid/"), CancellationToken.None); }
+        try { await handler.DispatchRecordedAsync(new HttpRequestMessage(HttpMethod.Get, "https://example.invalid/"), CancellationToken.None); }
         catch (ReplayFailure) { foreign = true; }
         Check(foreign && handler.Errors.Count == 2, "foreign host cannot fall through to network");
         Check(handler.UnusedRoutes.Contains("GET /not-requested"), "unused sources remain visible");
@@ -335,6 +334,11 @@ internal static class Program
             if (_routes.Any(r => r.Responses.Length == 0) || _routes.GroupBy(r => r.Method + " " + r.Path).Any(g => g.Count() > 1))
                 throw new ArgumentException("Each distinct route needs at least one response.");
         }
+
+        // The self-test calls the same in-memory dispatcher directly; it needs no HTTP client
+        // primitive. Production replay still enters through the original guarded client factory.
+        public Task<HttpResponseMessage> DispatchRecordedAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            SendAsync(request, cancellationToken);
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
