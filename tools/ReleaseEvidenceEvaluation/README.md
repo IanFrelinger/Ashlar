@@ -111,3 +111,24 @@ The probe calls only direct Octokit APIs against empty in-memory responses. The 
 response sequencing/reuse, query-route precedence, timeouts, unmatched endpoints, foreign-host
 refusal, unused-source disclosure and omitted authorization values. Neither counts toward the
 independent snapshot sample.
+
+## Post-output wrapper correction
+
+The original pre-execution wrapper (SHA-256
+`58414c77817b5e1148a9750ee2602b4eef36e2b90411217cd5d1cd09fe834b9b`) let the
+container shell's `set -e` exit on a nonzero collector result before output ownership repair.
+The initial evaluation's artifacts were retained, but required an explicit ownership repair to
+make them accessible to the operator. This was a harness control-flow error, separate from
+the candidate result, and did not change the recorded response, label or result bytes.
+
+The corrected wrapper runs build/collector commands in an explicit conditional, captures their
+status, performs ownership repair for successful and failed runs, then returns the original
+status. Failure of ownership repair itself is a hard exit 73. The original frozen wrapper hash
+remains in the pre-execution record; it is not silently replaced by this later revision.
+
+`python3 -B tools/ReleaseEvidenceEvaluation/test_runner_status.py` tests the actual generated
+shell command using fake commands and a disposable bind-mount substitute, without invoking
+host .NET, Docker or candidate decisions. It covers success, collector failure, build failure,
+and ownership-repair failures. The initial wrapper fails the nonzero-result preservation
+regression; the corrected wrapper passes all five harness checks. These checks are not PR
+snapshots and do not increase the evaluation sample size.

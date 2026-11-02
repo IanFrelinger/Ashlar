@@ -77,12 +77,15 @@ args=['dotnet','tools/ReleaseEvidenceEvaluation/bin/Debug/net10.0/Ashlar.Release
 if allow_rerun == '1': args+=['--allow-candidate-rerun']
 build=['dotnet','build','tools/ReleaseEvidenceEvaluation/ReleaseEvidenceEvaluation.csproj',
        '--nologo','-v','minimal','-p:NuGetAudit=false']
-# shlex quotes each argument as code, so paths with spaces/metacharacters remain data.
-command=shlex.join(build)+' && '+shlex.join(args)
-# Results are new operator-owned files. Preserve their accessibility across the root-run container.
+# shlex quotes each argument as code, so paths with spaces/metacharacters remain data. The
+# repository container shell uses set -e: an explicit conditional must capture an expected
+# nonzero collector status before ownership repair, rather than exiting early.
+command='if '+shlex.join(build)+' && '+shlex.join(args)+'; then evaluation_status=0; else evaluation_status=$?; fi; '
+# Results are new operator-owned files. Preserve their accessibility across the root-run container,
+# including failed evaluations. An ownership-repair failure is a distinct hard I/O error.
 import os
-command+='; evaluation_status=$?; '
-command+='if [ -d '+shlex.quote('/evaluation-output/'+output.name)+' ]; then chown -R '+str(os.getuid())+':'+str(os.getgid())+' '+shlex.quote('/evaluation-output/'+output.name)+'; fi; exit "$evaluation_status"'
+destination=shlex.quote('/evaluation-output/'+output.name)
+command+='if [ -d '+destination+' ]; then if chown -R '+str(os.getuid())+':'+str(os.getgid())+' '+destination+'; then :; else echo "Evaluation output ownership repair failed." >&2; exit 73; fi; fi; exit "$evaluation_status"'
 (work/'command').write_text(command)
 (work/'output-parent').write_text(str(output_parent))
 PY
