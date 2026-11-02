@@ -11,12 +11,12 @@
     "projects": 62,
     "projects_shipped_to_nuget": 24,
     "projects_declaring_ispackable_true": 20,
-    "config_variables": 177,
-    "operator_facing_config_variables": 155,
+    "config_variables": 179,
+    "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 833,
-    "declared_facts": 5461,
+    "test_files_declaring_facts": 837,
+    "declared_facts": 5502,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -1537,6 +1537,24 @@
       "name": "ASHLAR_GENERATION_DEPTH_CEILING",
       "declared_in": [
         "Ashlar.Core.Application"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_GITHUB_REPOSITORY",
+      "declared_in": [
+        "Ashlar.Bricks.GitHub"
+      ],
+      "test_only": false,
+      "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_GITHUB_TOKEN",
+      "declared_in": [
+        "Ashlar.Bricks.GitHub"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -4883,7 +4901,14 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Bricks/GitHubBlockersBrickTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
-      "declared_facts": 36,
+      "declared_facts": 61,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Bricks/GitHubReadAccessTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
+      "declared_facts": 9,
       "in_cert_gate_filter": false
     },
     {
@@ -4940,6 +4965,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 2,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/AggregateWitnessLoaderRegressionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 1,
       "in_cert_gate_filter": true
     },
     {
@@ -5171,6 +5203,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 4,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/CompiledSourceSetRegressionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 2,
       "in_cert_gate_filter": true
     },
     {
@@ -6018,6 +6057,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
       "declared_facts": 8,
+      "in_cert_gate_filter": true
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/WitnessKindRegressionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
+      "declared_facts": 4,
       "in_cert_gate_filter": true
     },
     {

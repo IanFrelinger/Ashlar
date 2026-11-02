@@ -15,12 +15,12 @@ remembered to update — staleness here is a red build.
 | projects | 62 |
 | of those, published to nuget.org by a release | 24 |
 | of those, declaring `<IsPackable>true</IsPackable>` | 20 |
-| `ASHLAR_*` variables named in code | 177 |
-| of those, operator-facing (not test-only) | 155 |
+| `ASHLAR_*` variables named in code | 179 |
+| of those, operator-facing (not test-only) | 157 |
 | missing from `docs/Configuration.md` | 17 |
 | **mentioned in no document at all** | **0** |
-| test files declaring xUnit facts | 833 |
-| declared facts | 5461 |
+| test files declaring xUnit facts | 837 |
+| declared facts | 5502 |
 | workflows | 62 |
 
 ## Namespaces cert-gate selects
