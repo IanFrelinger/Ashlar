@@ -66,8 +66,12 @@ internal static class ReleaseEvidence
             Add("pull-request", "unknown", "The pull request could not be inspected.");
         else if (!pr.Closed && !pr.Merged)
         {
-            Add("head-identity", string.IsNullOrWhiteSpace(pr.HeadSha) ? "unknown" : "pass",
-                "Head commit observed at collection start; base reference and commit are included when GitHub supplies them.");
+            Add("head-identity", IsCommitSha(pr.HeadSha) ? "pass" : "unknown",
+                IsCommitSha(pr.HeadSha) ? "A 40-character hexadecimal head commit was observed at collection start."
+                    : "The head commit is missing or is not a supported 40-character hexadecimal GitHub SHA.");
+            Add("base-identity", IsCommitSha(pr.BaseSha) && !string.IsNullOrWhiteSpace(pr.BaseRef) ? "pass" : "unknown",
+                IsCommitSha(pr.BaseSha) && !string.IsNullOrWhiteSpace(pr.BaseRef) ? "The relevant base reference and 40-character hexadecimal commit were observed."
+                    : "The base reference or commit is missing or malformed; base-change detection cannot establish stable input identity.");
             Add("collection-consistency", snapshot.CollectionConsistency == "stable" ? "pass" : "unknown",
                 snapshot.CollectionConsistency == "stable"
                     ? "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot."
@@ -143,6 +147,9 @@ internal static class ReleaseEvidence
              "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."],
             new EvidenceFreshness(snapshot.CollectionConsistency, "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."));
     }
+
+    private static bool IsCommitSha(string? value) => value is { Length: 40 }
+        && value.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
 
     private static bool IsUnsettledCiBlocker(PullRequestFacts? pr, Blocker blocker)
     {

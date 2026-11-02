@@ -18,7 +18,7 @@ out of passing assurance decisions.
 | --- | --- |
 | `schemaVersion` | `1.0` |
 | `repository`, `pullRequest`, `url` | Canonical owner/repository, integer PR number, and source PR URL |
-| `headSha`, `baseRef`, `baseSha` | Observed input identities; null means unavailable |
+| `headSha`, `baseRef`, `baseSha` | Observed input identities; null means unavailable; supported GitHub commit identities are 40 hexadecimal characters |
 | `collectionStartedAt`, `collectedAt` | UTC ISO timestamps bounding this sequential collection |
 | `ashlarVersion`, `brickVersion` | Package assembly informational version (including build provenance when supplied) and brick contract version; `unknown` if no assembly version exists |
 | `auditId` | Null in the brick. A host can correlate its per-call audit externally; this brick does not invent an audit record or authenticated actor |
@@ -68,7 +68,7 @@ The legacy verdict still reports GitHub's existing check semantics. This input d
 requirement or grant permission to merge.
 
 A final PR read compares head SHA, base SHA/reference, draft/open state and mergeability with the
-initial read. If it changes or cannot be re-read, assurance is unknown and original evidence is
+initial read. If either commit identity is missing or malformed, or the PR changes or cannot be re-read, assurance is unknown and original evidence is
 kept under the original head. This cannot detect every concurrent check, review or rule update.
 Even a stable, matching commit is a time-bound snapshot: recollect when relevant facts might have
 changed. No fixed validity period or atomic GitHub snapshot is promised.

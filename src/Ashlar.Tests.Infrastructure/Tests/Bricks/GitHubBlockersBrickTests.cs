@@ -566,21 +566,21 @@ public sealed class GitHubBlockersBrickTests
 
     // ── Versioned evidence contract ─────────────────────────────────────────────────────────────────────
 
-    private static ReleaseEvidencePack Pack(PullRequestFacts pr, string consistency = "stable", string? collectionCheckName = null)
+    private static ReleaseEvidencePack Pack(PullRequestFacts pr, string consistency = "stable", string? collectionCheckName = null, bool supplyBase = true)
     {
         GitHubTarget.TryParse(Pr, out var target, out _);
-        var snapshot = new BlockerSnapshot(target!, pr with { HeadSha = pr.HeadSha ?? Sha }, null, [], consistency);
+        var snapshot = new BlockerSnapshot(target!, pr with { HeadSha = pr.HeadSha ?? Sha, BaseSha = supplyBase ? pr.BaseSha ?? Sha : pr.BaseSha }, null, [], consistency);
         return ReleaseEvidence.Create(snapshot, BlockerAnalysis.Analyze(snapshot), At(0), At(1), "test", false, collectionCheckName);
     }
 
     [Fact]
     public void A_ready_snapshot_has_versioned_identity_sources_and_a_matching_report()
     {
-        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)) with { BaseSha = "base-sha" });
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)) with { BaseSha = new string('b', 40) });
         pack.SchemaVersion.Should().Be("1.0");
         pack.HeadSha.Should().Be(Sha);
         pack.BaseRef.Should().Be("master");
-        pack.BaseSha.Should().Be("base-sha");
+        pack.BaseSha.Should().Be(new string('b', 40));
         pack.Verdict.Should().Be("ready");
         pack.Assurance.Should().Be("pass");
         pack.Findings.Should().OnlyContain(f => f.Sources.Count > 0);
@@ -806,6 +806,31 @@ public sealed class GitHubBlockersBrickTests
         output.Get<string>("assurance").Should().Be(expected);
     }
 
+    [Theory]
+    [InlineData("garbage")]
+    [InlineData("")]
+    [InlineData("0123456789abcdef0123456789abcdef0123456")]
+    [InlineData("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")]
+    public void A_malformed_head_commit_cannot_pass_assurance(string head)
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)) with { HeadSha = head });
+        pack.Verdict.Should().Be("ready");
+        pack.Assurance.Should().Be("unknown");
+        pack.Findings.Should().Contain(f => f.Id == "head-identity" && f.Status == "unknown");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("malformed-base")]
+    public void An_unavailable_or_malformed_base_commit_prevents_stable_assurance(string? baseSha)
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)) with { BaseSha = baseSha }, supplyBase: false);
+        pack.Verdict.Should().Be("ready");
+        pack.Assurance.Should().Be("unknown");
+        pack.Findings.Should().Contain(f => f.Id == "base-identity" && f.Status == "unknown");
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────────────────────────────────
 
     private static GitHubBlockersBrick Brick(StubGitHub github, List<TimeSpan>? waits = null) =>
@@ -922,7 +947,7 @@ public sealed class GitHubBlockersBrickTests
     private static string PullJson(string mergeable, string state, bool merged = false) => $$$"""
         {"number":7,"title":"t","state":"{{{(merged ? "closed" : "open")}}}","merged":{{{(merged ? "true" : "false")}}},"draft":false,
          "mergeable":{{{mergeable}}},"mergeable_state":"{{{state}}}","html_url":"{{{Pr}}}",
-         "head":{"sha":"{{{Sha}}}","ref":"feature"},"base":{"ref":"master"}}
+         "head":{"sha":"{{{Sha}}}","ref":"feature"},"base":{"ref":"master","sha":"{{{Sha}}}"}}
         """;
 
     private sealed class RecordingGuard : IEgressGuard
