@@ -72,8 +72,10 @@ public sealed class DockerCommandMissingMethodTests : IDisposable
     {
         var stdout = new StringWriter();
         var stderr = new StringWriter();
-        Console.SetOut(stdout);
-        Console.SetError(stderr);
+        var stdoutWriter = TextWriter.Synchronized(stdout);
+        var stderrWriter = TextWriter.Synchronized(stderr);
+        Console.SetOut(stdoutWriter);
+        Console.SetError(stderrWriter);
         Exception? thrown = null;
         try
         {
@@ -91,12 +93,23 @@ public sealed class DockerCommandMissingMethodTests : IDisposable
             Console.SetError(ConsoleCapture.Error);
         }
 
-        var observed = stdout.ToString() + stderr.ToString() + (thrown?.ToString() ?? string.Empty);
+        // The console logger may still be writing after InvokeAsync returns; snapshots share its writer locks.
+        string capturedStdout;
+        lock (stdoutWriter)
+        {
+            capturedStdout = stdout.ToString();
+        }
+        string capturedStderr;
+        lock (stderrWriter)
+        {
+            capturedStderr = stderr.ToString();
+        }
+        var observed = capturedStdout + capturedStderr + (thrown?.ToString() ?? string.Empty);
         // The logged daemon stack includes this test's own name, which contains the substring
         // MissingMethodException. Match the exception type, not that substring.
         observed.Should().NotContain("System.MissingMethodException");
         observed.Should().NotContain("Method not found:");
-        stdout.ToString().Should().Contain(header, "the header is printed only after CreateClient returns");
+        capturedStdout.Should().Contain(header, "the header is printed only after CreateClient returns");
         thrown.Should().BeNull("the handler must not escape once the Docker client has been constructed");
     }
 }

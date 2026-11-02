@@ -8867,6 +8867,7 @@
       "file": ".github/workflows/onboarding-docs-guard.yml",
       "name": "Onboarding Docs Guard",
       "triggers": [
+        "pull_request",
         "push",
         "workflow_dispatch"
       ]

@@ -159,7 +159,6 @@ public sealed class ProcessGlobalEnvironmentConventionTests
     {
         "application/src/Ashlar.Tests.CLI/Tests/Commands/CertifyCommandTests.cs",
         "application/src/Ashlar.Tests.CLI/Tests/Commands/SelfExtendAutoShareEnvTests.cs",
-        "src/Ashlar.Mcp.Server.Tests/AshlarMcpServerServiceCollectionExtensionsTests.cs",
         "src/Ashlar.Tests.AI.Pipeline/MeaiPipelineRegistrationTests.cs",
         "src/Ashlar.Tests.AI.Pipeline/OllamaEndpointResolverTests.cs",
         "src/Ashlar.Tests.Application/ApplicationRemainingCoverageTests.cs",
