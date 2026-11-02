@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 1,
+  "status": "running",
+  "candidateCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+  "mutations": [
+    {
+      "id": "metadata-accepts-unverified-identity",
+      "candidateCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/GitHubBlockerReader.cs",
+      "filter": "FullyQualifiedName~GitHubEvaluationRegressionTests",
+      "patchSha256": "df76f9c090315947cc3300669fe0a5946204f2df2abaaa41197f8ccb243bc800",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 36,
+          "executed": 36,
+          "passed": 31,
+          "failed": 5,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.Invalid_api_identity_fields_cannot_produce_a_positive_snapshot(url: \"javascript:alert(1)\", headRef: \"feature\", baseRef: \"main\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.Invalid_api_identity_fields_cannot_produce_a_positive_snapshot(url: \"https://github.com/o/r/pull/7\", headRef: \"feature\", baseRef: \"main\\r\\n::error::forged\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.Invalid_api_identity_fields_cannot_produce_a_positive_snapshot(url: \"https://github.com/o/r/pull/7\", headRef: \"topic\\n::notice::forged\", baseRef: \"main\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.Invalid_api_identity_fields_cannot_produce_a_positive_snapshot(url: \"https://github.com/o/r/pull/8\", headRef: \"feature\", baseRef: \"main\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.An_explicitly_conflicting_base_repository_invalidates_identity_without_pagination"
+        ],
+        "log": "metadata-accepts-unverified-identity-red.log",
+        "trx": "metadata-accepts-unverified-identity-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 36,
+          "executed": 36,
+          "passed": 36,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "metadata-accepts-unverified-identity-green.log",
+        "trx": "metadata-accepts-unverified-identity-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "freshness-allows-stale-ready",
+      "candidateCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/BlockerAnalysis.cs",
+      "filter": "FullyQualifiedName~GitHubEvaluationRegressionTests",
+      "patchSha256": "06b96e71c4ef319ee449da437fb9eaf497834bbdccf846964582a4c92add4e3e",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 36,
+          "executed": 36,
+          "passed": 32,
+          "failed": 4,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.The_legacy_verdict_never_calls_observed_stale_positive_evidence_ready(changed: \"base\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.The_legacy_verdict_never_calls_observed_stale_positive_evidence_ready(changed: \"head\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.The_legacy_verdict_never_calls_observed_stale_positive_evidence_ready(changed: \"unreadable\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.The_legacy_verdict_never_calls_observed_stale_positive_evidence_ready(changed: \"mergeability\")"
+        ],
+        "log": "freshness-allows-stale-ready-red.log",
+        "trx": "freshness-allows-stale-ready-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 36,
+          "executed": 36,
+          "passed": 36,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "freshness-allows-stale-ready-green.log",
+        "trx": "freshness-allows-stale-ready-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "pagination-reverses-link-guard",
+      "candidateCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/GitHubBlockerReader.cs",
+      "filter": "FullyQualifiedName~GitHubEvaluationRegressionTests",
+      "patchSha256": "a3a82a788a37071baf0b786627d76abd6ee07f4c75cdd82c8fd5a81d1463b8be",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 36,
+          "executed": 36,
+          "passed": 20,
+          "failed": 16,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.An_untrusted_pagination_link_is_not_requested_or_treated_as_complete(next: \"https://evil.example/check-runs?page=2\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.A_repeated_check_page_is_stopped_and_reported_as_incomplete",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.Overlapping_or_missing_run_identities_cannot_establish_complete_pagination(secondId: 8)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.Check_pagination_observes_a_required_queued_check_on_the_second_page",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.An_unbound_canonical_repository_id_is_not_followed(observedId: null, observedName: \"o/r\", linkedId: 77)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.An_unbound_canonical_repository_id_is_not_followed(observedId: 77, observedName: \"other/repo\", linkedId: 77)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.An_untrusted_pagination_link_is_not_requested_or_treated_as_complete(next: \"https://api.github.com/repos/o/r/commits/012345678\"\u00b7\u00b7\u00b7)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.A_release_does_not_follow_an_unavailable_or_mismatched_repository_identity(repository: \"{\\\"id\\\":88,\\\"full_name\\\":\\\"o/r\\\"}\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.A_failed_or_inconsistent_later_page_cannot_prove_a_required_check_absent(secondPage: \"{\\\"total_count\\\":3,\\\"check_runs\\\":[]}\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.A_failed_or_inconsistent_later_page_cannot_prove_a_required_check_absent(secondPage: \"__unreadable__\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.An_unbound_canonical_repository_id_is_not_followed(observedId: 77, observedName: \"o/r\", linkedId: 88)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.A_release_lazily_resolves_repository_identity_before_its_canonical_next_page",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.An_untrusted_pagination_link_is_not_requested_or_treated_as_complete(next: \"http://api.github.com/repos/o/r/commits/0123456789\"\u00b7\u00b7\u00b7)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.An_untrusted_pagination_link_is_not_requested_or_treated_as_complete(next: \"https://api.github.com/repos/other/repo/commits/01\"\u00b7\u00b7\u00b7)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.Overlapping_or_missing_run_identities_cannot_establish_complete_pagination(secondId: null)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests.Canonical_repository_id_pagination_is_followed_only_when_bound_to_the_requested_repository"
+        ],
+        "log": "pagination-reverses-link-guard-red.log",
+        "trx": "pagination-reverses-link-guard-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 36,
+          "executed": 36,
+          "passed": 36,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "pagination-reverses-link-guard-green.log",
+        "trx": "pagination-reverses-link-guard-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "provider-name-alone-becomes-proof",
+      "candidateCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/ReleaseEvidencePack.cs",
+      "filter": "FullyQualifiedName~GitHubProviderAssuranceRegressionTests",
+      "patchSha256": "08d9ad0e9ce7c7e07c092e7baed604679efd35dabc8e722fde04e321afbb3afc",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 26,
+          "executed": 26,
+          "passed": 20,
+          "failed": 6,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Unverified_check_origins_do_not_suppress_independent_blockers(blocker: \"draft\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Unverified_check_origins_do_not_suppress_independent_blockers(blocker: \"changes-requested\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_name_only_failure_is_not_a_failed_requirement_until_its_provider_is_known(originsKnown: False, assurance: \"unknown\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_pending_check_is_unknown_when_its_requirement_or_provider_is_unverified(originsKnown: False, policyKnown: True)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Unverified_check_origins_do_not_suppress_independent_blockers(blocker: \"conflict\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_status_failure_also_requires_verified_origin_before_it_is_asserted_as_a_failed_requirement"
+        ],
+        "log": "provider-name-alone-becomes-proof-red.log",
+        "trx": "provider-name-alone-becomes-proof-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 26,
+          "executed": 26,
+          "passed": 26,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "provider-name-alone-becomes-proof-green.log",
+        "trx": "provider-name-alone-becomes-proof-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "pending-required-result-loses-failure",
+      "candidateCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/ReleaseEvidencePack.cs",
+      "filter": "FullyQualifiedName~GitHubProviderAssuranceRegressionTests",
+      "patchSha256": "c9cacb958a52edc8321e2e83000fddef2d3267cd460bd17cef84dd3e553f3a3b",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 26,
+          "executed": 26,
+          "passed": 18,
+          "failed": 8,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_fully_observed_pending_required_status_is_unmet",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Complete_required_context_absence_is_unmet_including_a_collection_check(collection: True)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_fully_observed_pending_required_check_is_an_unmet_requirement(state: \"in_progress\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_fully_observed_pending_required_check_is_an_unmet_requirement(state: \"pending\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_fully_observed_pending_required_check_is_an_unmet_requirement(state: \"requested\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_fully_observed_pending_required_check_is_an_unmet_requirement(state: \"queued\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Complete_required_context_absence_is_unmet_including_a_collection_check(collection: False)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_fully_observed_pending_required_check_is_an_unmet_requirement(state: \"waiting\")"
+        ],
+        "log": "pending-required-result-loses-failure-red.log",
+        "trx": "pending-required-result-loses-failure-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 26,
+          "executed": 26,
+          "passed": 26,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "pending-required-result-loses-failure-green.log",
+        "trx": "pending-required-result-loses-failure-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "required-github-suite-selector-dropped",
+      "candidateCommit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "path": "scripts/cert-gate-config.sh",
+      "filter": "FullyQualifiedName~CertGateFilterCoverageTests",
+      "patchSha256": "411e81091e9805e1f9328c56682e71861560b0bab2934162d62d9252adad96b0",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 3,
+          "executed": 3,
+          "passed": 2,
+          "failed": 1,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Certification.CertGateFilterCoverageTests.Deterministic_GitHub_evidence_and_credential_regressions_are_selected_by_the_required_gate"
+        ],
+        "log": "required-github-suite-selector-dropped-red.log",
+        "trx": "required-github-suite-selector-dropped-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 3,
+          "executed": 3,
+          "passed": 3,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "required-github-suite-selector-dropped-green.log",
+        "trx": "required-github-suite-selector-dropped-green.trx"
+      },
+      "verdict": "KILLED"
+    }
+  ]
+}

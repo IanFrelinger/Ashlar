@@ -200,7 +200,7 @@ No pull-request lane runs `dotnet test Ashlar.sln`. The PR-triggered workflows r
 
 ```bash
 bash scripts/ci/kernel-coverage-gate.sh   # kernel-coverage-gate.yml — Domain 100%, Infrastructure -f net10.0 --filter "FullyQualifiedName!~RuntimeStudioBlackBoxSmokeTests&Category!=External" (80% floor), Core.Application 67%
-bash scripts/run-cert-gate.sh             # cert-gate.yml — Certification + GenerationSafety + AstMutationEngine, -f net8.0, zero-test guard + skip guard (scripts/cert-gate-skipped.baseline)
+bash scripts/run-cert-gate.sh             # cert-gate.yml — Certification + GenerationSafety + AstMutationEngine + deterministic GitHub evidence/credential suites, -f net8.0, zero-test guard + skip guard (scripts/cert-gate-skipped.baseline)
 make kernel-gate                          # kernel-gate.yml — tier A (tier-b..e / kernel-gate-full also dispatchable)
 make application-gate-tier-a              # application-gate.yml — tier-c = in-process Ashlar.API WebApplicationFactory tests
 make testing-strategy-gate                # testing-strategy-gate.yml — PR diff rules (gap freeze, ProdStyle wiring)

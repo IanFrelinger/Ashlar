@@ -1,0 +1,1 @@
+["dotnet", "build", "tools/ReleaseEvidenceEvaluation/ReleaseEvidenceEvaluation.csproj", "--no-restore", "-p:NuGetAudit=false", "-m:2", "--nologo", "-v", "minimal"]

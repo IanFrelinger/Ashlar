@@ -1,0 +1,3269 @@
+{
+  "id": "public-05",
+  "kind": "public",
+  "category": "public-observed-metadata-policy-visibility",
+  "sourceUrl": "https://github.com/dotnet/runtime/pull/136790",
+  "target": "https://github.com/dotnet/runtime/pull/136790",
+  "credentialSupplied": false,
+  "identity": {
+    "initial": {
+      "headSha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+      "baseSha": "f368d14df0c3905d3b80073d709685af83ba895d",
+      "baseRef": "main"
+    },
+    "final": {
+      "headSha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+      "baseSha": "f368d14df0c3905d3b80073d709685af83ba895d",
+      "baseRef": "main"
+    }
+  },
+  "sanitizedAuthorization": {
+    "requestAuthorizationHeaderSupplied": false,
+    "transport": "inherited HTTP_PROXY/HTTPS_PROXY with inherited CA trust",
+    "upstreamProxyIdentity": "not observable; authenticated proxy injection is possible",
+    "configuredRuntimeCredentials": "none reported by current cloud environment readiness",
+    "managedConnectorUsedForCaseRoutes": false,
+    "scopeLimit": "Evidence establishes only visibility through this proxy during the recorded interval. Token scopes and effective repository permissions are unknown. Credential-not-supplied-to-brick is distinct from upstream anonymous authentication."
+  },
+  "sources": [
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/pulls/136790",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 0
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/pulls/136790/reviews",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 1
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 2
+    },
+    {
+      "uri": "https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=2",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 3
+    },
+    {
+      "uri": "https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=3",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 4
+    },
+    {
+      "uri": "https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=4",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 5
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/statuses/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42?per_page=100",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 6
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/status",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 7
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/branches/main",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 8
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_status_checks",
+      "method": "GET",
+      "status": 403,
+      "captureFile": "capture.json",
+      "recordIndex": 9
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+      "method": "GET",
+      "status": 403,
+      "captureFile": "capture.json",
+      "recordIndex": 10
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/rules/branches/main?per_page=100",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 11
+    },
+    {
+      "uri": "https://api.github.com/graphql",
+      "method": "POST",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 12
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/branches/main",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 13
+    },
+    {
+      "uri": "https://api.github.com/repos/dotnet/runtime/pulls/136790",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 14
+    }
+  ],
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/repos/dotnet/runtime/pulls/136790",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json; charset=utf-8",
+            "date": "Mon, 02 Nov 2026 00:53:45 GMT",
+            "etag": "\"d4c7616a2d2720f8ad138c5764b50e2c115f2136310b35b86062bb03aaa98653\"",
+            "last-modified": "Mon, 02 Nov 2026 00:37:50 GMT",
+            "x-accepted-oauth-scopes": "repo",
+            "x-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14939",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "BF21:952EB:3D8C22:CA9F9A:6AE7DF19"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/dotnet/runtime/pulls/136790",
+            "id": 5110043376,
+            "node_id": "PR_kwDODI9FZc8AAAABMJUS8A",
+            "html_url": "https://github.com/dotnet/runtime/pull/136790",
+            "number": 136790,
+            "state": "open",
+            "locked": false,
+            "title": "Fix ImmutableHashSet<T>.Builder.ExceptWith when enumeration throws",
+            "created_at": "2026-11-01T18:00:40Z",
+            "updated_at": "2026-11-02T00:37:50Z",
+            "closed_at": null,
+            "merged_at": null,
+            "merge_commit_sha": "a2b5ed5da6a70f39ca05f5cd0e6eab738011c2b3",
+            "draft": false,
+            "mergeable": true,
+            "mergeable_state": "blocked",
+            "merged": false,
+            "rebaseable": false,
+            "author_association": "NONE",
+            "head": {
+              "label": "Hatr828:fix-hashset-exceptwith",
+              "ref": "fix-hashset-exceptwith",
+              "sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+              "repo": {
+                "id": 1428902359,
+                "full_name": "Hatr828/runtime",
+                "private": false,
+                "html_url": "https://github.com/Hatr828/runtime",
+                "default_branch": "main"
+              }
+            },
+            "base": {
+              "label": "dotnet:main",
+              "ref": "main",
+              "sha": "f368d14df0c3905d3b80073d709685af83ba895d",
+              "repo": {
+                "id": 210716005,
+                "full_name": "dotnet/runtime",
+                "private": false,
+                "html_url": "https://github.com/dotnet/runtime",
+                "default_branch": "main"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json; charset=utf-8",
+            "date": "Mon, 02 Nov 2026 00:53:49 GMT",
+            "etag": "\"d4c7616a2d2720f8ad138c5764b50e2c115f2136310b35b86062bb03aaa98653\"",
+            "last-modified": "Mon, 02 Nov 2026 00:37:50 GMT",
+            "x-accepted-oauth-scopes": "repo",
+            "x-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14926",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "30B1:293B65:11D751B:3A50365:6AE7DF1C"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/dotnet/runtime/pulls/136790",
+            "id": 5110043376,
+            "node_id": "PR_kwDODI9FZc8AAAABMJUS8A",
+            "html_url": "https://github.com/dotnet/runtime/pull/136790",
+            "number": 136790,
+            "state": "open",
+            "locked": false,
+            "title": "Fix ImmutableHashSet<T>.Builder.ExceptWith when enumeration throws",
+            "created_at": "2026-11-01T18:00:40Z",
+            "updated_at": "2026-11-02T00:37:50Z",
+            "closed_at": null,
+            "merged_at": null,
+            "merge_commit_sha": "a2b5ed5da6a70f39ca05f5cd0e6eab738011c2b3",
+            "draft": false,
+            "mergeable": true,
+            "mergeable_state": "blocked",
+            "merged": false,
+            "rebaseable": false,
+            "author_association": "NONE",
+            "head": {
+              "label": "Hatr828:fix-hashset-exceptwith",
+              "ref": "fix-hashset-exceptwith",
+              "sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+              "repo": {
+                "id": 1428902359,
+                "full_name": "Hatr828/runtime",
+                "private": false,
+                "html_url": "https://github.com/Hatr828/runtime",
+                "default_branch": "main"
+              }
+            },
+            "base": {
+              "label": "dotnet:main",
+              "ref": "main",
+              "sha": "f368d14df0c3905d3b80073d709685af83ba895d",
+              "repo": {
+                "id": 210716005,
+                "full_name": "dotnet/runtime",
+                "private": false,
+                "html_url": "https://github.com/dotnet/runtime",
+                "default_branch": "main"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/dotnet/runtime/pulls/136790/reviews",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:46 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"dda3fd5240a01616d8d2f2d4af35463f4771eaafa88f711669b04b0a4333c334\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14936",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "E840:2C0529:411B7E:D61D01:6AE7DF19"
+          },
+          "body": [
+            {
+              "id": 5730092117,
+              "node_id": "PRR_kwDODI9FZc8AAAABVYpEVQ",
+              "html_url": "https://github.com/dotnet/runtime/pull/136790#pullrequestreview-5730092117",
+              "state": "COMMENTED",
+              "commit_id": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+              "submitted_at": "2026-11-01T20:27:09Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "Manishram-ai"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:46 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"2290251e55361859109ee5d0366f7d34a1ddea53b0a5432e5931edb0333924bb\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "link": "<https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=2>; rel=\"next\", <https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=4>; rel=\"last\"",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14938",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "BCDB:191843:12E124C:3DC5416:6AE7DF10"
+          },
+          "body": {
+            "total_count": 97,
+            "check_runs": [
+              {
+                "id": 124957584414,
+                "node_id": "CR_kwDODI9FZc8AAAAdGA1sHg",
+                "name": "Build Analysis",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124957584414",
+                "html_url": "https://github.com/dotnet/runtime/runs/124957584414",
+                "details_url": "https://github.com/dotnet/arcade/blob/main/Documentation/Build%20Analysis/LandingPage.md",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T19:44:38Z",
+                "completed_at": "2026-11-01T19:44:38Z",
+                "app": {
+                  "id": 216604,
+                  "slug": "build-analysis",
+                  "name": "Build Analysis"
+                },
+                "check_suite": {
+                  "id": 112024561972
+                }
+              },
+              {
+                "id": 124957575898,
+                "node_id": "CR_kwDODI9FZc8AAAAdGA1K2g",
+                "name": "Build Insights",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124957575898",
+                "html_url": "https://github.com/dotnet/runtime/runs/124957575898",
+                "details_url": "https://build-insights.dot.net/pull-requests/github.com/dotnet/runtime/136790",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T19:44:36Z",
+                "completed_at": "2026-11-01T19:44:36Z",
+                "app": {
+                  "id": 2989492,
+                  "slug": "build-insights",
+                  "name": "Build Insights"
+                },
+                "check_suite": {
+                  "id": 112024575046
+                }
+              },
+              {
+                "id": 124957527127,
+                "node_id": "CR_kwDODI9FZc8AAAAdGAyMVw",
+                "name": "Helix Queue Insights (preview)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124957527127",
+                "html_url": "https://github.com/dotnet/runtime/runs/124957527127",
+                "details_url": "https://github.com/dotnet/arcade/blob/main/Documentation/Build%20Analysis/LandingPage.md",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T19:44:24Z",
+                "completed_at": "2026-11-01T19:44:24Z",
+                "app": {
+                  "id": 216604,
+                  "slug": "build-analysis",
+                  "name": "Build Analysis"
+                },
+                "check_suite": {
+                  "id": 112024561972
+                }
+              },
+              {
+                "id": 124957455447,
+                "node_id": "CR_kwDODI9FZc8AAAAdGAt0Vw",
+                "name": "runtime",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124957455447",
+                "html_url": "https://github.com/dotnet/runtime/runs/124957455447",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:04:19Z",
+                "completed_at": "2026-11-01T19:44:06Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124957449966,
+                "node_id": "CR_kwDODI9FZc8AAAAdGAte7g",
+                "name": "runtime (Build Monitor Helix Jobs)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124957449966",
+                "html_url": "https://github.com/dotnet/runtime/runs/124957449966",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=078edc60-2a90-5618-e72d-426a045b11f0",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:15Z",
+                "completed_at": "2026-11-01T19:44:02Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124953722225,
+                "node_id": "CR_kwDODI9FZc8AAAAdF9J9cQ",
+                "name": "runtime (Build maccatalyst-arm64 Release AllSubsets_NativeAOT_Smoke)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124953722225",
+                "html_url": "https://github.com/dotnet/runtime/runs/124953722225",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=c8e9c600-4135-5078-27e2-7c93a1b83ca8",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:29Z",
+                "completed_at": "2026-11-01T19:29:13Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124949715983,
+                "node_id": "CR_kwDODI9FZc8AAAAdF5VcDw",
+                "name": "runtime (Build browser-wasm windows Release LibraryTests_Smoke_AOT)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124949715983",
+                "html_url": "https://github.com/dotnet/runtime/runs/124949715983",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=d4114222-2640-5505-c7da-33ed88276119",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:54Z",
+                "completed_at": "2026-11-01T19:13:27Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124948211217,
+                "node_id": "CR_kwDODI9FZc8AAAAdF35mEQ",
+                "name": "dotnet-linker-tests",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124948211217",
+                "html_url": "https://github.com/dotnet/runtime/runs/124948211217",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658781",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:04:27Z",
+                "completed_at": "2026-11-01T19:07:51Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124948206523,
+                "node_id": "CR_kwDODI9FZc8AAAAdF35Tuw",
+                "name": "dotnet-linker-tests (Build windows-x64 release Runtime_Release)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124948206523",
+                "html_url": "https://github.com/dotnet/runtime/runs/124948206523",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658781&view=logs&jobId=a1e5d03d-3f6b-54a5-7792-bf65a0588cb6",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:17:56Z",
+                "completed_at": "2026-11-01T19:07:05Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124946184464,
+                "node_id": "CR_kwDODI9FZc8AAAAdF195EA",
+                "name": "runtime (Build windows-x64 Debug CoreCLR_AllSubsets)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124946184464",
+                "html_url": "https://github.com/dotnet/runtime/runs/124946184464",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=e4e60652-d73a-5d7f-d3df-40285377c624",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:41Z",
+                "completed_at": "2026-11-01T19:00:03Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124945785404,
+                "node_id": "CR_kwDODI9FZc8AAAAdF1liPA",
+                "name": "runtime (Build maccatalyst-arm64 Release AllSubsets_CoreCLR_Smoke)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124945785404",
+                "html_url": "https://github.com/dotnet/runtime/runs/124945785404",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=eacd2dcd-0416-5981-5099-3604057cd587",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:24Z",
+                "completed_at": "2026-11-01T18:58:23Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124945610061,
+                "node_id": "CR_kwDODI9FZc8AAAAdF1a1TQ",
+                "name": "runtime (Build browser-wasm windows Release LibraryTests)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124945610061",
+                "html_url": "https://github.com/dotnet/runtime/runs/124945610061",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=c4f78348-88e4-5284-ad35-ce8766c7fee3",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:54Z",
+                "completed_at": "2026-11-01T18:57:38Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124945579211,
+                "node_id": "CR_kwDODI9FZc8AAAAdF1Y8yw",
+                "name": "runtime (Build windows-arm64 Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124945579211",
+                "html_url": "https://github.com/dotnet/runtime/runs/124945579211",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=d2b92d58-337d-5541-2ecb-d35f35f29352",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:37Z",
+                "completed_at": "2026-11-01T18:57:21Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124945136431,
+                "node_id": "CR_kwDODI9FZc8AAAAdF097Lw",
+                "name": "runtime-dev-innerloop",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124945136431",
+                "html_url": "https://github.com/dotnet/runtime/runs/124945136431",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658780",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:04:17Z",
+                "completed_at": "2026-11-01T18:55:53Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124945131470,
+                "node_id": "CR_kwDODI9FZc8AAAAdF09nzg",
+                "name": "runtime-dev-innerloop (Build windows-x86 release MSBuild_CMake)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124945131470",
+                "html_url": "https://github.com/dotnet/runtime/runs/124945131470",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658780&view=logs&jobId=f528e9ec-1c86-586c-1a2e-9a0f6a91b0c3",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:57Z",
+                "completed_at": "2026-11-01T18:55:44Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124944829454,
+                "node_id": "CR_kwDODI9FZc8AAAAdF0rMDg",
+                "name": "dotnet-linker-tests (Build linux-x64 release Runtime_Release)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124944829454",
+                "html_url": "https://github.com/dotnet/runtime/runs/124944829454",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658781&view=logs&jobId=ff0f4165-94fa-565b-d5ea-6d06d02692b1",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:24Z",
+                "completed_at": "2026-11-01T18:54:09Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124944428368,
+                "node_id": "CR_kwDODI9FZc8AAAAdF0StUA",
+                "name": "runtime (Build windows-x86 release CoreCLR_AllSubsets)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124944428368",
+                "html_url": "https://github.com/dotnet/runtime/runs/124944428368",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=da6ea40f-7299-55c8-acc6-b02d43c4b3c4",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:47Z",
+                "completed_at": "2026-11-01T18:52:39Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124943724002,
+                "node_id": "CR_kwDODI9FZc8AAAAdFznt4g",
+                "name": "runtime (Build ios-arm64 Release AllSubsets_CoreCLR_Smoke)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124943724002",
+                "html_url": "https://github.com/dotnet/runtime/runs/124943724002",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=86932671-076e-536f-cde3-684b68c6a1d5",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:21Z",
+                "completed_at": "2026-11-01T18:50:11Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124942931679,
+                "node_id": "CR_kwDODI9FZc8AAAAdFy3W3w",
+                "name": "runtime (Build browser-wasm linux Release LibraryTests_Smoke_AOT)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124942931679",
+                "html_url": "https://github.com/dotnet/runtime/runs/124942931679",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=62b70ecb-649d-5f05-1138-74c7e6e4705f",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:19Z",
+                "completed_at": "2026-11-01T18:47:02Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124942904247,
+                "node_id": "CR_kwDODI9FZc8AAAAdFy1rtw",
+                "name": "runtime (Build wasi-wasm linux Release LibraryTestsCoreCLR_WASI)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124942904247",
+                "html_url": "https://github.com/dotnet/runtime/runs/124942904247",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=5eba206f-4f0a-57a5-eed3-75a0b24b2ae6",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:15Z",
+                "completed_at": "2026-11-01T18:46:47Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124942849847,
+                "node_id": "CR_kwDODI9FZc8AAAAdFyyXNw",
+                "name": "runtime (Build windows-arm64 Release NativeAOT_Libraries)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124942849847",
+                "html_url": "https://github.com/dotnet/runtime/runs/124942849847",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=b0477d29-a3e8-5063-350d-e2bc4b70853a",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:41Z",
+                "completed_at": "2026-11-01T18:46:32Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124942726049,
+                "node_id": "CR_kwDODI9FZc8AAAAdFyqzoQ",
+                "name": "runtime (Build browser-wasm linux Release LibraryTestsCoreCLR)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124942726049",
+                "html_url": "https://github.com/dotnet/runtime/runs/124942726049",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=ea38101f-b200-57ec-b55a-237924c1f2b3",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:17Z",
+                "completed_at": "2026-11-01T18:46:08Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124942127362,
+                "node_id": "CR_kwDODI9FZc8AAAAdFyGRAg",
+                "name": "runtime (Build osx-arm64 checked Libraries_CheckedCoreCLR)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124942127362",
+                "html_url": "https://github.com/dotnet/runtime/runs/124942127362",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=7cec2e62-57c0-5578-40d3-b0b82a632854",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:18Z",
+                "completed_at": "2026-11-01T18:43:47Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124942057595,
+                "node_id": "CR_kwDODI9FZc8AAAAdFyCAew",
+                "name": "runtime (Build linux-x64 checked Native_GCC)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124942057595",
+                "html_url": "https://github.com/dotnet/runtime/runs/124942057595",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=9d44ffa5-6dbb-5c44-43bb-984541de6129",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:14Z",
+                "completed_at": "2026-11-01T18:43:25Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124941553924,
+                "node_id": "CR_kwDODI9FZc8AAAAdFxjRBA",
+                "name": "runtime (Build osx-arm64 Release NativeAOT_Libraries)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124941553924",
+                "html_url": "https://github.com/dotnet/runtime/runs/124941553924",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=a9eab304-9375-5df6-9f7c-f505bd759fef",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:20Z",
+                "completed_at": "2026-11-01T18:41:33Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124941424598,
+                "node_id": "CR_kwDODI9FZc8AAAAdFxbX1g",
+                "name": "runtime (Build browser-wasm windows Release CoreCLR)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124941424598",
+                "html_url": "https://github.com/dotnet/runtime/runs/124941424598",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=b21266ef-9242-50d9-7178-994c59fc8dbe",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:26Z",
+                "completed_at": "2026-11-01T18:41:00Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124941377230,
+                "node_id": "CR_kwDODI9FZc8AAAAdFxYezg",
+                "name": "runtime (Build windows-x64 release CrossDac)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124941377230",
+                "html_url": "https://github.com/dotnet/runtime/runs/124941377230",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=1e07645d-8246-5cc7-9124-7221e663460a",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:47Z",
+                "completed_at": "2026-11-01T18:40:47Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124941171793,
+                "node_id": "CR_kwDODI9FZc8AAAAdFxL8UQ",
+                "name": "runtime (Build browser-wasm linux Release LibraryTests)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124941171793",
+                "html_url": "https://github.com/dotnet/runtime/runs/124941171793",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=d4e38924-13a0-58bd-9074-6a4810543e7c",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:32Z",
+                "completed_at": "2026-11-01T18:39:56Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124941151725,
+                "node_id": "CR_kwDODI9FZc8AAAAdFxKt7Q",
+                "name": "runtime (Build osx-x64 Debug Mono_MiniJIT_LibrariesTests)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124941151725",
+                "html_url": "https://github.com/dotnet/runtime/runs/124941151725",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=07e4961f-4232-5b4a-5e6a-31092474840f",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:21Z",
+                "completed_at": "2026-11-01T18:39:47Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124940974415,
+                "node_id": "CR_kwDODI9FZc8AAAAdFw_5Tw",
+                "name": "runtime (Build osx-x64 release CoreCLR_AllSubsets)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124940974415",
+                "html_url": "https://github.com/dotnet/runtime/runs/124940974415",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=31986e52-cd97-5423-b65f-28d02466476d",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:19Z",
+                "completed_at": "2026-11-01T18:39:08Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=2",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:46 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"f2179d80e1e16060aed070fac72e8b95eb57c56e84e93e27509a194e068ef7bc\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "link": "<https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=1>; rel=\"prev\", <https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=3>; rel=\"next\", <https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=4>; rel=\"last\", <https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=1>; rel=\"first\"",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14932",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "C4AE:38D58A:42F263:DCB203:6AE7DF17"
+          },
+          "body": {
+            "total_count": 97,
+            "check_runs": [
+              {
+                "id": 124940943559,
+                "node_id": "CR_kwDODI9FZc8AAAAdFw-Axw",
+                "name": "runtime (Build osx-arm64 Debug CoreCLR_AllSubsets)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124940943559",
+                "html_url": "https://github.com/dotnet/runtime/runs/124940943559",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=13d92d55-1dfa-50c8-e13a-40c695f6a01b",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:17Z",
+                "completed_at": "2026-11-01T18:38:52Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124940717179,
+                "node_id": "CR_kwDODI9FZc8AAAAdFwwMew",
+                "name": "runtime (Build browser-wasm linux Release LibraryTests_EAT)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124940717179",
+                "html_url": "https://github.com/dotnet/runtime/runs/124940717179",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=294c8fbc-17f0-5954-a99b-5617e6d3116c",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:18Z",
+                "completed_at": "2026-11-01T18:38:01Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124940458438,
+                "node_id": "CR_kwDODI9FZc8AAAAdFwgZxg",
+                "name": "dotnet-linker-tests (Build browser-wasm linux release Runtime_Release)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124940458438",
+                "html_url": "https://github.com/dotnet/runtime/runs/124940458438",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658781&view=logs&jobId=7b499086-9930-5591-220e-2ec7c40eb990",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:25Z",
+                "completed_at": "2026-11-01T18:37:06Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124940416911,
+                "node_id": "CR_kwDODI9FZc8AAAAdFwd3jw",
+                "name": "runtime (Build linux-arm Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124940416911",
+                "html_url": "https://github.com/dotnet/runtime/runs/124940416911",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=b81372f9-db38-5945-8312-b7b111b85659",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:07Z",
+                "completed_at": "2026-11-01T18:36:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124940377840,
+                "node_id": "CR_kwDODI9FZc8AAAAdFwbe8A",
+                "name": "runtime (Build linux_musl-arm Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124940377840",
+                "html_url": "https://github.com/dotnet/runtime/runs/124940377840",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=47e3d33f-a054-5753-75ec-dcd1173545fb",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:13Z",
+                "completed_at": "2026-11-01T18:36:40Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124940300980,
+                "node_id": "CR_kwDODI9FZc8AAAAdFwWytA",
+                "name": "runtime-dev-innerloop (Build Source-Build (Linux_x64))",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124940300980",
+                "html_url": "https://github.com/dotnet/runtime/runs/124940300980",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658780&view=logs&jobId=d9a2c968-0c29-50c0-499a-f355887b82bf",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:36Z",
+                "completed_at": "2026-11-01T18:36:19Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124940276566,
+                "node_id": "CR_kwDODI9FZc8AAAAdFwVTVg",
+                "name": "runtime (Build linux-x64 Debug CoreCLR_AllSubsets)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124940276566",
+                "html_url": "https://github.com/dotnet/runtime/runs/124940276566",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=8265a1e0-91dc-5a28-45d3-c56cf0f4ed3f",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:24Z",
+                "completed_at": "2026-11-01T18:36:12Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124940269298,
+                "node_id": "CR_kwDODI9FZc8AAAAdFwU28g",
+                "name": "runtime (Build linux_musl-x64 Debug CoreCLR_AllSubsets)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124940269298",
+                "html_url": "https://github.com/dotnet/runtime/runs/124940269298",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=c1e4fe0c-3db8-586a-66c3-3c961666b822",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:14Z",
+                "completed_at": "2026-11-01T18:36:06Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939899675,
+                "node_id": "CR_kwDODI9FZc8AAAAdFv-TGw",
+                "name": "runtime (Build ios-arm64 Release AllSubsets_NativeAOT_Smoke)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939899675",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939899675",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=b7f3851d-bacc-5e91-99a3-7c9bf250deb4",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:20Z",
+                "completed_at": "2026-11-01T18:34:46Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939824884,
+                "node_id": "CR_kwDODI9FZc8AAAAdFv5u9A",
+                "name": "runtime (Build browser-wasm linux Release LibraryTestsCoreCLR_Smoke_R2R)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939824884",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939824884",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=4b645f75-c413-5196-a74e-9eae2e17f4f0",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:32Z",
+                "completed_at": "2026-11-01T18:34:28Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939796666,
+                "node_id": "CR_kwDODI9FZc8AAAAdFv4Aug",
+                "name": "runtime (Build linux_musl-arm64 Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939796666",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939796666",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=593e9dd6-bcc8-50e3-9fc7-5ded467090f9",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:04Z",
+                "completed_at": "2026-11-01T18:34:23Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939788504,
+                "node_id": "CR_kwDODI9FZc8AAAAdFv3g2A",
+                "name": "runtime (Build windows-x64 Debug Libraries_WithPackages)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939788504",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939788504",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=acede73b-aec7-5312-fef9-7928b9275807",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:57Z",
+                "completed_at": "2026-11-01T18:34:28Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939770253,
+                "node_id": "CR_kwDODI9FZc8AAAAdFv2ZjQ",
+                "name": "runtime (Build android-x64 Release AllSubsets_CoreCLR_Smoke)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939770253",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939770253",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=cec59e13-9a5c-59ac-c91b-3e772059b1d2",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:33Z",
+                "completed_at": "2026-11-01T18:34:24Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939750722,
+                "node_id": "CR_kwDODI9FZc8AAAAdFv1NQg",
+                "name": "runtime (Build android-arm64 Release AllSubsets_CoreCLR_Smoke)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939750722",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939750722",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=8a3b424e-71ff-5777-1691-d95221876420",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:20Z",
+                "completed_at": "2026-11-01T18:34:20Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939744187,
+                "node_id": "CR_kwDODI9FZc8AAAAdFv0zuw",
+                "name": "runtime (Build osx-x64 Release AllSubsets_Mono)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939744187",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939744187",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=164886f8-bd20-5cb1-b1e2-7b5d0b89789f",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:21Z",
+                "completed_at": "2026-11-01T18:34:15Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939634661,
+                "node_id": "CR_kwDODI9FZc8AAAAdFvuH5Q",
+                "name": "runtime (Build linux-arm64 Debug AllSubsets_CoreCLR)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939634661",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939634661",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=588bbb7e-bac8-5efa-0c78-5b2d4ec026cd",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:21Z",
+                "completed_at": "2026-11-01T18:33:52Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939489210,
+                "node_id": "CR_kwDODI9FZc8AAAAdFvlPug",
+                "name": "runtime (Build linux-arm64 checked Libraries_CheckedCoreCLR)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939489210",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939489210",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=29224935-7685-5dec-efb5-7dd8c3604bcb",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:25Z",
+                "completed_at": "2026-11-01T18:33:13Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939456992,
+                "node_id": "CR_kwDODI9FZc8AAAAdFvjR4A",
+                "name": "runtime (Build linux_musl-x64 Debug AllSubsets_CoreCLR)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939456992",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939456992",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=6a001f6e-0521-52bc-afa7-7b0f86501888",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:13Z",
+                "completed_at": "2026-11-01T18:33:08Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939452477,
+                "node_id": "CR_kwDODI9FZc8AAAAdFvjAPQ",
+                "name": "runtime (Build linux-arm64 Release NativeAOT_Libraries)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939452477",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939452477",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=c812aed0-d750-5043-8d14-917e87362217",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:16Z",
+                "completed_at": "2026-11-01T18:32:53Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939180591,
+                "node_id": "CR_kwDODI9FZc8AAAAdFvSaLw",
+                "name": "runtime (Build windows-x86 Release Libraries_NET481)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939180591",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939180591",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=0b6dc52c-e488-59ef-e44c-bdccc8ffc4ce",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:14:51Z",
+                "completed_at": "2026-11-01T18:31:41Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124939080783,
+                "node_id": "CR_kwDODI9FZc8AAAAdFvMUTw",
+                "name": "runtime (Build android-arm Release AllSubsets_CoreCLR_Smoke)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124939080783",
+                "html_url": "https://github.com/dotnet/runtime/runs/124939080783",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=5846ccc4-1b59-5d1f-84ff-9980ba0cacb2",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:20Z",
+                "completed_at": "2026-11-01T18:31:36Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124938912481,
+                "node_id": "CR_kwDODI9FZc8AAAAdFvCC4Q",
+                "name": "runtime (Build browser-wasm linux Release LibraryTestsCoreCLR_SmokeFirefoxV8)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124938912481",
+                "html_url": "https://github.com/dotnet/runtime/runs/124938912481",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=1132506b-0c49-5a1f-b2bd-bd1092700f59",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:31Z",
+                "completed_at": "2026-11-01T18:31:00Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124938792159,
+                "node_id": "CR_kwDODI9FZc8AAAAdFu6s3w",
+                "name": "runtime (Build browser-wasm linux Release CoreCLR)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124938792159",
+                "html_url": "https://github.com/dotnet/runtime/runs/124938792159",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=9573f08c-0008-5fe5-9ca5-9c75880442f7",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:21Z",
+                "completed_at": "2026-11-01T18:30:37Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124938728677,
+                "node_id": "CR_kwDODI9FZc8AAAAdFu205Q",
+                "name": "runtime (Build wasi-wasm linux Release LibraryTestsCoreCLR_WASI_R2R)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124938728677",
+                "html_url": "https://github.com/dotnet/runtime/runs/124938728677",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=7c802ae7-3ddc-520f-f81f-5702c77bbe25",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:14Z",
+                "completed_at": "2026-11-01T18:30:21Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124938423341,
+                "node_id": "CR_kwDODI9FZc8AAAAdFukMLQ",
+                "name": "runtime (Build linux-x64 Debug Mono_Interpreter_LibrariesTests)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124938423341",
+                "html_url": "https://github.com/dotnet/runtime/runs/124938423341",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=f4616eca-4cb2-53ea-b86a-d7a1235a32a0",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:35Z",
+                "completed_at": "2026-11-01T18:29:04Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124938388217,
+                "node_id": "CR_kwDODI9FZc8AAAAdFuiC-Q",
+                "name": "runtime (Build linux-x64 Debug Mono_MiniJIT_LibrariesTests)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124938388217",
+                "html_url": "https://github.com/dotnet/runtime/runs/124938388217",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=90274d9a-fbd8-54f8-6a7d-8dfc4e2f6f3f",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:21Z",
+                "completed_at": "2026-11-01T18:28:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124938383708,
+                "node_id": "CR_kwDODI9FZc8AAAAdFuhxXA",
+                "name": "runtime (Build linux-arm64 Debug Mono_MiniJIT_LibrariesTests)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124938383708",
+                "html_url": "https://github.com/dotnet/runtime/runs/124938383708",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=f7e4d869-8f12-531d-6ebc-c4b60b2a13bc",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:20Z",
+                "completed_at": "2026-11-01T18:28:55Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124938358328,
+                "node_id": "CR_kwDODI9FZc8AAAAdFugOOA",
+                "name": "runtime-dev-innerloop (Build linux_musl-x64 debug Musl_Validation)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124938358328",
+                "html_url": "https://github.com/dotnet/runtime/runs/124938358328",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658780&view=logs&jobId=d99582bb-b40b-5dcd-b5c0-ce7b052a3901",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:22Z",
+                "completed_at": "2026-11-01T18:28:54Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124938007865,
+                "node_id": "CR_kwDODI9FZc8AAAAdFuK1OQ",
+                "name": "runtime (Build wasi-wasm linux Release CoreCLR_BuildOnly)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124938007865",
+                "html_url": "https://github.com/dotnet/runtime/runs/124938007865",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=149f271a-62bf-57d4-9e9a-9c7efca8df5b",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:13Z",
+                "completed_at": "2026-11-01T18:27:22Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124937713675,
+                "node_id": "CR_kwDODI9FZc8AAAAdFt44Cw",
+                "name": "runtime (Build osx-x64 Debug AllSubsets_Mono_LLVMAOT)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124937713675",
+                "html_url": "https://github.com/dotnet/runtime/runs/124937713675",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=d313e8eb-0e70-533b-2043-4aa95c33d3dc",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:20Z",
+                "completed_at": "2026-11-01T18:26:12Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=3",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"feebeaa0a2e7143c84c87569c12ae62e199b1dc3d523a3277dee16e0239e6abc\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "link": "<https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=2>; rel=\"prev\", <https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=4>; rel=\"next\", <https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=4>; rel=\"last\", <https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=1>; rel=\"first\"",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14929",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "CC63:18E436:11FE6B4:3AE09A9:6AE7DF15"
+          },
+          "body": {
+            "total_count": 97,
+            "check_runs": [
+              {
+                "id": 124937499676,
+                "node_id": "CR_kwDODI9FZc8AAAAdFtr0HA",
+                "name": "runtime-dev-innerloop (Build windows-x64 release CoreLib_Libraries_AnalyzersLinker)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124937499676",
+                "html_url": "https://github.com/dotnet/runtime/runs/124937499676",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658780&view=logs&jobId=c1b01e02-5bcc-5561-fa57-6ad37e55e25a",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:15:05Z",
+                "completed_at": "2026-11-01T18:25:26Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124937257786,
+                "node_id": "CR_kwDODI9FZc8AAAAdFtdDOg",
+                "name": "runtime (Build linux-arm64 Release AllSubsets_Mono_LLVMAOT)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124937257786",
+                "html_url": "https://github.com/dotnet/runtime/runs/124937257786",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=a29c71c7-8237-5974-14c3-b1fa4e081c8c",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:19Z",
+                "completed_at": "2026-11-01T18:24:33Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124937058661,
+                "node_id": "CR_kwDODI9FZc8AAAAdFtQ5ZQ",
+                "name": "runtime (Build linux-x64 Release AllSubsets_Mono_LLVMAOT)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124937058661",
+                "html_url": "https://github.com/dotnet/runtime/runs/124937058661",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=43cae16f-9ffb-527f-a660-e8ce26fd43bd",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:35Z",
+                "completed_at": "2026-11-01T18:23:49Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124936984504,
+                "node_id": "CR_kwDODI9FZc8AAAAdFtMXuA",
+                "name": "runtime-dev-innerloop (Build osx-arm64 release CoreLib_Libraries_AnalyzersLinker)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124936984504",
+                "html_url": "https://github.com/dotnet/runtime/runs/124936984504",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658780&view=logs&jobId=e65d7c2f-2a22-58f2-1aad-288478d34cb8",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:06:22Z",
+                "completed_at": "2026-11-01T18:23:24Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124936946077,
+                "node_id": "CR_kwDODI9FZc8AAAAdFtKBnQ",
+                "name": "runtime (Build linux_musl-x64 Release AllSubsets_Mono)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124936946077",
+                "html_url": "https://github.com/dotnet/runtime/runs/124936946077",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=387c25de-eee0-5892-2c44-14e281ec119c",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:17Z",
+                "completed_at": "2026-11-01T18:23:17Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124936772401,
+                "node_id": "CR_kwDODI9FZc8AAAAdFs_bMQ",
+                "name": "runtime (Build linux-x64 Debug AllSubsets_Mono)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124936772401",
+                "html_url": "https://github.com/dotnet/runtime/runs/124936772401",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=466192f0-4404-5f33-da33-c2cb6a43573b",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:16Z",
+                "completed_at": "2026-11-01T18:22:34Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124936720467,
+                "node_id": "CR_kwDODI9FZc8AAAAdFs8QUw",
+                "name": "runtime (Build linux-arm64 Debug AllSubsets_Mono)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124936720467",
+                "html_url": "https://github.com/dotnet/runtime/runs/124936720467",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=b89b09e5-97aa-5613-62a8-ae247221cd83",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:29Z",
+                "completed_at": "2026-11-01T18:22:24Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124936688766,
+                "node_id": "CR_kwDODI9FZc8AAAAdFs6Ufg",
+                "name": "runtime (Build linux-arm Debug AllSubsets_Mono)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124936688766",
+                "html_url": "https://github.com/dotnet/runtime/runs/124936688766",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=8bb075cb-947a-5b23-30c4-5d8baa56fe59",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:17Z",
+                "completed_at": "2026-11-01T18:22:19Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124936065779,
+                "node_id": "CR_kwDODI9FZc8AAAAdFsUS8w",
+                "name": "runtime-dev-innerloop (Build linux-x64 release CoreLib_Libraries_AnalyzersLinker)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124936065779",
+                "html_url": "https://github.com/dotnet/runtime/runs/124936065779",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658780&view=logs&jobId=ebddf70c-7712-591e-98a4-ec67ac73d7fd",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:09:22Z",
+                "completed_at": "2026-11-01T18:19:59Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124932330707,
+                "node_id": "CR_kwDODI9FZc8AAAAdFowU0w",
+                "name": "runtime-dev-innerloop (Evaluate Paths Evaluate Paths)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124932330707",
+                "html_url": "https://github.com/dotnet/runtime/runs/124932330707",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658780&view=logs&jobId=7c35c57d-783e-5788-f8a3-975e1f2842f3",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:04:25Z",
+                "completed_at": "2026-11-01T18:05:46Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124932330045,
+                "node_id": "CR_kwDODI9FZc8AAAAdFowSPQ",
+                "name": "dotnet-linker-tests (Evaluate Paths Evaluate Paths)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124932330045",
+                "html_url": "https://github.com/dotnet/runtime/runs/124932330045",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658781&view=logs&jobId=7c35c57d-783e-5788-f8a3-975e1f2842f3",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:04:34Z",
+                "completed_at": "2026-11-01T18:05:45Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124932242658,
+                "node_id": "CR_kwDODI9FZc8AAAAdFoq84g",
+                "name": "runtime (Evaluate Paths Evaluate Paths)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124932242658",
+                "html_url": "https://github.com/dotnet/runtime/runs/124932242658",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/results?buildId=1658779&view=logs&jobId=7c35c57d-783e-5788-f8a3-975e1f2842f3",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:04:25Z",
+                "completed_at": "2026-11-01T18:05:39Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124931213263,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnsHzw",
+                "name": "agent",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124931213263",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931213263",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931213263",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-11-01T18:01:51Z",
+                "completed_at": "2026-11-01T18:01:43Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024793678
+                }
+              },
+              {
+                "id": 124931190368,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnquYA",
+                "name": "license/cla",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124931190368",
+                "html_url": "https://github.com/dotnet/runtime/runs/124931190368",
+                "details_url": "https://github.com/apps/microsoft-github-policy-service",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:01:46Z",
+                "completed_at": "2026-11-01T18:01:46Z",
+                "app": {
+                  "id": 285228,
+                  "slug": "dotnet-policy-service",
+                  "name": "Dotnet Policy Service"
+                },
+                "check_suite": {
+                  "id": 112024652896
+                }
+              },
+              {
+                "id": 124931181454,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnqLjg",
+                "name": "conclusion",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124931181454",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931181454",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931181454",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-11-01T18:01:44Z",
+                "completed_at": "2026-11-01T18:01:43Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024793678
+                }
+              },
+              {
+                "id": 124931181397,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnqLVQ",
+                "name": "safe_outputs",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124931181397",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931181397",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931181397",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-11-01T18:01:44Z",
+                "completed_at": "2026-11-01T18:01:43Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024793678
+                }
+              },
+              {
+                "id": 124931180649,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnqIaQ",
+                "name": "detection",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124931180649",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931180649",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931180649",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-11-01T18:01:44Z",
+                "completed_at": "2026-11-01T18:01:43Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024793678
+                }
+              },
+              {
+                "id": 124931180477,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnqHvQ",
+                "name": "activation",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124931180477",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931180477",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931180477",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-11-01T18:01:44Z",
+                "completed_at": "2026-11-01T18:01:43Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024793678
+                }
+              },
+              {
+                "id": 124931180083,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnqGMw",
+                "name": "pat_pool",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124931180083",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931180083",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931180083",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-11-01T18:01:44Z",
+                "completed_at": "2026-11-01T18:01:43Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024793678
+                }
+              },
+              {
+                "id": 124931179617,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnqEYQ",
+                "name": "pre_activation",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124931179617",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931179617",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334453049/job/124931179617",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-11-01T18:01:43Z",
+                "completed_at": "2026-11-01T18:01:43Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024793678
+                }
+              },
+              {
+                "id": 124931177386,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnp7qg",
+                "name": "check-labels",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124931177386",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334452993/job/124931177386",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334452993/job/124931177386",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:01:45Z",
+                "completed_at": "2026-11-01T18:01:50Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024793520
+                }
+              },
+              {
+                "id": 124930978116,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndxRA",
+                "name": "hardware-intrinsics-wasm",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930978116",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930978116",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=348",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:58Z",
+                "completed_at": "2026-11-01T18:00:58Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930977187,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndtow",
+                "name": "hardware-intrinsics-arm64",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930977187",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930977187",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=342",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:58Z",
+                "completed_at": "2026-11-01T18:00:58Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930975442,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndm0g",
+                "name": "runtime-coreclr hardware-intrinsics",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930975442",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930975442",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=325",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930975159,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndltw",
+                "name": "runtime-llvm",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930975159",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930975159",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=157",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930975035,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndlOw",
+                "name": "runtime-libraries stress-http-pr",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930975035",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930975035",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=336",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930974946,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndk4g",
+                "name": "runtime-diagnostics",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930974946",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930974946",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=309",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930974852,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndkhA",
+                "name": "runtime-report-green",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930974852",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930974852",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=324",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930972228,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndaRA",
+                "name": "runtime-coreclr superpmi-replay",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930972228",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930972228",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=150",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930972180,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndaFA",
+                "name": "runtime-coreclr ilasm",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930972180",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930972180",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=140",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=4",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"e3d2c27e8f4c02b91d98c9c5c7ed86ff56c95f0677f825edb266764629fd43d9\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "link": "<https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=3>; rel=\"prev\", <https://api.github.com/repositories/210716005/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/check-runs?page=1>; rel=\"first\"",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14928",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "BCDB:191843:12E1A66:3DC6E2E:6AE7DF1A"
+          },
+          "body": {
+            "total_count": 97,
+            "check_runs": [
+              {
+                "id": 124930972134,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndZ5g",
+                "name": "runtime-coreclr superpmi-diffs",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930972134",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930972134",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=152",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930972114,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndZ0g",
+                "name": "runtime-wasm-perf",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930972114",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930972114",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=156",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930972089,
+                "node_id": "CR_kwDODI9FZc8AAAAdFndZuQ",
+                "name": "runtime-libraries enterprise-linux",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930972089",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930972089",
+                "details_url": "https://dev.azure.com/dnceng-public/cbb18261-c48f-4abb-8651-8cdcb5474649/_build/definition?definitionId=130",
+                "status": "completed",
+                "conclusion": "neutral",
+                "started_at": "2026-11-01T18:00:57Z",
+                "completed_at": "2026-11-01T18:00:57Z",
+                "app": {
+                  "id": 9426,
+                  "slug": "azure-pipelines",
+                  "name": "Azure Pipelines"
+                },
+                "check_suite": {
+                  "id": 112024611982
+                }
+              },
+              {
+                "id": 124930935478,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnbKtg",
+                "name": "Helix Queue Insights (preview)",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930935478",
+                "html_url": "https://github.com/dotnet/runtime/runs/124930935478",
+                "details_url": "https://build-insights.dot.net/pull-requests/github.com/dotnet/runtime/136790",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:00:49Z",
+                "completed_at": "2026-11-01T18:01:32Z",
+                "app": {
+                  "id": 2989492,
+                  "slug": "build-insights",
+                  "name": "Build Insights"
+                },
+                "check_suite": {
+                  "id": 112024575046
+                }
+              },
+              {
+                "id": 124930921209,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnaS-Q",
+                "name": "poll-pull-requests",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930921209",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334363965/job/124930921209",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334363965/job/124930921209",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-11-01T18:00:46Z",
+                "completed_at": "2026-11-01T18:00:45Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024560364
+                }
+              },
+              {
+                "id": 124930920207,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnaPDw",
+                "name": "predict-pull-label",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930920207",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334363965/job/124930920207",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334363965/job/124930920207",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:00:48Z",
+                "completed_at": "2026-11-01T18:01:02Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024560364
+                }
+              },
+              {
+                "id": 124930920059,
+                "node_id": "CR_kwDODI9FZc8AAAAdFnaOew",
+                "name": "check-labels",
+                "head_sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                "url": "https://api.github.com/repos/dotnet/runtime/check-runs/124930920059",
+                "html_url": "https://github.com/dotnet/runtime/actions/runs/41334364055/job/124930920059",
+                "details_url": "https://github.com/dotnet/runtime/actions/runs/41334364055/job/124930920059",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-11-01T18:00:53Z",
+                "completed_at": "2026-11-01T18:00:59Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 112024560518
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/dotnet/runtime/statuses/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42?per_page=100",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:46 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"2af8ea9b7918f6f14fef0ec029acc146bfc3c3aef27bfa7b6c27fc4ec8315f28\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "repo, repo:status",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14935",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "964F:96E7A:3CE8A73:CB0B273:6AE7DF19"
+          },
+          "body": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/status",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:46 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"a7665d8bc732785875f519d6a8cf059564cc801edcbdceaae18e049059526e98\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "repo, repo:status",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14937",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "4B3D:362260:1B387F:595EFE:6AE7DF0E"
+          },
+          "body": {
+            "state": "pending",
+            "sha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+            "total_count": 0,
+            "url": "https://api.github.com/repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42/status",
+            "commit_url": "https://api.github.com/repos/dotnet/runtime/commits/ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+            "statuses": []
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/dotnet/runtime/branches/main",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:46 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"72d9a4e5a19698213251a1434946225302d68ea9e0926abcf66183f473346bb0\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14934",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "2B56:354049:128136A:3C90F9E:6AE7DF17"
+          },
+          "body": {
+            "name": "main",
+            "protected": true,
+            "protection": {
+              "enabled": true,
+              "required_status_checks": {
+                "enforcement_level": "non_admins",
+                "contexts": [
+                  "license/cla",
+                  "Build Analysis"
+                ],
+                "checks": [
+                  {
+                    "context": "license/cla",
+                    "app_id": null
+                  },
+                  {
+                    "context": "Build Analysis",
+                    "app_id": 216604
+                  }
+                ]
+              }
+            },
+            "protection_url": "https://api.github.com/repos/dotnet/runtime/branches/main/protection",
+            "_links": {
+              "self": "https://api.github.com/repos/dotnet/runtime/branches/main",
+              "html": "https://github.com/dotnet/runtime/tree/main"
+            },
+            "commit": {
+              "sha": "82d89ecead16d3a5d85391285255e1aa559585f4",
+              "url": "https://api.github.com/repos/dotnet/runtime/commits/82d89ecead16d3a5d85391285255e1aa559585f4"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:48 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"72d9a4e5a19698213251a1434946225302d68ea9e0926abcf66183f473346bb0\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14927",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "6957:104A43:3308A1:A6768B:6AE7DF12"
+          },
+          "body": {
+            "name": "main",
+            "protected": true,
+            "protection": {
+              "enabled": true,
+              "required_status_checks": {
+                "enforcement_level": "non_admins",
+                "contexts": [
+                  "license/cla",
+                  "Build Analysis"
+                ],
+                "checks": [
+                  {
+                    "context": "license/cla",
+                    "app_id": null
+                  },
+                  {
+                    "context": "Build Analysis",
+                    "app_id": 216604
+                  }
+                ]
+              }
+            },
+            "protection_url": "https://api.github.com/repos/dotnet/runtime/branches/main/protection",
+            "_links": {
+              "self": "https://api.github.com/repos/dotnet/runtime/branches/main",
+              "html": "https://github.com/dotnet/runtime/tree/main"
+            },
+            "commit": {
+              "sha": "82d89ecead16d3a5d85391285255e1aa559585f4",
+              "url": "https://api.github.com/repos/dotnet/runtime/commits/82d89ecead16d3a5d85391285255e1aa559585f4"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/dotnet/runtime/branches/main/protection/required_status_checks",
+      "responses": [
+        {
+          "status": 403,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:46 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14933",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "B8B3:1F36:E11804:2DFAD3F:6AE7DF16"
+          },
+          "body": {
+            "message": "Resource not accessible by integration",
+            "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection",
+            "status": "403"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+      "responses": [
+        {
+          "status": 403,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:46 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14931",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "63D0:E04D7:3A58F6:BFE5CD:6AE7DF10"
+          },
+          "body": {
+            "message": "Resource not accessible by integration",
+            "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-pull-request-review-protection",
+            "status": "403"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/dotnet/runtime/rules/branches/main?per_page=100",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:46 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"c102dcc1c0e886a9bea8b9983f1fc6573dd8c22822305e1b3657560f5c87f655\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "repo",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14930",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "E1A7:2ABB0D:3829B8F:B99D114:6AE7DF17"
+          },
+          "body": [
+            {
+              "type": "deletion",
+              "ruleset_source_type": "Organization",
+              "ruleset_source": "dotnet",
+              "ruleset_id": 3795082
+            },
+            {
+              "type": "non_fast_forward",
+              "ruleset_source_type": "Organization",
+              "ruleset_source": "dotnet",
+              "ruleset_id": 3795082
+            },
+            {
+              "type": "pull_request",
+              "parameters": {
+                "required_approving_review_count": 1,
+                "dismiss_stale_reviews_on_push": false,
+                "required_reviewers": [],
+                "require_code_owner_review": false,
+                "require_last_push_approval": true,
+                "required_review_thread_resolution": false,
+                "require_extra_approval_for_unattributed_changes": true,
+                "allowed_merge_methods": [
+                  "squash",
+                  "merge",
+                  "rebase"
+                ]
+              },
+              "ruleset_source_type": "Organization",
+              "ruleset_source": "dotnet",
+              "ruleset_id": 3795082
+            },
+            {
+              "type": "creation",
+              "ruleset_source_type": "Organization",
+              "ruleset_source": "dotnet",
+              "ruleset_id": 3795082
+            },
+            {
+              "type": "pull_request",
+              "parameters": {
+                "required_approving_review_count": 0,
+                "dismiss_stale_reviews_on_push": false,
+                "required_reviewers": [],
+                "require_code_owner_review": false,
+                "dismissal_restriction": {
+                  "enabled": false,
+                  "allowed_actors": []
+                },
+                "require_last_push_approval": false,
+                "required_review_thread_resolution": false,
+                "require_extra_approval_for_unattributed_changes": true,
+                "allowed_merge_methods": [
+                  "merge",
+                  "squash",
+                  "rebase"
+                ]
+              },
+              "ruleset_source_type": "Repository",
+              "ruleset_source": "dotnet/runtime",
+              "ruleset_id": 3668772
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json; charset=utf-8",
+            "date": "Mon, 02 Nov 2026 00:53:48 GMT",
+            "x-accepted-oauth-scopes": "repo",
+            "x-oauth-scopes": "",
+            "x-ratelimit-limit": "10000",
+            "x-ratelimit-remaining": "9994",
+            "x-ratelimit-reset": "1793584252",
+            "x-ratelimit-resource": "graphql",
+            "x-github-request-id": "30B1:293B65:11D6F9D:3A4F196:6AE7DF11"
+          },
+          "body": {
+            "data": {
+              "repository": {
+                "pull_request": {
+                  "review_decision": "REVIEW_REQUIRED",
+                  "commits": {
+                    "nodes": [
+                      {
+                        "commit": {
+                          "oid": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+                          "status_check_rollup": {
+                            "contexts": {
+                              "nodes": [
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "pre_activation",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "poll-pull-requests",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "check-labels",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "check-labels",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "pat_pool",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "predict-pull-label",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "activation",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "agent",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "detection",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "safe_outputs",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "conclusion",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "hardware-intrinsics-arm64",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "hardware-intrinsics-wasm",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-coreclr hardware-intrinsics",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-coreclr ilasm",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-coreclr superpmi-diffs",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-coreclr superpmi-replay",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-diagnostics",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-libraries enterprise-linux",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-libraries stress-http-pr",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-llvm",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-report-green",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-wasm-perf",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Build Analysis",
+                                  "is_required": true
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Build Insights",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Helix Queue Insights (preview)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Helix Queue Insights (preview)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "dotnet-linker-tests",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "dotnet-linker-tests (Build browser-wasm linux release Runtime_Release)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "dotnet-linker-tests (Build linux-x64 release Runtime_Release)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "dotnet-linker-tests (Build windows-x64 release Runtime_Release)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "dotnet-linker-tests (Evaluate Paths Evaluate Paths)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "license/cla",
+                                  "is_required": true
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build Monitor Helix Jobs)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build android-arm Release AllSubsets_CoreCLR_Smoke)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build android-arm64 Release AllSubsets_CoreCLR_Smoke)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build android-x64 Release AllSubsets_CoreCLR_Smoke)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm linux Release CoreCLR)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm linux Release LibraryTests)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm linux Release LibraryTestsCoreCLR)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm linux Release LibraryTestsCoreCLR_SmokeFirefoxV8)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm linux Release LibraryTestsCoreCLR_Smoke_R2R)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm linux Release LibraryTests_EAT)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm linux Release LibraryTests_Smoke_AOT)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm windows Release CoreCLR)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm windows Release LibraryTests)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build browser-wasm windows Release LibraryTests_Smoke_AOT)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build ios-arm64 Release AllSubsets_CoreCLR_Smoke)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build ios-arm64 Release AllSubsets_NativeAOT_Smoke)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-arm Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-arm Debug AllSubsets_Mono)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-arm64 Debug AllSubsets_CoreCLR)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-arm64 Debug AllSubsets_Mono)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-arm64 Debug Mono_MiniJIT_LibrariesTests)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-arm64 Release AllSubsets_Mono_LLVMAOT)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-arm64 Release NativeAOT_Libraries)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-arm64 checked Libraries_CheckedCoreCLR)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-x64 Debug AllSubsets_Mono)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-x64 Debug CoreCLR_AllSubsets)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-x64 Debug Mono_Interpreter_LibrariesTests)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-x64 Debug Mono_MiniJIT_LibrariesTests)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-x64 Release AllSubsets_Mono_LLVMAOT)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux-x64 checked Native_GCC)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux_musl-arm Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux_musl-arm64 Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux_musl-x64 Debug AllSubsets_CoreCLR)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux_musl-x64 Debug CoreCLR_AllSubsets)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build linux_musl-x64 Release AllSubsets_Mono)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build maccatalyst-arm64 Release AllSubsets_CoreCLR_Smoke)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build maccatalyst-arm64 Release AllSubsets_NativeAOT_Smoke)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build osx-arm64 Debug CoreCLR_AllSubsets)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build osx-arm64 Release NativeAOT_Libraries)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build osx-arm64 checked Libraries_CheckedCoreCLR)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build osx-x64 Debug AllSubsets_Mono_LLVMAOT)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build osx-x64 Debug Mono_MiniJIT_LibrariesTests)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build osx-x64 Release AllSubsets_Mono)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build osx-x64 release CoreCLR_AllSubsets)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build wasi-wasm linux Release CoreCLR_BuildOnly)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build wasi-wasm linux Release LibraryTestsCoreCLR_WASI)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build wasi-wasm linux Release LibraryTestsCoreCLR_WASI_R2R)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build windows-arm64 Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build windows-arm64 Release NativeAOT_Libraries)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build windows-x64 Debug CoreCLR_AllSubsets)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build windows-x64 Debug Libraries_WithPackages)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build windows-x64 release CrossDac)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build windows-x86 Release Libraries_NET481)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Build windows-x86 release CoreCLR_AllSubsets)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime (Evaluate Paths Evaluate Paths)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-dev-innerloop",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-dev-innerloop (Build Source-Build (Linux_x64))",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-dev-innerloop (Build linux-x64 release CoreLib_Libraries_AnalyzersLinker)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-dev-innerloop (Build linux_musl-x64 debug Musl_Validation)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-dev-innerloop (Build osx-arm64 release CoreLib_Libraries_AnalyzersLinker)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-dev-innerloop (Build windows-x64 release CoreLib_Libraries_AnalyzersLinker)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-dev-innerloop (Build windows-x86 release MSBuild_CMake)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "runtime-dev-innerloop (Evaluate Paths Evaluate Paths)",
+                                  "is_required": false
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "captureNotes": {
+    "source": "Captured real public GitHub API metadata; no synthetic substitutions",
+    "bodyProjection": "See capture.json sanitization. Relevant API field names/shapes and retained values preserved.",
+    "graphql": "Actual query/result retained as source evidence; brick is invoked without a supplied token and may skip this endpoint.",
+    "pagination": "Actual Link headers followed until no rel=next; exact request paths retained. No invented pages or policy.",
+    "initialFinalResponses": "Sequential repeated route responses preserve capture order; final repeats only in offline transport per runner convention."
+  }
+}

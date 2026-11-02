@@ -11,10 +11,16 @@ namespace Ashlar.Bricks.GitHub;
 public class PrStatusBrick : Ashlar.Core.Domain.Bricks.Brick
 {
     private readonly ILogger<PrStatusBrick> _logger;
+    private readonly GitHubReadAccess? _access;
 
-    public PrStatusBrick(ILogger<PrStatusBrick> logger)
+    public PrStatusBrick(ILogger<PrStatusBrick> logger) : this(logger, access: null)
+    {
+    }
+
+    public PrStatusBrick(ILogger<PrStatusBrick> logger, GitHubReadAccess? access)
     {
         _logger = logger;
+        _access = access;
 
         Id = "github.pr-status";
         Name = "GitHub PR Status";
@@ -39,6 +45,8 @@ public class PrStatusBrick : Ashlar.Core.Domain.Bricks.Brick
                 new BrickOutputDefinition("reviews", "object", "Review status summary")
             ]
         };
+        if (_access is not null)
+            Interface = GitHubReadAccess.WithoutCallerCredential(Interface);
     }
 
     public override async Task<BrickOutput> ExecuteAsync(
@@ -56,7 +64,7 @@ public class PrStatusBrick : Ashlar.Core.Domain.Bricks.Brick
             var (owner, repo, prNumber) = ParsePrUrl(prUrl);
             
             // Create GitHub client
-            var client = CreateGitHubClient(input);
+            var client = CreateGitHubClient(input, owner, repo);
 
             // Fetch PR data
             var pullRequest = await client.PullRequest.Get(owner, repo, prNumber);
@@ -107,9 +115,10 @@ public class PrStatusBrick : Ashlar.Core.Domain.Bricks.Brick
         return output;
     }
 
-    private static GitHubClient CreateGitHubClient(BrickInput input)
+    private GitHubClient CreateGitHubClient(BrickInput input, string owner, string repo)
     {
         input.TryGet<string>("githubToken", out var token);
+        token = _access?.ResolveToken(owner, repo, token) ?? token;
         return GitHubClientFactory.Create(token);
     }
 

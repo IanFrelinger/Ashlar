@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "reason": "Name-conflict launch executed no tests; fresh unique final validation includes requested source-only F1 mutation and tool self-test",
+  "initialDriverSha256": "fee6069062def6c08dab0dd14f685bf4ededd47019f016880e99967c52e09e57",
+  "actualDriverSha256": "4ae6cd93bf1e443b43828e663b257b316e21d8b524250e6f65e1ecab18a4eb09",
+  "validationCommit": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+  "producerCommit": "b4b77b7f47975c64873dd8dc458329a584228d36",
+  "controllerCommandCorrection": "Already-loaded first5b driver had wrong DLL filename; stopped before F1 tests started, preserved partial build, corrected command in clean second launch",
+  "supersededArtifactDirectory": "superseded-5b-controller-assembly-command"
+}

@@ -1,0 +1,1 @@
+["dotnet", "test", "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj", "--framework", "net10.0", "--filter", "FullyQualifiedName~GitHubEvaluationRegressionTests", "--no-restore", "--nologo", "-v", "minimal", "-m:2", "-p:NuGetAudit=false", "--logger", "trx;LogFileName=partial-ci-wrongly-proves-absence-green.trx", "--results-directory", "/evidence"]

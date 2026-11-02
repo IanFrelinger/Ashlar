@@ -15,12 +15,12 @@ remembered to update — staleness here is a red build.
 | projects | 62 |
 | of those, published to nuget.org by a release | 24 |
 | of those, declaring `<IsPackable>true</IsPackable>` | 20 |
-| `ASHLAR_*` variables named in code | 177 |
-| of those, operator-facing (not test-only) | 155 |
+| `ASHLAR_*` variables named in code | 179 |
+| of those, operator-facing (not test-only) | 157 |
 | missing from `docs/Configuration.md` | 17 |
 | **mentioned in no document at all** | **0** |
-| test files declaring xUnit facts | 833 |
-| declared facts | 5461 |
+| test files declaring xUnit facts | 841 |
+| declared facts | 5559 |
 | workflows | 62 |
 
 ## Namespaces cert-gate selects
@@ -28,6 +28,11 @@ remembered to update — staleness here is a red build.
 Read from `scripts/cert-gate-config.sh`, so this cannot drift from the filter itself.
 
 - `Ashlar.Tests.Infrastructure.Tests.Adaptation.GenerationSafety`
+- `Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubBlockersBrickTests`
+- `Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubEvaluationRegressionTests`
+- `Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests`
+- `Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubReadAccessTests`
+- `Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests`
 - `Ashlar.Tests.Infrastructure.Tests.Certification`
 - `AstMutationEngineTests`
 

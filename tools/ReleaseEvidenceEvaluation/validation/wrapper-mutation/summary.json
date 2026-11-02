@@ -1,0 +1,10 @@
+{
+  "commit": "50f1a4ada",
+  "mutation": "replace wrapper with frozen99072a4af original in disposable committed clone",
+  "redTests": 5,
+  "redAssertionFailures": 3,
+  "greenTests": 5,
+  "greenFailures": 0,
+  "restoredPorcelainEmpty": true,
+  "retained": "red.txt and green.txt; actual fake-command unittest tests, not PR snapshots"
+}

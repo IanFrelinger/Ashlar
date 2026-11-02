@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "candidateCommit": "47a7c8506b89670d977265ce342a962d35858cd5",
+  "startedAt": "2026-11-02T00:55:04.082253+00:00",
+  "cache": "new empty NUGET_PACKAGES; new container HTTP cache; preinstalled SDK and cached Docker image",
+  "sdk": "10.0.403",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.39",
+  "commands": [
+    {
+      "name": "restore",
+      "arguments": [
+        "dotnet",
+        "restore",
+        "src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj",
+        "-p:NuGetAudit=false",
+        "--nologo",
+        "-v",
+        "minimal"
+      ],
+      "exitCode": 0,
+      "seconds": 22.370265317999838
+    },
+    {
+      "name": "build",
+      "arguments": [
+        "dotnet",
+        "build",
+        "src/Ashlar.Mcp.Server.Host/Ashlar.Mcp.Server.Host.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:NuGetAudit=false",
+        "--nologo",
+        "-v",
+        "minimal"
+      ],
+      "exitCode": 0,
+      "seconds": 79.30431627300004
+    }
+  ],
+  "seconds": 101.67602867099959,
+  "completedAt": "2026-11-02T00:56:45.914456+00:00",
+  "packageBytes": 831516182
+}

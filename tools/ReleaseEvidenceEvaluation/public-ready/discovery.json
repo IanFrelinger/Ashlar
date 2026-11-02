@@ -1,0 +1,320 @@
+{
+  "schemaVersion": "1.0",
+  "createdAt": "2026-11-02 03:06:25 UTC",
+  "source": "GitHub plugin read-only metadata discovery; no candidate collector executions or expected labels",
+  "requests": [
+    {
+      "tool": "github_fetch",
+      "url": "https://api.github.com/repos/cli/cli/pulls?state=open&sort=updated&direction=desc&per_page=20",
+      "observedHttpStatus": null,
+      "note": "Successful normalized content; success status and headers unavailable. Public PR bodies were returned by collection endpoint and discarded, never retained."
+    },
+    {
+      "tool": "github_fetch",
+      "url": "https://api.github.com/repos/IanFrelinger/Ashlar/pulls?state=open&sort=updated&direction=desc&per_page=20",
+      "observedHttpStatus": null
+    },
+    {
+      "tool": "github_fetch",
+      "url": "https://api.github.com/repos/dotnet/runtime/pulls?state=open&sort=updated&direction=desc&per_page=20",
+      "observedHttpStatus": null
+    },
+    {
+      "tool": "github_search_prs",
+      "query": "is:public status:success review:approved draft:false",
+      "repositories": [
+        "cli/cli",
+        "BurntSushi/ripgrep",
+        "sharkdp/bat",
+        "jqlang/jq",
+        "astral-sh/uv"
+      ],
+      "state": "open",
+      "sort": "updated",
+      "order": "desc",
+      "topn": 15,
+      "returnedCount": 5,
+      "note": "Search supplied possible candidates, not ground truth. Returned public PR bodies discarded."
+    },
+    {
+      "tool": "github_fetch",
+      "url": "https://api.github.com/graphql",
+      "connectorRejectedLocally": true,
+      "errorCode": "INVALID_ARGUMENT",
+      "connectorHttpError": 400,
+      "githubHttpStatus": null,
+      "note": "Connector URL allowlist rejection; not a GitHub denial and not a permission observation."
+    }
+  ],
+  "inspectedMetadata": [
+    {
+      "repo": "cli/cli",
+      "number": 12942,
+      "state": "open",
+      "draft": false,
+      "mergeable": false,
+      "mergeable_state": "dirty",
+      "head": "bdedb68faa1f542ba865cd8acf18eaade5293e00",
+      "base": "trunk"
+    },
+    {
+      "repo": "cli/cli",
+      "number": 10423,
+      "state": "open",
+      "draft": false,
+      "mergeable": false,
+      "mergeable_state": "dirty",
+      "head": "fdc6dfb42c8679677e6b0c1481ca796b8eb773f7",
+      "base": "trunk"
+    },
+    {
+      "repo": "cli/cli",
+      "number": 14846,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "aaf296326df06cbafd523c12efa0112cdc53c10c",
+      "base": "trunk"
+    },
+    {
+      "repo": "cli/cli",
+      "number": 14845,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "04c4ebf52e7033a83eb38e9741c8ace05bf8617b",
+      "base": "trunk"
+    },
+    {
+      "repo": "cli/cli",
+      "number": 14629,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "57bfea5f807ffb0c78336679d052ab56217aafde",
+      "base": "trunk"
+    },
+    {
+      "repo": "cli/cli",
+      "number": 14716,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "clean",
+      "head": "936921fa9e67cdbf78fb25abc6252afabafef056",
+      "base": "trunk"
+    },
+    {
+      "repo": "cli/cli",
+      "number": 14689,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "9a10c69b5e76659991861592d4c775def1112805",
+      "base": "trunk"
+    },
+    {
+      "repo": "cli/cli",
+      "number": 13247,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "0657dea831d767158bd9aadabc394ceb6e44b8af",
+      "base": "trunk"
+    },
+    {
+      "repo": "IanFrelinger/Ashlar",
+      "number": 853,
+      "state": "open",
+      "draft": false,
+      "mergeable": false,
+      "mergeable_state": "dirty",
+      "head": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+      "base": "master"
+    },
+    {
+      "repo": "cli/cli",
+      "number": 13013,
+      "state": "open",
+      "draft": false,
+      "mergeable": false,
+      "mergeable_state": "dirty",
+      "head": "b724142758f68492eef5d82b5be203727c134e17",
+      "base": "trunk"
+    },
+    {
+      "repo": "IanFrelinger/Ashlar",
+      "number": 840,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "e520a28ea7c1392b09e2331fbdf05a809e3302e8",
+      "base": "master"
+    },
+    {
+      "repo": "IanFrelinger/Ashlar",
+      "number": 900,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "023e90a698abc11456a1c7d7665a629ae0b3436c",
+      "base": "master"
+    },
+    {
+      "repo": "IanFrelinger/Ashlar",
+      "number": 852,
+      "state": "open",
+      "draft": false,
+      "mergeable": false,
+      "mergeable_state": "dirty",
+      "head": "eee59f2253b9d44cb699f8fbbe04df11d6e8d00f",
+      "base": "master"
+    },
+    {
+      "repo": "dotnet/runtime",
+      "number": 136677,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "249dfab9dae2615b3d710d84ffc02b96ffad7f32",
+      "base": "main"
+    },
+    {
+      "repo": "IanFrelinger/Ashlar",
+      "number": 844,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "behind",
+      "head": "bc36efa5030dc676155acaa7f0f55c0379bf2738",
+      "base": "master"
+    },
+    {
+      "repo": "dotnet/runtime",
+      "number": 136800,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "a1af3d1f0e0e024cbf14ed22ffdeb27a5fb0b5aa",
+      "base": "main"
+    },
+    {
+      "repo": "dotnet/runtime",
+      "number": 136819,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "59580ebcc12a939aecf82fbe07b2ce2d7eeeb4e4",
+      "base": "release/11.0"
+    },
+    {
+      "repo": "dotnet/runtime",
+      "number": 136817,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "dc4356516b4892e29f4f12ce0ee047c3796acc91",
+      "base": "release/9.0-staging"
+    },
+    {
+      "repo": "dotnet/runtime",
+      "number": 136816,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "7561800d667c54ef703c4bb4d0d174fa25cf4dfe",
+      "base": "release/8.0-staging"
+    },
+    {
+      "repo": "dotnet/runtime",
+      "number": 136818,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "5053f7bda4816f3ea20c84767478260b4c671c86",
+      "base": "release/10.0"
+    },
+    {
+      "repo": "dotnet/runtime",
+      "number": 133384,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "head": "2e1474a57be68acf0e5da61ccb8a4be97b65cf27",
+      "base": "main"
+    },
+    {
+      "repo": "jqlang/jq",
+      "number": 3432,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "clean",
+      "head": "65f4b31f9148dced73f782ff21c024539776eae6",
+      "base": "master"
+    },
+    {
+      "repo": "jqlang/jq",
+      "number": 3641,
+      "state": "open",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "clean",
+      "head": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+      "base": "master"
+    },
+    {
+      "repo": "jqlang/jq",
+      "number": 3624,
+      "state": "open",
+      "draft": false,
+      "mergeable": null,
+      "mergeable_state": "unknown",
+      "head": "7b7ad9a3bc24b4c7810fc5b76ff3c24811d2b4a9",
+      "base": "master"
+    },
+    {
+      "repo": "sharkdp/bat",
+      "number": 3832,
+      "state": "open",
+      "draft": false,
+      "mergeable": false,
+      "mergeable_state": "dirty",
+      "head": "2f6a165ad3595153add8cd43bc72d20ee21c4506",
+      "base": "master"
+    }
+  ],
+  "selected": [
+    {
+      "id": "public-ready-01",
+      "repository": "cli/cli",
+      "pullRequest": 14716
+    },
+    {
+      "id": "public-ready-02",
+      "repository": "jqlang/jq",
+      "pullRequest": 3432
+    },
+    {
+      "id": "public-ready-03",
+      "repository": "jqlang/jq",
+      "pullRequest": 3641
+    }
+  ],
+  "selectionRule": "Select first three open, non-draft PRs with mergeable=true and mergeable_state=clean, across at least two repositories, using source GitHub metadata only; successful review/CI search narrows discovery. Actual final capture may disagree and is retained as observed. No selection by candidate result.",
+  "authorization": "Plugin connection permissions do not describe direct-HTTP proxy identity; final case routes use one consistent inherited-proxy HTTP transport without Authorization supplied by capture code."
+}

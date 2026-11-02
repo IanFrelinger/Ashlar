@@ -1,0 +1,2988 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "fixture_manifest_sha256": "17e01f26dff07b58d004b43ae12c5c3959e6a58b36b0a22ef56b0aa107919035",
+  "source_manifest": {
+    "path": "tools/ReleaseEvidenceEvaluation/public-ready/manifest.json",
+    "sha256": "84191b5f1fa6f5acc7743c8ed0ce8852ed6e6a1f2df0c97513880f31e599fc2d"
+  },
+  "review_process": {
+    "reviewer": "first-independent-AI",
+    "ai_only": true,
+    "independent_conversation_context": true,
+    "blinded_to_candidate_outputs": true,
+    "blinded_to_other_reviewer_labels": true,
+    "production_code_not_inspected": true,
+    "candidate_not_executed": true,
+    "adjudicated": false,
+    "preregistration": "tools/ReleaseEvidenceEvaluation/public-ready/review/first-preregistration.md",
+    "scope": "Three supplemental real public PR captures across two repositories; not customer evidence. Original 36-case benchmark excluded.",
+    "limitations": [
+      "AI review only; no independent human adjudication.",
+      "Reviewers may share a model family and correlated errors remain possible.",
+      "Manifest selection metadata was visible, but is not used as expected-outcome evidence."
+    ]
+  },
+  "adjudication": {
+    "status": "pending-second-independent-review",
+    "conflicts": [],
+    "rationale": "Original independently authored labels frozen before cross-review. An empty conflict list does not mean adjudication has occurred."
+  },
+  "documentation": [
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/review/ground-truth-protocol.md",
+      "use": "Original pre-output readiness, assurance, identity, policy, checks and review method; unchanged."
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/SCORING.md",
+      "use": "Outcome vocabularies and label structure; arithmetic contract unchanged."
+    },
+    {
+      "url": "https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request",
+      "access": "Read-only HTTP 200 on 2026-11-02",
+      "use": "REST PR mergeability is a bounded GitHub observation; the page did not establish that the divergent captured PR-base SHA and current branch-tip SHA may be silently treated as one coherent identity."
+    },
+    {
+      "url": "https://docs.github.com/en/rest/branches/branches#get-a-branch",
+      "access": "Read-only HTTP 200 on 2026-11-02",
+      "use": "Branch protected/unprotected metadata is an independent policy observation. The branch-list documentation distinguishes protection by branch protections or rulesets."
+    }
+  ],
+  "cases": [
+    {
+      "id": "public-ready-01",
+      "kind": "public",
+      "repository": "cli/cli",
+      "pull_request": 14716,
+      "source_url": "https://github.com/cli/cli/pull/14716",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json",
+          "sha256": "8d653b33e4a88675ec7e1994258dc0210aefb7cc12f112ef0e63e0354895d986"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/routes.json",
+          "sha256": "a66311bba9488a24f515a163032977f305399424789100607b79c6cffb53e149"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/sha256.json",
+          "sha256": "41ed28bd3016a4ef9cd1f94fa3bf0c248975fec5845d76ed3da7eeab6d8aca02"
+        }
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "confirmed_blockers": [],
+      "observed_github_operational_status": {
+        "summary": "Open, non-draft, mergeable=true and mergeable_state=clean in both PR observations; effective review decision APPROVED. These are GitHub operational observations, not fully observed supported assurance.",
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/number",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": 14716
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/state",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/draft",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/merged",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "clean"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/number",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": 14716
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/state",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/draft",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/merged",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "clean"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "APPROVED"
+          }
+        ]
+      },
+      "capture_identity": {
+        "collection": {
+          "startedAt": "2026-11-02T03:05:42.454444Z",
+          "finishedAt": "2026-11-02T03:05:46.214381Z",
+          "durationSeconds": 3.759937,
+          "sequentialCaseCapture": true,
+          "parallelWithinCaseEndpoints": 4,
+          "retries": 0
+        },
+        "head_sha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+        "pr_base_ref": "trunk",
+        "pr_base_sha": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45",
+        "branch_tip_sha": "9490d204a2ba95434153dedce99898ce9f281426",
+        "initial_final_pr_identity_agrees": true,
+        "initial_final_branch_identity_agrees": true,
+        "pr_base_matches_observed_branch_tip": false,
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/repo/full_name",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "cli/cli"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/head/sha",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "936921fa9e67cdbf78fb25abc6252afabafef056"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/head/sha",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "936921fa9e67cdbf78fb25abc6252afabafef056"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/oid",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "936921fa9e67cdbf78fb25abc6252afabafef056"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/sha",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/base/sha",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/commit/sha",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk",
+            "value": "9490d204a2ba95434153dedce99898ce9f281426"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/commit/sha",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk",
+            "value": "9490d204a2ba95434153dedce99898ce9f281426"
+          }
+        ]
+      },
+      "mandatory_requirements": [
+        {
+          "id": "public-ready-01-required-macos-latest",
+          "type": "required-check",
+          "context": "build (macos-latest)",
+          "required_app_id": null,
+          "status": "satisfied-at-captured-pr-head",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk",
+              "value": {
+                "enforcement_level": "non_admins",
+                "contexts": [
+                  "build (macos-latest)",
+                  "build (ubuntu-latest)",
+                  "build (windows-latest)"
+                ],
+                "checks": [
+                  {
+                    "context": "build (macos-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (ubuntu-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (windows-latest)",
+                    "app_id": null
+                  }
+                ]
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes/5",
+              "method": "POST",
+              "route": "/graphql",
+              "value": {
+                "type_name": "CheckRun",
+                "name": "build (macos-latest)",
+                "is_required": true
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/9",
+              "method": "GET",
+              "route": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs",
+              "value": {
+                "id": 118128877286,
+                "node_id": "CR_kwDODKw3uc8AAAAbgQee5g",
+                "name": "build (macos-latest)",
+                "head_sha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+                "url": "https://api.github.com/repos/cli/cli/check-runs/118128877286",
+                "html_url": "https://github.com/cli/cli/actions/runs/39272694853/job/118128877286",
+                "details_url": "https://github.com/cli/cli/actions/runs/39272694853/job/118128877286",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-19T14:51:24Z",
+                "completed_at": "2026-10-19T14:57:47Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 106419529677
+                }
+              }
+            }
+          ],
+          "rationale": "Branch policy lists the context with app_id null, GraphQL marks it is_required=true for this PR, and REST shows success on the same observed head. Full target-base coherence remains a separate unresolved prerequisite."
+        },
+        {
+          "id": "public-ready-01-required-ubuntu-latest",
+          "type": "required-check",
+          "context": "build (ubuntu-latest)",
+          "required_app_id": null,
+          "status": "satisfied-at-captured-pr-head",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk",
+              "value": {
+                "enforcement_level": "non_admins",
+                "contexts": [
+                  "build (macos-latest)",
+                  "build (ubuntu-latest)",
+                  "build (windows-latest)"
+                ],
+                "checks": [
+                  {
+                    "context": "build (macos-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (ubuntu-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (windows-latest)",
+                    "app_id": null
+                  }
+                ]
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes/2",
+              "method": "POST",
+              "route": "/graphql",
+              "value": {
+                "type_name": "CheckRun",
+                "name": "build (ubuntu-latest)",
+                "is_required": true
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/10",
+              "method": "GET",
+              "route": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs",
+              "value": {
+                "id": 118128877234,
+                "node_id": "CR_kwDODKw3uc8AAAAbgQeesg",
+                "name": "build (ubuntu-latest)",
+                "head_sha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+                "url": "https://api.github.com/repos/cli/cli/check-runs/118128877234",
+                "html_url": "https://github.com/cli/cli/actions/runs/39272694853/job/118128877234",
+                "details_url": "https://github.com/cli/cli/actions/runs/39272694853/job/118128877234",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-19T14:51:19Z",
+                "completed_at": "2026-10-19T14:56:32Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 106419529677
+                }
+              }
+            }
+          ],
+          "rationale": "Branch policy lists the context with app_id null, GraphQL marks it is_required=true for this PR, and REST shows success on the same observed head. Full target-base coherence remains a separate unresolved prerequisite."
+        },
+        {
+          "id": "public-ready-01-required-windows-latest",
+          "type": "required-check",
+          "context": "build (windows-latest)",
+          "required_app_id": null,
+          "status": "satisfied-at-captured-pr-head",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection/required_status_checks",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk",
+              "value": {
+                "enforcement_level": "non_admins",
+                "contexts": [
+                  "build (macos-latest)",
+                  "build (ubuntu-latest)",
+                  "build (windows-latest)"
+                ],
+                "checks": [
+                  {
+                    "context": "build (macos-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (ubuntu-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (windows-latest)",
+                    "app_id": null
+                  }
+                ]
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes/4",
+              "method": "POST",
+              "route": "/graphql",
+              "value": {
+                "type_name": "CheckRun",
+                "name": "build (windows-latest)",
+                "is_required": true
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs/11",
+              "method": "GET",
+              "route": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs",
+              "value": {
+                "id": 118128877056,
+                "node_id": "CR_kwDODKw3uc8AAAAbgQeeAA",
+                "name": "build (windows-latest)",
+                "head_sha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+                "url": "https://api.github.com/repos/cli/cli/check-runs/118128877056",
+                "html_url": "https://github.com/cli/cli/actions/runs/39272694853/job/118128877056",
+                "details_url": "https://github.com/cli/cli/actions/runs/39272694853/job/118128877056",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-19T14:51:20Z",
+                "completed_at": "2026-10-19T15:01:21Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 106419529677
+                }
+              }
+            }
+          ],
+          "rationale": "Branch policy lists the context with app_id null, GraphQL marks it is_required=true for this PR, and REST shows success on the same observed head. Full target-base coherence remains a separate unresolved prerequisite."
+        }
+      ],
+      "required_observations": [
+        {
+          "id": "public-ready-01-open-nondraft",
+          "requirement": "The captured PR is in the open, non-draft decision scope.",
+          "status": "satisfied",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/state",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": "open"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/draft",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/merged",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/state",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": "open"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/draft",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/merged",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": "public-ready-01-merge-conflict",
+          "requirement": "No observed merge conflict at the captured PR identity.",
+          "status": "satisfied-as-github-observation",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": true
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": true
+            }
+          ],
+          "rationale": "Both observations say mergeable=true. This is not a complete policy or release assurance statement."
+        },
+        {
+          "id": "public-ready-01-coherent-target-identity",
+          "requirement": "The PR/base and observed target branch must support a coherent identity before a positive bounded assurance claim.",
+          "status": "unknown",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk",
+              "value": "9490d204a2ba95434153dedce99898ce9f281426"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk",
+              "value": "9490d204a2ba95434153dedce99898ce9f281426"
+            }
+          ],
+          "rationale": "Both initial/final PR base snapshots disagree with both target-branch tip snapshots. Repetition establishes stability within each endpoint, not coherence between them. No captured relationship or refresh result resolves the difference."
+        },
+        {
+          "id": "public-ready-01-policy-coverage",
+          "requirement": "Discover the applicable mandatory branch/review policy sufficiently to support ready/pass.",
+          "status": "unknown",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protected",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk",
+              "value": true
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/status",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+              "value": 403
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/status",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+              "value": 403
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/8/response/body",
+              "method": "GET",
+              "route": "/repos/cli/cli/rules/branches/trunk?per_page=100",
+              "value": [
+                {
+                  "type": "copilot_code_review",
+                  "parameters": {
+                    "review_on_push": false,
+                    "review_draft_pull_requests": true
+                  },
+                  "ruleset_source_type": "Repository",
+                  "ruleset_source": "cli/cli",
+                  "ruleset_id": 4898070
+                }
+              ]
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+              "method": "POST",
+              "route": "/graphql",
+              "value": "APPROVED"
+            }
+          ],
+          "rationale": "The branch is protected, but detailed status/review policy reads are denied. Named required checks and APPROVED are observable; full strict-up-to-date and required-review policy details are not. The active copilot_code_review rule describes automated review behavior and does not by itself establish an approval merge gate or a failure."
+        }
+      ],
+      "policy_observations": {
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/name",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk",
+            "value": "trunk"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protected",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk",
+            "value": {
+              "enabled": true,
+              "required_status_checks": {
+                "enforcement_level": "non_admins",
+                "contexts": [
+                  "build (macos-latest)",
+                  "build (ubuntu-latest)",
+                  "build (windows-latest)"
+                ],
+                "checks": [
+                  {
+                    "context": "build (macos-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (ubuntu-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (windows-latest)",
+                    "app_id": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/name",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk",
+            "value": "trunk"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protected",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/protection",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk",
+            "value": {
+              "enabled": true,
+              "required_status_checks": {
+                "enforcement_level": "non_admins",
+                "contexts": [
+                  "build (macos-latest)",
+                  "build (ubuntu-latest)",
+                  "build (windows-latest)"
+                ],
+                "checks": [
+                  {
+                    "context": "build (macos-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (ubuntu-latest)",
+                    "app_id": null
+                  },
+                  {
+                    "context": "build (windows-latest)",
+                    "app_id": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/status",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+            "value": 403
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/body",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+            "value": {
+              "message": "Resource not accessible by integration",
+              "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection",
+              "status": "403"
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/status",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+            "value": 403
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/body",
+            "method": "GET",
+            "route": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+            "value": {
+              "message": "Resource not accessible by integration",
+              "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-pull-request-review-protection",
+              "status": "403"
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/8/response/body",
+            "method": "GET",
+            "route": "/repos/cli/cli/rules/branches/trunk?per_page=100",
+            "value": [
+              {
+                "type": "copilot_code_review",
+                "parameters": {
+                  "review_on_push": false,
+                  "review_draft_pull_requests": true
+                },
+                "ruleset_source_type": "Repository",
+                "ruleset_source": "cli/cli",
+                "ruleset_id": 4898070
+              }
+            ]
+          }
+        ],
+        "effective_review_decision": {
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+          "method": "POST",
+          "route": "/graphql",
+          "value": "APPROVED"
+        },
+        "denied_endpoint_interpretation": "HTTP 403 Resource not accessible by integration is denied access, never an empty policy response. Absence of an Authorization header supplied by capture code does not establish an anonymous upstream transport."
+      },
+      "check_observations": {
+        "head_sha": "936921fa9e67cdbf78fb25abc6252afabafef056",
+        "check_runs": 16,
+        "check_pages": 1,
+        "all_observed_checks_completed_success_or_skipped": true,
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/total_count",
+            "method": "GET",
+            "route": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs",
+            "value": 16
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/2/response/body/check_runs",
+            "method": "GET",
+            "route": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/check-runs",
+            "observed_support": {
+              "count": 16,
+              "head_shas": [
+                "936921fa9e67cdbf78fb25abc6252afabafef056"
+              ],
+              "states": [
+                "completed:skipped",
+                "completed:success"
+              ]
+            }
+          }
+        ],
+        "rollup_facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/oid",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "936921fa9e67cdbf78fb25abc6252afabafef056"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes",
+            "method": "POST",
+            "route": "/graphql",
+            "value": [
+              {
+                "type_name": "CheckRun",
+                "name": "label-external",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "CodeQL-Build (go, manual, ./.github/codeql/codeql-config.yml)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "build (ubuntu-latest)",
+                "is_required": true
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "CodeQL-Build (actions, none, security-and-quality)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "build (windows-latest)",
+                "is_required": true
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "build (macos-latest)",
+                "is_required": true
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "close-from-default-branch",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "integration-tests (ubuntu-latest)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "integration-tests (windows-latest)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "integration-tests (macos-latest)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "check-requirements / check-requirements",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "check-requirements / close-unmet-requirements",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "close-unmet-requirements",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "close-no-help-wanted",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "ready-for-review",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "CodeQL",
+                "is_required": false
+              }
+            ]
+          }
+        ],
+        "empty_combined_status": {
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/4/response/body/state",
+              "method": "GET",
+              "route": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/status",
+              "value": "pending"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/4/response/body/total_count",
+              "method": "GET",
+              "route": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/status",
+              "value": 0
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/4/response/body/statuses",
+              "method": "GET",
+              "route": "/repos/cli/cli/commits/936921fa9e67cdbf78fb25abc6252afabafef056/status",
+              "value": []
+            }
+          ],
+          "rationale": "pending with total_count=0 and no statuses does not establish a failed or pending mandatory context. Statuses and check runs are separate surfaces."
+        }
+      },
+      "unknowns": [
+        {
+          "id": "public-ready-01-base-identity-conflict",
+          "description": "The PR base SHA and current same-named branch SHA differ throughout the capture. The raw snapshot does not prove that the mergeability result, applicable policy, and observed evidence share one target-base identity.",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/cli/cli/pulls/14716",
+              "value": "b1c8c0ae5aec75ec8caf6e537071efc15d274f45"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk",
+              "value": "9490d204a2ba95434153dedce99898ce9f281426"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/10/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk",
+              "value": "9490d204a2ba95434153dedce99898ce9f281426"
+            }
+          ],
+          "effect": "Prevents ready/pass; does not itself establish a merge blocker or a strict up-to-date policy failure."
+        },
+        {
+          "id": "public-ready-01-policy-details-denied",
+          "description": "Classic protection is enabled, but full required status checks and required review policy reads return HTTP 403. The branch response exposes three required check names, null app bindings, and non_admins enforcement; it does not expose strict or review-policy parameters. APPROVED and successful checks cannot enumerate denied policy facts.",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/5/response/body/protection",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk",
+              "value": {
+                "enabled": true,
+                "required_status_checks": {
+                  "enforcement_level": "non_admins",
+                  "contexts": [
+                    "build (macos-latest)",
+                    "build (ubuntu-latest)",
+                    "build (windows-latest)"
+                  ],
+                  "checks": [
+                    {
+                      "context": "build (macos-latest)",
+                      "app_id": null
+                    },
+                    {
+                      "context": "build (ubuntu-latest)",
+                      "app_id": null
+                    },
+                    {
+                      "context": "build (windows-latest)",
+                      "app_id": null
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/status",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+              "value": 403
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/6/response/body",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+              "value": {
+                "message": "Resource not accessible by integration",
+                "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection",
+                "status": "403"
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/status",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+              "value": 403
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/7/response/body",
+              "method": "GET",
+              "route": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+              "value": {
+                "message": "Resource not accessible by integration",
+                "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-pull-request-review-protection",
+                "status": "403"
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+              "method": "POST",
+              "route": "/graphql",
+              "value": "APPROVED"
+            }
+          ],
+          "effect": "Independent policy-discovery reason for unknown/unknown, without inventing a failed hidden requirement."
+        }
+      ],
+      "unsupported_policy_limitations": [
+        "Strict/up-to-date status and required-review policy parameters (such as approval count, dismissal, code-owner or last-push requirements) are not observed because detail endpoints are denied. Their applicability or failure is not assumed."
+      ],
+      "collection_limitations": [
+        {
+          "description": "Only PR and branch identity are re-read at the end. Reviews/checks/policy are individual observations within the short interval, not an atomic snapshot. No change to those states is observed, so this limitation does not invent an additional confirmed blocker.",
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/endpointInventory"
+        },
+        {
+          "description": "Effective upstream identity and scopes are unobservable; the capture reports no Authorization header supplied by code and possible inherited-proxy authentication.",
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/authorizationContext"
+        },
+        {
+          "description": "GraphQL asks for first:100 context nodes without pageInfo. The visible node count equals the complete captured REST check count and is below 100; no observed truncation is asserted.",
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/9/request/query"
+        }
+      ],
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "basis": "The observed REST PR summary is open, non-draft, mergeable=true, mergeable_state=clean on both observations. Those factual GitHub summaries permit the historical operational ready vocabulary. This annotation neither predicts producer behavior nor overrides conservative unknown readiness/assurance.",
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/state",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/draft",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/0/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "clean"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/state",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/draft",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json#/records/11/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/cli/cli/pulls/14716",
+            "value": "clean"
+          }
+        ]
+      },
+      "confidence": {
+        "level": "high",
+        "basis": "The cited source facts directly establish the unresolved base-identity difference and absence of any captured applicable failure. Confidence concerns this bounded label, not live PR safety."
+      },
+      "rationale": "The PR is operationally clean and approved; all three explicitly required build checks succeed at the captured head. There is no confirmed blocker. Conservative readiness and scoped assurance remain unknown because protected-branch detail discovery is denied and the PR base identity differs from the stable target-branch identity. Neither clean mergeability nor successful visible evidence repairs those gaps."
+    },
+    {
+      "id": "public-ready-02",
+      "kind": "public",
+      "repository": "jqlang/jq",
+      "pull_request": 3432,
+      "source_url": "https://github.com/jqlang/jq/pull/3432",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json",
+          "sha256": "d0c06311f1fcc47f90c86b400655b596517b8c582efe719c652dfa4b70c6871f"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/routes.json",
+          "sha256": "f552d1435b114bf7894a877b608ae7dad3642317cd8c21a6f25074be05789b31"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/sha256.json",
+          "sha256": "a5bad801141c51f6675e5ce1495b7c56715bbfddb4364fc7e13f1d2c72fd529c"
+        }
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "confirmed_blockers": [],
+      "observed_github_operational_status": {
+        "summary": "Open, non-draft, mergeable=true and mergeable_state=clean in both PR observations; effective review decision APPROVED. These are GitHub operational observations, not fully observed supported assurance.",
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/number",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": 3432
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/draft",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/merged",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "clean"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/number",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": 3432
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/draft",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/merged",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "clean"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/review_decision",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "APPROVED"
+          }
+        ]
+      },
+      "capture_identity": {
+        "collection": {
+          "startedAt": "2026-11-02T03:05:46.218258Z",
+          "finishedAt": "2026-11-02T03:05:49.409869Z",
+          "durationSeconds": 3.191611,
+          "sequentialCaseCapture": true,
+          "parallelWithinCaseEndpoints": 4,
+          "retries": 0
+        },
+        "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+        "pr_base_ref": "master",
+        "pr_base_sha": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847",
+        "branch_tip_sha": "992db9b7e5e3059b764bf430bd97716829e99578",
+        "initial_final_pr_identity_agrees": true,
+        "initial_final_branch_identity_agrees": true,
+        "pr_base_matches_observed_branch_tip": false,
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/repo/full_name",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "jqlang/jq"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/head/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "65f4b31f9148dced73f782ff21c024539776eae6"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/head/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "65f4b31f9148dced73f782ff21c024539776eae6"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/commits/nodes/0/commit/oid",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "65f4b31f9148dced73f782ff21c024539776eae6"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/base/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/commit/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/commit/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+          }
+        ]
+      },
+      "mandatory_requirements": [],
+      "required_observations": [
+        {
+          "id": "public-ready-02-open-nondraft",
+          "requirement": "The captured PR is in the open, non-draft decision scope.",
+          "status": "satisfied",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/state",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": "open"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/draft",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/merged",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/state",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": "open"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/draft",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/merged",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": "public-ready-02-merge-conflict",
+          "requirement": "No observed merge conflict at the captured PR identity.",
+          "status": "satisfied-as-github-observation",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": true
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": true
+            }
+          ],
+          "rationale": "Both observations say mergeable=true. This is not a complete policy or release assurance statement."
+        },
+        {
+          "id": "public-ready-02-coherent-target-identity",
+          "requirement": "The PR/base and observed target branch must support a coherent identity before a positive bounded assurance claim.",
+          "status": "unknown",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+            }
+          ],
+          "rationale": "Both initial/final PR base snapshots disagree with both target-branch tip snapshots. Repetition establishes stability within each endpoint, not coherence between them. No captured relationship or refresh result resolves the difference."
+        },
+        {
+          "id": "public-ready-02-policy-coverage",
+          "requirement": "Establish whether the observed target branch has any applicable mandatory checks/reviews/rules.",
+          "status": "no-mandatory-branch-policy-observed-at-branch-tip",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protected",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protection",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": {
+                "enabled": false,
+                "required_status_checks": {
+                  "enforcement_level": "off",
+                  "contexts": [],
+                  "checks": []
+                }
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protected",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protection",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": {
+                "enabled": false,
+                "required_status_checks": {
+                  "enforcement_level": "off",
+                  "contexts": [],
+                  "checks": []
+                }
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/9/response/body",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/rules/branches/master?per_page=100",
+              "value": []
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes",
+              "method": "POST",
+              "route": "/graphql",
+              "value": [
+                {
+                  "type_name": "CheckRun",
+                  "name": "freebsd",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "manpages",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (amd64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "disabled",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "installed",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (arm64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (armel)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (armhf)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (i386)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips64el)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips64r6)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips64r6el)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mipsel)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mipsr6)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mipsr6el)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (powerpc)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (ppc64el)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (riscv64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (s390x)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "netbsd",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "macos (amd64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "disabled",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "macos (arm64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "windows (amd64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "windows (i386)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "windows (arm64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "dist",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "docker",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "release",
+                  "is_required": false
+                }
+              ]
+            }
+          ],
+          "rationale": "Both branch observations say protected=false and protection.enabled=false, the active-rules response is HTTP 200 with [], and every captured GraphQL context has is_required=false. Together these support no mandatory branch requirement at the observed branch identity. The denied detail endpoints are retained as limitations rather than silently interpreted as empty policies; they are not alone used to invent a hidden requirement. Target identity coherence is still unresolved."
+        }
+      ],
+      "policy_observations": {
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/name",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": "master"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protected",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/protection",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": {
+              "enabled": false,
+              "required_status_checks": {
+                "enforcement_level": "off",
+                "contexts": [],
+                "checks": []
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/name",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": "master"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protected",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/protection",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": {
+              "enabled": false,
+              "required_status_checks": {
+                "enforcement_level": "off",
+                "contexts": [],
+                "checks": []
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/7/response/status",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master/protection/required_status_checks",
+            "value": 403
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/7/response/body",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master/protection/required_status_checks",
+            "value": {
+              "message": "Resource not accessible by integration",
+              "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection",
+              "status": "403"
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/8/response/status",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+            "value": 403
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/8/response/body",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+            "value": {
+              "message": "Resource not accessible by integration",
+              "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-pull-request-review-protection",
+              "status": "403"
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/9/response/body",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/rules/branches/master?per_page=100",
+            "value": []
+          }
+        ],
+        "effective_review_decision": {
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/review_decision",
+          "method": "POST",
+          "route": "/graphql",
+          "value": "APPROVED"
+        },
+        "denied_endpoint_interpretation": "HTTP 403 Resource not accessible by integration is denied access, never an empty policy response. Absence of an Authorization header supplied by capture code does not establish an anonymous upstream transport."
+      },
+      "check_observations": {
+        "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+        "check_runs": 32,
+        "check_pages": 2,
+        "all_observed_checks_completed_success_or_skipped": true,
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/2/response/body/total_count",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs",
+            "value": 32
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/3/response/body/total_count",
+            "method": "GET",
+            "route": "/repositories/5101141/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs?page=2",
+            "value": 32
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/2/response/body/check_runs",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs",
+            "observed_support": {
+              "count": 30,
+              "head_shas": [
+                "65f4b31f9148dced73f782ff21c024539776eae6"
+              ],
+              "states": [
+                "completed:skipped",
+                "completed:success"
+              ]
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/3/response/body/check_runs",
+            "method": "GET",
+            "route": "/repositories/5101141/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs?page=2",
+            "observed_support": {
+              "count": 2,
+              "head_shas": [
+                "65f4b31f9148dced73f782ff21c024539776eae6"
+              ],
+              "states": [
+                "completed:success"
+              ]
+            }
+          }
+        ],
+        "rollup_facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/commits/nodes/0/commit/oid",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "65f4b31f9148dced73f782ff21c024539776eae6"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes",
+            "method": "POST",
+            "route": "/graphql",
+            "value": [
+              {
+                "type_name": "CheckRun",
+                "name": "freebsd",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "manpages",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (amd64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "disabled",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "installed",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (arm64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (armel)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (armhf)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (i386)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips64el)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips64r6)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips64r6el)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mipsel)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mipsr6)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mipsr6el)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (powerpc)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (ppc64el)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (riscv64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (s390x)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "netbsd",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "macos (amd64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "disabled",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "macos (arm64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "windows (amd64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "windows (i386)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "windows (arm64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "dist",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "docker",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "release",
+                "is_required": false
+              }
+            ]
+          }
+        ],
+        "empty_combined_status": {
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/5/response/body/state",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/status",
+              "value": "pending"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/5/response/body/total_count",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/status",
+              "value": 0
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/5/response/body/statuses",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/status",
+              "value": []
+            }
+          ],
+          "rationale": "pending with total_count=0 and no statuses does not establish a failed or pending mandatory context. Statuses and check runs are separate surfaces."
+        }
+      },
+      "unknowns": [
+        {
+          "id": "public-ready-02-base-identity-conflict",
+          "description": "The PR base SHA and current same-named branch SHA differ throughout the capture. The raw snapshot does not prove that the mergeability result, applicable policy, and observed evidence share one target-base identity.",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/6/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/11/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+            }
+          ],
+          "effect": "Prevents ready/pass; does not itself establish a merge blocker or a strict up-to-date policy failure."
+        }
+      ],
+      "unsupported_policy_limitations": [],
+      "collection_limitations": [
+        {
+          "description": "Only PR and branch identity are re-read at the end. Reviews/checks/policy are individual observations within the short interval, not an atomic snapshot. No change to those states is observed, so this limitation does not invent an additional confirmed blocker.",
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/endpointInventory"
+        },
+        {
+          "description": "Effective upstream identity and scopes are unobservable; the capture reports no Authorization header supplied by code and possible inherited-proxy authentication.",
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/authorizationContext"
+        },
+        {
+          "description": "GraphQL asks for first:100 context nodes without pageInfo. The visible node count equals the complete captured REST check count and is below 100; no observed truncation is asserted.",
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/request/query"
+        }
+      ],
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "basis": "The observed REST PR summary is open, non-draft, mergeable=true, mergeable_state=clean on both observations. Those factual GitHub summaries permit the historical operational ready vocabulary. This annotation neither predicts producer behavior nor overrides conservative unknown readiness/assurance.",
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/draft",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "clean"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/draft",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/12/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432",
+            "value": "clean"
+          }
+        ]
+      },
+      "confidence": {
+        "level": "high",
+        "basis": "The cited source facts directly establish the unresolved base-identity difference and absence of any captured applicable failure. Confidence concerns this bounded label, not live PR safety."
+      },
+      "review_observations": {
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/1/response/body/2",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3432/reviews",
+            "value": {
+              "id": 3663939769,
+              "node_id": "PRR_kwDOAE3WVc7aY0i5",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-3663939769",
+              "state": "APPROVED",
+              "commit_id": "a853fd8409e7d750ee8faf44fbe9733c7376b162",
+              "submitted_at": "2026-01-15T04:43:28Z",
+              "author_association": "CONTRIBUTOR",
+              "user": {
+                "login": "nicowilliams"
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/10/response/body/data/repository/pull_request/review_decision",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "APPROVED"
+          }
+        ],
+        "rationale": "The only raw APPROVED review is on an older commit, while the effective review decision is APPROVED. No mandatory approval count/current-head approval rule is observed, so the older raw approval is not a blocker and is not treated as proof of an invented policy."
+      },
+      "non_blocking_observations": [
+        {
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/rebaseable",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json#/records/0/response/body/mergeable",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3432",
+              "value": true
+            }
+          ],
+          "rationale": "rebaseable=false does not establish a mandatory merge-method restriction. The same response says mergeable=true; no applicable rebase-only policy is observed."
+        }
+      ],
+      "rationale": "The captured PR is operationally clean, open, non-draft and effectively APPROVED. All observed checks succeed or are skipped. Independent branch and effective-rules facts support no mandatory branch policy at the observed branch tip, despite detail endpoints being denied. There is no confirmed blocker. Conservative readiness and scoped assurance remain unknown because the stable PR-base SHA differs from the stable branch-tip SHA, leaving the bounded capture identity unresolved. This conclusion does not manufacture a mandatory failed review, check, or strict-up-to-date rule."
+    },
+    {
+      "id": "public-ready-03",
+      "kind": "public",
+      "repository": "jqlang/jq",
+      "pull_request": 3641,
+      "source_url": "https://github.com/jqlang/jq/pull/3641",
+      "raw_sources": [
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json",
+          "sha256": "3490c9aed9a8487afef3476136f04b15f45a563fe05472715f899c4a325e386e"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/routes.json",
+          "sha256": "9a1740635e856f4c52a9e1402d0939ff06bb495db99c01d2b7778e5596f77483"
+        },
+        {
+          "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/sha256.json",
+          "sha256": "0d049c79416c5b4c6bff868d81758006134314ee56a150f91b87be60e297f06a"
+        }
+      ],
+      "expected_conservative_readiness": "unknown",
+      "expected_scoped_assurance": "unknown",
+      "confirmed_blockers": [],
+      "observed_github_operational_status": {
+        "summary": "Open, non-draft, mergeable=true and mergeable_state=clean in both PR observations; effective review decision APPROVED. These are GitHub operational observations, not fully observed supported assurance.",
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/number",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": 3641
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/draft",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/merged",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "clean"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/number",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": 3641
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/draft",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/merged",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "clean"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "APPROVED"
+          }
+        ]
+      },
+      "capture_identity": {
+        "collection": {
+          "startedAt": "2026-11-02T03:05:49.415316Z",
+          "finishedAt": "2026-11-02T03:05:52.292477Z",
+          "durationSeconds": 2.877161,
+          "sequentialCaseCapture": true,
+          "parallelWithinCaseEndpoints": 4,
+          "retries": 0
+        },
+        "head_sha": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+        "pr_base_ref": "master",
+        "pr_base_sha": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac",
+        "branch_tip_sha": "992db9b7e5e3059b764bf430bd97716829e99578",
+        "initial_final_pr_identity_agrees": true,
+        "initial_final_branch_identity_agrees": true,
+        "pr_base_matches_observed_branch_tip": false,
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/repo/full_name",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "jqlang/jq"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/head/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/head/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/oid",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/base/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/commit/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/commit/sha",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+          }
+        ]
+      },
+      "mandatory_requirements": [],
+      "required_observations": [
+        {
+          "id": "public-ready-03-open-nondraft",
+          "requirement": "The captured PR is in the open, non-draft decision scope.",
+          "status": "satisfied",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/state",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": "open"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/draft",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/merged",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/state",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": "open"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/draft",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/merged",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": false
+            }
+          ]
+        },
+        {
+          "id": "public-ready-03-merge-conflict",
+          "requirement": "No observed merge conflict at the captured PR identity.",
+          "status": "satisfied-as-github-observation",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": true
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": true
+            }
+          ],
+          "rationale": "Both observations say mergeable=true. This is not a complete policy or release assurance statement."
+        },
+        {
+          "id": "public-ready-03-coherent-target-identity",
+          "requirement": "The PR/base and observed target branch must support a coherent identity before a positive bounded assurance claim.",
+          "status": "unknown",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+            }
+          ],
+          "rationale": "Both initial/final PR base snapshots disagree with both target-branch tip snapshots. Repetition establishes stability within each endpoint, not coherence between them. No captured relationship or refresh result resolves the difference."
+        },
+        {
+          "id": "public-ready-03-policy-coverage",
+          "requirement": "Establish whether the observed target branch has any applicable mandatory checks/reviews/rules.",
+          "status": "no-mandatory-branch-policy-observed-at-branch-tip",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protected",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protection",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": {
+                "enabled": false,
+                "required_status_checks": {
+                  "enforcement_level": "off",
+                  "contexts": [],
+                  "checks": []
+                }
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protected",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": false
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protection",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": {
+                "enabled": false,
+                "required_status_checks": {
+                  "enforcement_level": "off",
+                  "contexts": [],
+                  "checks": []
+                }
+              }
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/8/response/body",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/rules/branches/master?per_page=100",
+              "value": []
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes",
+              "method": "POST",
+              "route": "/graphql",
+              "value": [
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (amd64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "disabled",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "installed",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (arm64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (armel)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (armhf)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (i386)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips64el)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips64r6)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mips64r6el)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mipsel)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mipsr6)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (mipsr6el)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (powerpc)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (ppc64el)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (riscv64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "linux (s390x)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "macos (amd64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "disabled",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "macos (arm64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "windows (amd64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "windows (i386)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "windows (arm64)",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "dist",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "docker",
+                  "is_required": false
+                },
+                {
+                  "type_name": "CheckRun",
+                  "name": "release",
+                  "is_required": false
+                }
+              ]
+            }
+          ],
+          "rationale": "Both branch observations say protected=false and protection.enabled=false, the active-rules response is HTTP 200 with [], and every captured GraphQL context has is_required=false. Together these support no mandatory branch requirement at the observed branch identity. The denied detail endpoints are retained as limitations rather than silently interpreted as empty policies; they are not alone used to invent a hidden requirement. Target identity coherence is still unresolved."
+        }
+      ],
+      "policy_observations": {
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/name",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": "master"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protected",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/protection",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": {
+              "enabled": false,
+              "required_status_checks": {
+                "enforcement_level": "off",
+                "contexts": [],
+                "checks": []
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/name",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": "master"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protected",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/protection",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master",
+            "value": {
+              "enabled": false,
+              "required_status_checks": {
+                "enforcement_level": "off",
+                "contexts": [],
+                "checks": []
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/6/response/status",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master/protection/required_status_checks",
+            "value": 403
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/6/response/body",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master/protection/required_status_checks",
+            "value": {
+              "message": "Resource not accessible by integration",
+              "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection",
+              "status": "403"
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/7/response/status",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+            "value": 403
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/7/response/body",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+            "value": {
+              "message": "Resource not accessible by integration",
+              "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-pull-request-review-protection",
+              "status": "403"
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/8/response/body",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/rules/branches/master?per_page=100",
+            "value": []
+          }
+        ],
+        "effective_review_decision": {
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+          "method": "POST",
+          "route": "/graphql",
+          "value": "APPROVED"
+        },
+        "denied_endpoint_interpretation": "HTTP 403 Resource not accessible by integration is denied access, never an empty policy response. Absence of an Authorization header supplied by capture code does not establish an anonymous upstream transport."
+      },
+      "check_observations": {
+        "head_sha": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+        "check_runs": 29,
+        "check_pages": 1,
+        "all_observed_checks_completed_success_or_skipped": true,
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/2/response/body/total_count",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/commits/88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8/check-runs",
+            "value": 29
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/2/response/body/check_runs",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/commits/88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8/check-runs",
+            "observed_support": {
+              "count": 29,
+              "head_shas": [
+                "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8"
+              ],
+              "states": [
+                "completed:skipped",
+                "completed:success"
+              ]
+            }
+          }
+        ],
+        "rollup_facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/oid",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/commits/nodes/0/commit/status_check_rollup/contexts/nodes",
+            "method": "POST",
+            "route": "/graphql",
+            "value": [
+              {
+                "type_name": "CheckRun",
+                "name": "linux (amd64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "disabled",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "installed",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (arm64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (armel)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (armhf)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (i386)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips64el)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips64r6)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mips64r6el)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mipsel)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mipsr6)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (mipsr6el)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (powerpc)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (ppc64el)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (riscv64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "linux (s390x)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "macos (amd64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "disabled",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "macos (arm64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "windows (amd64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "windows (i386)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "windows (arm64)",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "dist",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "docker",
+                "is_required": false
+              },
+              {
+                "type_name": "CheckRun",
+                "name": "release",
+                "is_required": false
+              }
+            ]
+          }
+        ],
+        "empty_combined_status": {
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/4/response/body/state",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/commits/88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8/status",
+              "value": "pending"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/4/response/body/total_count",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/commits/88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8/status",
+              "value": 0
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/4/response/body/statuses",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/commits/88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8/status",
+              "value": []
+            }
+          ],
+          "rationale": "pending with total_count=0 and no statuses does not establish a failed or pending mandatory context. Statuses and check runs are separate surfaces."
+        }
+      },
+      "unknowns": [
+        {
+          "id": "public-ready-03-base-identity-conflict",
+          "description": "The PR base SHA and current same-named branch SHA differ throughout the capture. The raw snapshot does not prove that the mergeability result, applicable policy, and observed evidence share one target-base identity.",
+          "facts": [
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/base/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/pulls/3641",
+              "value": "9a75bb0d4318bb6f6509635d89319ff40ee9ecac"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/5/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+            },
+            {
+              "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/10/response/body/commit/sha",
+              "method": "GET",
+              "route": "/repos/jqlang/jq/branches/master",
+              "value": "992db9b7e5e3059b764bf430bd97716829e99578"
+            }
+          ],
+          "effect": "Prevents ready/pass; does not itself establish a merge blocker or a strict up-to-date policy failure."
+        }
+      ],
+      "unsupported_policy_limitations": [],
+      "collection_limitations": [
+        {
+          "description": "Only PR and branch identity are re-read at the end. Reviews/checks/policy are individual observations within the short interval, not an atomic snapshot. No change to those states is observed, so this limitation does not invent an additional confirmed blocker.",
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/endpointInventory"
+        },
+        {
+          "description": "Effective upstream identity and scopes are unobservable; the capture reports no Authorization header supplied by code and possible inherited-proxy authentication.",
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/authorizationContext"
+        },
+        {
+          "description": "GraphQL asks for first:100 context nodes without pageInfo. The visible node count equals the complete captured REST check count and is below 100; no observed truncation is asserted.",
+          "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/request/query"
+        }
+      ],
+      "legacy_compatibility": {
+        "allowable_verdicts": [
+          "ready"
+        ],
+        "basis": "The observed REST PR summary is open, non-draft, mergeable=true, mergeable_state=clean on both observations. Those factual GitHub summaries permit the historical operational ready vocabulary. This annotation neither predicts producer behavior nor overrides conservative unknown readiness/assurance.",
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/draft",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/0/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "clean"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "open"
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/draft",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": false
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": true
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/11/response/body/mergeable_state",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641",
+            "value": "clean"
+          }
+        ]
+      },
+      "confidence": {
+        "level": "high",
+        "basis": "The cited source facts directly establish the unresolved base-identity difference and absence of any captured applicable failure. Confidence concerns this bounded label, not live PR safety."
+      },
+      "review_observations": {
+        "facts": [
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/1/response/body/0",
+            "method": "GET",
+            "route": "/repos/jqlang/jq/pulls/3641/reviews",
+            "value": {
+              "id": 5408749026,
+              "node_id": "PRR_kwDOAE3WVc8AAAABQmL14g",
+              "html_url": "https://github.com/jqlang/jq/pull/3641#pullrequestreview-5408749026",
+              "state": "APPROVED",
+              "commit_id": "88a0dd5d54e58176f3ab0bab5252c7cd3a4123a8",
+              "submitted_at": "2026-10-04T23:32:54Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "owenthereal"
+              }
+            }
+          },
+          {
+            "source": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json#/records/9/response/body/data/repository/pull_request/review_decision",
+            "method": "POST",
+            "route": "/graphql",
+            "value": "APPROVED"
+          }
+        ],
+        "rationale": "A current-head raw approval and effective APPROVED are both present. No mandatory approval policy is inferred merely from receiving an approval."
+      },
+      "rationale": "The captured PR is operationally clean, open, non-draft and effectively APPROVED. All observed checks succeed or are skipped. Independent branch and effective-rules facts support no mandatory branch policy at the observed branch tip, despite detail endpoints being denied. There is no confirmed blocker. Conservative readiness and scoped assurance remain unknown because the stable PR-base SHA differs from the stable branch-tip SHA, leaving the bounded capture identity unresolved. This conclusion does not manufacture a mandatory failed review, check, or strict-up-to-date rule."
+    }
+  ]
+}

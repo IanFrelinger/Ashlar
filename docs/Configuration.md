@@ -561,6 +561,21 @@ Kernel options (bound inside `AddAshlar` — environment variables only in the s
 | `ASHLAR_WORKLOAD_SCALING_ENABLED` | `1`/`true` or `0`/`false` — overrides `Enabled` after binding; any other value leaves it alone | unset |
 | `ASHLAR_WORKLOAD_AUTOSCALE` | `1`/`true` starts `ElasticWorkloadAutoscaleService` (`Autoscale.Enabled`) | unset |
 
+## Read-only GitHub host credentials (`ASHLAR_GITHUB_*`)
+
+The MCP stdio host reads this pair once at startup; the GitHub brick library does not read ambient
+credentials. Neither setting present preserves anonymous/explicit-token library behavior. A partial
+or empty pair fails startup. Values must never be logged.
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `ASHLAR_GITHUB_TOKEN` | Host-held repository-scoped read token. Overrides caller-supplied `githubToken`; hidden from model-visible host schemas. | unset |
+| `ASHLAR_GITHUB_REPOSITORY` | Exact allowed `owner/repository` on github.com. All three built-in GitHub bricks reject another repository before constructing a client. | unset |
+
+GitHub enforces token permissions; these variables grant none. This is a boundary for calls through
+these bricks, not network or agent isolation. The [PR-blockers Action](../actions/pr-blockers/README.md)
+sets the pair for its selected repository and documents permissions, privacy, and evidence retention.
+
 ## MCP and A2A protocol surfaces (`Ashlar:Mcp:*`, `Ashlar:A2A:*`)
 
 Host-owned options bound by Ashlar.API from `builder.Configuration` (`appsettings.json` and `Ashlar__Mcp__*` / `Ashlar__A2A__*` alike). All four surfaces are **off by default** and expose nothing until enabled AND allowlisted; the agent-server compose passes the four `Enabled` flags through as `false`. Full reference: `docs/architecture/ProtocolIntegration-MCP-A2A.md`.

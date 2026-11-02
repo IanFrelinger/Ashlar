@@ -1,0 +1,16 @@
+{
+  "schema": "docs/schemas/release-evidence-1.0.schema.json",
+  "sha256": "3327c69937ee052b9851d7b1d35232b3bd25491d9195d99588acbb698ec16f22",
+  "library": "jsonschema 4.26.0",
+  "validator": "Draft202012Validator with FormatChecker",
+  "pairedPacksAndMarkdown": 149,
+  "runs": {
+    "tools/ReleaseEvidenceEvaluation/results/repaired-7bf31595b": 36,
+    "tools/ReleaseEvidenceEvaluation/results/baseline-47a7c8506": 35,
+    "tools/ReleaseEvidenceEvaluation/results/final-b4b77b7f4": 36,
+    "tools/ReleaseEvidenceEvaluation/results/accuracy-359edd2a7": 36,
+    "tools/ReleaseEvidenceEvaluation/public-ready/results/baseline-86c6e9e18": 3,
+    "tools/ReleaseEvidenceEvaluation/public-ready/results/accuracy-359edd2a7": 3
+  },
+  "scope": "Structural validity, not assertion correctness or live freshness"
+}

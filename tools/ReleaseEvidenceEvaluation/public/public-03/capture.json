@@ -1,0 +1,1199 @@
+{
+  "schemaVersion": "1.0",
+  "id": "public-03",
+  "repository": "cli/cli",
+  "pullRequest": 14781,
+  "sourceUrl": "https://github.com/cli/cli/pull/14781",
+  "collection": {
+    "startedAt": "2026-11-02T00:53:38.711335Z",
+    "finishedAt": "2026-11-02T00:53:41.901333Z",
+    "durationSeconds": 3.189998,
+    "sequentialCaseCapture": true,
+    "parallelWithinCaseEndpoints": 4,
+    "retries": 0
+  },
+  "identity": {
+    "initial": {
+      "headSha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+      "baseSha": "a81663f7d80d620b092dab3056778a79ff3e279c",
+      "baseRef": "trunk"
+    },
+    "final": {
+      "headSha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+      "baseSha": "a81663f7d80d620b092dab3056778a79ff3e279c",
+      "baseRef": "trunk"
+    }
+  },
+  "authorizationContext": {
+    "requestAuthorizationHeaderSupplied": false,
+    "transport": "inherited HTTP_PROXY/HTTPS_PROXY with inherited CA trust",
+    "upstreamProxyIdentity": "not observable; authenticated proxy injection is possible",
+    "configuredRuntimeCredentials": "none reported by current cloud environment readiness",
+    "managedConnectorUsedForCaseRoutes": false,
+    "scopeLimit": "Evidence establishes only visibility through this proxy during the recorded interval. Token scopes and effective repository permissions are unknown. Credential-not-supplied-to-brick is distinct from upstream anonymous authentication."
+  },
+  "sanitization": {
+    "mode": "metadata field allowlists; retained values unchanged",
+    "prRetainedFields": [
+      "url",
+      "id",
+      "node_id",
+      "html_url",
+      "number",
+      "state",
+      "locked",
+      "title",
+      "created_at",
+      "updated_at",
+      "closed_at",
+      "merged_at",
+      "merge_commit_sha",
+      "draft",
+      "mergeable",
+      "mergeable_state",
+      "merged",
+      "rebaseable",
+      "author_association",
+      "head",
+      "base"
+    ],
+    "omitted": [
+      "PR bodies/body_html/body_text, diffs, patches, files, code, artifacts",
+      "full user profiles, avatars, contact details, emails; review user.login retained",
+      "PR labels, assignees, milestones, requested reviewers/teams and unused repository metadata",
+      "review bodies and review links other than html_url",
+      "all check output including annotation text/summary/title; unused app/user metadata",
+      "branch commit message/author/committer/tree/verification and unused fields",
+      "status creator profiles and avatar URLs"
+    ],
+    "policyAndGraphQL": "Successful policy/rules/GraphQL response JSON retained without reprojection; only query-requested GraphQL fields returned.",
+    "responseHeaders": "Only date/link/rate-limit/request-id/retry-after/content-type/etag/last-modified/oauth-scope headers allowlisted; no request headers or secrets retained."
+  },
+  "endpointInventory": [
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/pulls/14781",
+      "kind": "pr",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:38.711349Z",
+      "finishedAt": "2026-11-02T00:53:39.332234Z",
+      "observedHttpStatus": 200
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/pulls/14781/reviews",
+      "kind": "reviews",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.332650Z",
+      "finishedAt": "2026-11-02T00:53:39.850034Z",
+      "observedHttpStatus": 200
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/check-runs",
+      "kind": "checks",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.333237Z",
+      "finishedAt": "2026-11-02T00:53:40.001207Z",
+      "observedHttpStatus": 200
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/statuses/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7?per_page=100",
+      "kind": "statuses",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.333836Z",
+      "finishedAt": "2026-11-02T00:53:39.737990Z",
+      "observedHttpStatus": 200
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/status",
+      "kind": "combined-status",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.334335Z",
+      "finishedAt": "2026-11-02T00:53:39.769768Z",
+      "observedHttpStatus": 200
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/branches/trunk",
+      "kind": "branch",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.738052Z",
+      "finishedAt": "2026-11-02T00:53:40.011702Z",
+      "observedHttpStatus": 200
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+      "kind": "required-status-policy",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.769828Z",
+      "finishedAt": "2026-11-02T00:53:39.982044Z",
+      "observedHttpStatus": 403
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+      "kind": "required-review-policy",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.850122Z",
+      "finishedAt": "2026-11-02T00:53:40.123779Z",
+      "observedHttpStatus": 403
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/rules/branches/trunk?per_page=100",
+      "kind": "active-rules",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.982092Z",
+      "finishedAt": "2026-11-02T00:53:40.216454Z",
+      "observedHttpStatus": 200
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "kind": "graphql-review-decision",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:40.217006Z",
+      "finishedAt": "2026-11-02T00:53:40.916189Z",
+      "observedHttpStatus": 200
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/branches/trunk",
+      "kind": "branch",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:40.916222Z",
+      "finishedAt": "2026-11-02T00:53:41.207959Z",
+      "observedHttpStatus": 200
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/pulls/14781",
+      "kind": "pr",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:41.207998Z",
+      "finishedAt": "2026-11-02T00:53:41.901277Z",
+      "observedHttpStatus": 200
+    }
+  ],
+  "records": [
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/pulls/14781",
+      "kind": "pr",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:38.711349Z",
+      "finishedAt": "2026-11-02T00:53:39.332234Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "date": "Mon, 02 Nov 2026 00:53:39 GMT",
+          "etag": "\"c490e5bfb11a710a4963851d96263cda267dd5ae91a47e4b229173bbafff45e6\"",
+          "last-modified": "Wed, 28 Oct 2026 12:50:03 GMT",
+          "x-accepted-oauth-scopes": "repo",
+          "x-oauth-scopes": "",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14961",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "240F:208CBF:1226B39:3BB9EE2:6AE7DF10"
+        },
+        "body": {
+          "url": "https://api.github.com/repos/cli/cli/pulls/14781",
+          "id": 4949837122,
+          "node_id": "PR_kwDODKw3uc8AAAABJwiFQg",
+          "html_url": "https://github.com/cli/cli/pull/14781",
+          "number": 14781,
+          "state": "open",
+          "locked": false,
+          "title": "Add global feature flag infrastructure",
+          "created_at": "2026-10-21T10:05:39Z",
+          "updated_at": "2026-10-28T12:50:03Z",
+          "closed_at": null,
+          "merged_at": null,
+          "merge_commit_sha": "ed57df21ccaae313491be97cb2343e6514a490db",
+          "draft": true,
+          "mergeable": true,
+          "mergeable_state": "blocked",
+          "merged": false,
+          "rebaseable": true,
+          "author_association": "MEMBER",
+          "head": {
+            "label": "cli:williammartin-global-feature-flags",
+            "ref": "williammartin-global-feature-flags",
+            "sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+            "repo": {
+              "id": 212613049,
+              "full_name": "cli/cli",
+              "private": false,
+              "html_url": "https://github.com/cli/cli",
+              "default_branch": "trunk"
+            }
+          },
+          "base": {
+            "label": "cli:trunk",
+            "ref": "trunk",
+            "sha": "a81663f7d80d620b092dab3056778a79ff3e279c",
+            "repo": {
+              "id": 212613049,
+              "full_name": "cli/cli",
+              "private": false,
+              "html_url": "https://github.com/cli/cli",
+              "default_branch": "trunk"
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/pulls/14781/reviews",
+      "kind": "reviews",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.332650Z",
+      "finishedAt": "2026-11-02T00:53:39.850034Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "date": "Mon, 02 Nov 2026 00:53:39 GMT",
+          "content-type": "application/json; charset=utf-8",
+          "etag": "\"5a9c6dc6e91393b61c80a82c43c16f0da8076e2e65e8d97b1e2981525b0a56ae\"",
+          "x-oauth-scopes": "",
+          "x-accepted-oauth-scopes": "",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14960",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "CC63:18E436:11FC2EF:3AD93D8:6AE7DF10"
+        },
+        "body": [
+          {
+            "id": 5598136679,
+            "node_id": "PRR_kwDODKw3uc8AAAABTazJZw",
+            "html_url": "https://github.com/cli/cli/pull/14781#pullrequestreview-5598136679",
+            "state": "COMMENTED",
+            "commit_id": "2fc237757b18c4ad69e8068693614feceaf2cd58",
+            "submitted_at": "2026-10-21T10:12:05Z",
+            "author_association": "CONTRIBUTOR",
+            "user": {
+              "login": "copilot-pull-request-reviewer[bot]"
+            }
+          },
+          {
+            "id": 5682826223,
+            "node_id": "PRR_kwDODKw3uc8AAAABUrkL7w",
+            "html_url": "https://github.com/cli/cli/pull/14781#pullrequestreview-5682826223",
+            "state": "COMMENTED",
+            "commit_id": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+            "submitted_at": "2026-10-28T12:50:03Z",
+            "author_association": "NONE",
+            "user": {
+              "login": "dufanPB"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/check-runs",
+      "kind": "checks",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.333237Z",
+      "finishedAt": "2026-11-02T00:53:40.001207Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "date": "Mon, 02 Nov 2026 00:53:39 GMT",
+          "content-type": "application/json; charset=utf-8",
+          "etag": "\"e294e1f51b1f6fc7853aad0736e3fd60ebb3b4a99dac789d07aff26bed72f43a\"",
+          "x-oauth-scopes": "",
+          "x-accepted-oauth-scopes": "",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14958",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "FAE9:3B5FDD:125C03C:3C84472:6AE7DF13"
+        },
+        "body": {
+          "total_count": 18,
+          "check_runs": [
+            {
+              "id": 119177444830,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4d93g",
+              "name": "ready-for-review",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177444830",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177444830",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177444830",
+              "status": "completed",
+              "conclusion": "skipped",
+              "started_at": "2026-10-21T10:44:11Z",
+              "completed_at": "2026-10-21T10:44:01Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107277228720
+              }
+            },
+            {
+              "id": 119177424741,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4cvZQ",
+              "name": "close-from-default-branch",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177424741",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177424741",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177424741",
+              "status": "completed",
+              "conclusion": "skipped",
+              "started_at": "2026-10-21T10:44:08Z",
+              "completed_at": "2026-10-21T10:44:01Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107277228720
+              }
+            },
+            {
+              "id": 119177420350,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4cePg",
+              "name": "check-requirements / check-requirements",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177420350",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177420350",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177420350",
+              "status": "completed",
+              "conclusion": "skipped",
+              "started_at": "2026-10-21T10:44:07Z",
+              "completed_at": "2026-10-21T10:44:01Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107277228720
+              }
+            },
+            {
+              "id": 119177383384,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4aN2A",
+              "name": "label-external",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177383384",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177383384",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177383384",
+              "status": "completed",
+              "conclusion": "skipped",
+              "started_at": "2026-10-21T10:44:02Z",
+              "completed_at": "2026-10-21T10:44:01Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107277228720
+              }
+            },
+            {
+              "id": 119177383251,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4aNUw",
+              "name": "check-requirements / close-unmet-requirements",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177383251",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177383251",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177383251",
+              "status": "completed",
+              "conclusion": "skipped",
+              "started_at": "2026-10-21T10:44:02Z",
+              "completed_at": "2026-10-21T10:44:01Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107277228720
+              }
+            },
+            {
+              "id": 119177382766,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4aLbg",
+              "name": "close-unmet-requirements",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177382766",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177382766",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177382766",
+              "status": "completed",
+              "conclusion": "skipped",
+              "started_at": "2026-10-21T10:44:02Z",
+              "completed_at": "2026-10-21T10:44:01Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107277228720
+              }
+            },
+            {
+              "id": 119177382075,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4aIuw",
+              "name": "close-no-help-wanted",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177382075",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177382075",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586731133/job/119177382075",
+              "status": "completed",
+              "conclusion": "skipped",
+              "started_at": "2026-10-21T10:44:02Z",
+              "completed_at": "2026-10-21T10:44:01Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107277228720
+              }
+            },
+            {
+              "id": 119177349541,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4YJpQ",
+              "name": "CodeQL",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177349541",
+              "html_url": "https://github.com/cli/cli/runs/119177349541",
+              "details_url": "https://github.com/cli/cli/runs/119177349541",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:57Z",
+              "completed_at": "2026-10-21T10:43:59Z",
+              "app": {
+                "id": 57789,
+                "slug": "github-advanced-security",
+                "name": "GitHub Advanced Security"
+              },
+              "check_suite": {
+                "id": 107277207665
+              }
+            },
+            {
+              "id": 119177051096,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F72A",
+              "name": "build (windows-latest)",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177051096",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177051096",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177051096",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:17Z",
+              "completed_at": "2026-10-21T10:51:00Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966272
+              }
+            },
+            {
+              "id": 119177050982,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F7Zg",
+              "name": "lint",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177050982",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635070/job/119177050982",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635070/job/119177050982",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:16Z",
+              "completed_at": "2026-10-21T10:45:27Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966213
+              }
+            },
+            {
+              "id": 119177050864,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F68A",
+              "name": "build (macos-latest)",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177050864",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050864",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050864",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:23Z",
+              "completed_at": "2026-10-21T10:49:58Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966272
+              }
+            },
+            {
+              "id": 119177050855,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F65w",
+              "name": "build (ubuntu-latest)",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177050855",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050855",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050855",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:16Z",
+              "completed_at": "2026-10-21T10:45:58Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966272
+              }
+            },
+            {
+              "id": 119177050826,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F6yg",
+              "name": "integration-tests (macos-latest)",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177050826",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050826",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050826",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:20Z",
+              "completed_at": "2026-10-21T10:44:43Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966272
+              }
+            },
+            {
+              "id": 119177050786,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F6og",
+              "name": "govulncheck",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177050786",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635070/job/119177050786",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635070/job/119177050786",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:16Z",
+              "completed_at": "2026-10-21T10:43:48Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966213
+              }
+            },
+            {
+              "id": 119177050781,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F6nQ",
+              "name": "CodeQL-Build (actions, none, security-and-quality)",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177050781",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635095/job/119177050781",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635095/job/119177050781",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:17Z",
+              "completed_at": "2026-10-21T10:44:06Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966269
+              }
+            },
+            {
+              "id": 119177050735,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F6bw",
+              "name": "integration-tests (ubuntu-latest)",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177050735",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050735",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050735",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:16Z",
+              "completed_at": "2026-10-21T10:44:37Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966272
+              }
+            },
+            {
+              "id": 119177050480,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F5cA",
+              "name": "integration-tests (windows-latest)",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177050480",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050480",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635090/job/119177050480",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:16Z",
+              "completed_at": "2026-10-21T10:45:29Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966272
+              }
+            },
+            {
+              "id": 119177050437,
+              "node_id": "CR_kwDODKw3uc8AAAAbv4F5RQ",
+              "name": "CodeQL-Build (go, manual, ./.github/codeql/codeql-config.yml)",
+              "head_sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+              "url": "https://api.github.com/repos/cli/cli/check-runs/119177050437",
+              "html_url": "https://github.com/cli/cli/actions/runs/39586635095/job/119177050437",
+              "details_url": "https://github.com/cli/cli/actions/runs/39586635095/job/119177050437",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-10-21T10:43:17Z",
+              "completed_at": "2026-10-21T10:45:59Z",
+              "app": {
+                "id": 15368,
+                "slug": "github-actions",
+                "name": "GitHub Actions"
+              },
+              "check_suite": {
+                "id": 107276966269
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/statuses/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7?per_page=100",
+      "kind": "statuses",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.333836Z",
+      "finishedAt": "2026-11-02T00:53:39.737990Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "date": "Mon, 02 Nov 2026 00:53:39 GMT",
+          "content-type": "application/json; charset=utf-8",
+          "etag": "\"2af8ea9b7918f6f14fef0ec029acc146bfc3c3aef27bfa7b6c27fc4ec8315f28\"",
+          "x-oauth-scopes": "",
+          "x-accepted-oauth-scopes": "repo, repo:status",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14959",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "6447:2AA445:409512:D531FB:6AE7DF13"
+        },
+        "body": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/status",
+      "kind": "combined-status",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.334335Z",
+      "finishedAt": "2026-11-02T00:53:39.769768Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "date": "Mon, 02 Nov 2026 00:53:39 GMT",
+          "content-type": "application/json; charset=utf-8",
+          "etag": "\"5ef28e3b6862abff2a1d8707e2f6e8be27be96e14ba64640e2ea81f50594b910\"",
+          "x-oauth-scopes": "",
+          "x-accepted-oauth-scopes": "repo, repo:status",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14957",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "49C0:2C0529:40F913:D5AD36:6AE7DF13"
+        },
+        "body": {
+          "state": "pending",
+          "sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+          "total_count": 0,
+          "url": "https://api.github.com/repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7/status",
+          "commit_url": "https://api.github.com/repos/cli/cli/commits/2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+          "statuses": []
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/branches/trunk",
+      "kind": "branch",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.738052Z",
+      "finishedAt": "2026-11-02T00:53:40.011702Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "date": "Mon, 02 Nov 2026 00:53:39 GMT",
+          "content-type": "application/json; charset=utf-8",
+          "etag": "\"a28dd8f3432307f8d670851adc33979c365de07bcd56383e9b0cafc33382c08c\"",
+          "x-oauth-scopes": "",
+          "x-accepted-oauth-scopes": "",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14956",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "560C:30ED3:1B8D99:5A14A0:6AE7DF0D"
+        },
+        "body": {
+          "name": "trunk",
+          "protected": true,
+          "protection": {
+            "enabled": true,
+            "required_status_checks": {
+              "enforcement_level": "non_admins",
+              "contexts": [
+                "build (macos-latest)",
+                "build (ubuntu-latest)",
+                "build (windows-latest)"
+              ],
+              "checks": [
+                {
+                  "context": "build (macos-latest)",
+                  "app_id": null
+                },
+                {
+                  "context": "build (ubuntu-latest)",
+                  "app_id": null
+                },
+                {
+                  "context": "build (windows-latest)",
+                  "app_id": null
+                }
+              ]
+            }
+          },
+          "protection_url": "https://api.github.com/repos/cli/cli/branches/trunk/protection",
+          "_links": {
+            "self": "https://api.github.com/repos/cli/cli/branches/trunk",
+            "html": "https://github.com/cli/cli/tree/trunk"
+          },
+          "commit": {
+            "sha": "9490d204a2ba95434153dedce99898ce9f281426",
+            "url": "https://api.github.com/repos/cli/cli/commits/9490d204a2ba95434153dedce99898ce9f281426"
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/branches/trunk/protection/required_status_checks",
+      "kind": "required-status-policy",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.769828Z",
+      "finishedAt": "2026-11-02T00:53:39.982044Z",
+      "observedHttpStatus": 403,
+      "response": {
+        "status": 403,
+        "headers": {
+          "date": "Mon, 02 Nov 2026 00:53:39 GMT",
+          "content-type": "application/json; charset=utf-8",
+          "x-oauth-scopes": "",
+          "x-accepted-oauth-scopes": "",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14955",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "2B56:354049:127F2B1:3C8A3D5:6AE7DF11"
+        },
+        "body": {
+          "message": "Resource not accessible by integration",
+          "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection",
+          "status": "403"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/branches/trunk/protection/required_pull_request_reviews",
+      "kind": "required-review-policy",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.850122Z",
+      "finishedAt": "2026-11-02T00:53:40.123779Z",
+      "observedHttpStatus": 403,
+      "response": {
+        "status": 403,
+        "headers": {
+          "date": "Mon, 02 Nov 2026 00:53:40 GMT",
+          "content-type": "application/json; charset=utf-8",
+          "x-oauth-scopes": "",
+          "x-accepted-oauth-scopes": "",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14954",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "FAE9:3B5FDD:125C21D:3C84A97:6AE7DF13"
+        },
+        "body": {
+          "message": "Resource not accessible by integration",
+          "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-pull-request-review-protection",
+          "status": "403"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/rules/branches/trunk?per_page=100",
+      "kind": "active-rules",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:39.982092Z",
+      "finishedAt": "2026-11-02T00:53:40.216454Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "date": "Mon, 02 Nov 2026 00:53:40 GMT",
+          "content-type": "application/json; charset=utf-8",
+          "etag": "\"d411642155b54a827fc7602908099e9bc71073c221788c58dc3b1de6a5d93600\"",
+          "x-oauth-scopes": "",
+          "x-accepted-oauth-scopes": "repo",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14953",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "2B56:354049:127F3E5:3C8A7F3:6AE7DF13"
+        },
+        "body": [
+          {
+            "type": "copilot_code_review",
+            "parameters": {
+              "review_on_push": false,
+              "review_draft_pull_requests": true
+            },
+            "ruleset_source_type": "Repository",
+            "ruleset_source": "cli/cli",
+            "ruleset_id": 4898070
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "kind": "graphql-review-decision",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:40.217006Z",
+      "finishedAt": "2026-11-02T00:53:40.916189Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "date": "Mon, 02 Nov 2026 00:53:40 GMT",
+          "x-accepted-oauth-scopes": "repo",
+          "x-oauth-scopes": "",
+          "x-ratelimit-limit": "10000",
+          "x-ratelimit-remaining": "9996",
+          "x-ratelimit-reset": "1793584252",
+          "x-ratelimit-resource": "graphql",
+          "x-github-request-id": "B8B3:1F36:E0FB7C:2DF4F14:6AE7DF14"
+        },
+        "body": {
+          "data": {
+            "repository": {
+              "pull_request": {
+                "review_decision": "REVIEW_REQUIRED",
+                "commits": {
+                  "nodes": [
+                    {
+                      "commit": {
+                        "oid": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+                        "status_check_rollup": {
+                          "contexts": {
+                            "nodes": [
+                              {
+                                "type_name": "CheckRun",
+                                "name": "label-external",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "CodeQL-Build (go, manual, ./.github/codeql/codeql-config.yml)",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "lint",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "build (ubuntu-latest)",
+                                "is_required": true
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "CodeQL-Build (actions, none, security-and-quality)",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "build (windows-latest)",
+                                "is_required": true
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "build (macos-latest)",
+                                "is_required": true
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "close-from-default-branch",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "govulncheck",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "integration-tests (ubuntu-latest)",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "integration-tests (windows-latest)",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "integration-tests (macos-latest)",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "check-requirements / check-requirements",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "check-requirements / close-unmet-requirements",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "close-unmet-requirements",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "close-no-help-wanted",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "ready-for-review",
+                                "is_required": false
+                              },
+                              {
+                                "type_name": "CheckRun",
+                                "name": "CodeQL",
+                                "is_required": false
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "query": "query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pull_request: pullRequest(number:$n){review_decision: reviewDecision commits(last:1){nodes{commit{oid status_check_rollup: statusCheckRollup{contexts(first:100){nodes{type_name: __typename ... on CheckRun{name is_required: isRequired(pullRequestNumber:$n)} ... on StatusContext{context is_required: isRequired(pullRequestNumber:$n)}}}}}}}}}}",
+        "variables": {
+          "o": "cli",
+          "r": "cli",
+          "n": 14781
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/branches/trunk",
+      "kind": "branch",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:40.916222Z",
+      "finishedAt": "2026-11-02T00:53:41.207959Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "date": "Mon, 02 Nov 2026 00:53:41 GMT",
+          "content-type": "application/json; charset=utf-8",
+          "etag": "\"a28dd8f3432307f8d670851adc33979c365de07bcd56383e9b0cafc33382c08c\"",
+          "x-oauth-scopes": "",
+          "x-accepted-oauth-scopes": "",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14952",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "CC63:18E436:11FCA2A:3ADABEF:6AE7DF13"
+        },
+        "body": {
+          "name": "trunk",
+          "protected": true,
+          "protection": {
+            "enabled": true,
+            "required_status_checks": {
+              "enforcement_level": "non_admins",
+              "contexts": [
+                "build (macos-latest)",
+                "build (ubuntu-latest)",
+                "build (windows-latest)"
+              ],
+              "checks": [
+                {
+                  "context": "build (macos-latest)",
+                  "app_id": null
+                },
+                {
+                  "context": "build (ubuntu-latest)",
+                  "app_id": null
+                },
+                {
+                  "context": "build (windows-latest)",
+                  "app_id": null
+                }
+              ]
+            }
+          },
+          "protection_url": "https://api.github.com/repos/cli/cli/branches/trunk/protection",
+          "_links": {
+            "self": "https://api.github.com/repos/cli/cli/branches/trunk",
+            "html": "https://github.com/cli/cli/tree/trunk"
+          },
+          "commit": {
+            "sha": "9490d204a2ba95434153dedce99898ce9f281426",
+            "url": "https://api.github.com/repos/cli/cli/commits/9490d204a2ba95434153dedce99898ce9f281426"
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/repos/cli/cli/pulls/14781",
+      "kind": "pr",
+      "accessMode": "inherited-proxy-no-authorization-supplied-by-code",
+      "startedAt": "2026-11-02T00:53:41.207998Z",
+      "finishedAt": "2026-11-02T00:53:41.901277Z",
+      "observedHttpStatus": 200,
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "date": "Mon, 02 Nov 2026 00:53:41 GMT",
+          "etag": "\"c490e5bfb11a710a4963851d96263cda267dd5ae91a47e4b229173bbafff45e6\"",
+          "last-modified": "Wed, 28 Oct 2026 12:50:03 GMT",
+          "x-accepted-oauth-scopes": "repo",
+          "x-oauth-scopes": "",
+          "x-ratelimit-limit": "15000",
+          "x-ratelimit-remaining": "14951",
+          "x-ratelimit-reset": "1793584199",
+          "x-ratelimit-resource": "core",
+          "x-github-request-id": "B888:1E39C9:1186AED:39669E6:6AE7DF15"
+        },
+        "body": {
+          "url": "https://api.github.com/repos/cli/cli/pulls/14781",
+          "id": 4949837122,
+          "node_id": "PR_kwDODKw3uc8AAAABJwiFQg",
+          "html_url": "https://github.com/cli/cli/pull/14781",
+          "number": 14781,
+          "state": "open",
+          "locked": false,
+          "title": "Add global feature flag infrastructure",
+          "created_at": "2026-10-21T10:05:39Z",
+          "updated_at": "2026-10-28T12:50:03Z",
+          "closed_at": null,
+          "merged_at": null,
+          "merge_commit_sha": "ed57df21ccaae313491be97cb2343e6514a490db",
+          "draft": true,
+          "mergeable": true,
+          "mergeable_state": "blocked",
+          "merged": false,
+          "rebaseable": true,
+          "author_association": "MEMBER",
+          "head": {
+            "label": "cli:williammartin-global-feature-flags",
+            "ref": "williammartin-global-feature-flags",
+            "sha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+            "repo": {
+              "id": 212613049,
+              "full_name": "cli/cli",
+              "private": false,
+              "html_url": "https://github.com/cli/cli",
+              "default_branch": "trunk"
+            }
+          },
+          "base": {
+            "label": "cli:trunk",
+            "ref": "trunk",
+            "sha": "a81663f7d80d620b092dab3056778a79ff3e279c",
+            "repo": {
+              "id": 212613049,
+              "full_name": "cli/cli",
+              "private": false,
+              "html_url": "https://github.com/cli/cli",
+              "default_branch": "trunk"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

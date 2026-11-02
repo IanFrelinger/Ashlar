@@ -11,10 +11,16 @@ namespace Ashlar.Bricks.GitHub;
 public class CiStatusBrick : Ashlar.Core.Domain.Bricks.Brick
 {
     private readonly ILogger<CiStatusBrick> _logger;
+    private readonly GitHubReadAccess? _access;
 
-    public CiStatusBrick(ILogger<CiStatusBrick> logger)
+    public CiStatusBrick(ILogger<CiStatusBrick> logger) : this(logger, access: null)
+    {
+    }
+
+    public CiStatusBrick(ILogger<CiStatusBrick> logger, GitHubReadAccess? access)
     {
         _logger = logger;
+        _access = access;
 
         Id = "github.ci-status";
         Name = "GitHub CI Status";
@@ -43,6 +49,8 @@ public class CiStatusBrick : Ashlar.Core.Domain.Bricks.Brick
                 new BrickOutputDefinition("checks", "object[]", "Check run details")
             ]
         };
+        if (_access is not null)
+            Interface = GitHubReadAccess.WithoutCallerCredential(Interface);
     }
 
     public override async Task<BrickOutput> ExecuteAsync(
@@ -58,7 +66,7 @@ public class CiStatusBrick : Ashlar.Core.Domain.Bricks.Brick
 
         try
         {
-            var client = CreateGitHubClient(input);
+            var client = CreateGitHubClient(input, owner, repo);
 
             // Resolve ref to SHA if needed
             var sha = await ResolveRefToSha(client, owner, repo, gitRef);
@@ -126,9 +134,10 @@ public class CiStatusBrick : Ashlar.Core.Domain.Bricks.Brick
         return output;
     }
 
-    private static GitHubClient CreateGitHubClient(BrickInput input)
+    private GitHubClient CreateGitHubClient(BrickInput input, string owner, string repo)
     {
         input.TryGet<string>("githubToken", out var token);
+        token = _access?.ResolveToken(owner, repo, token) ?? token;
         return GitHubClientFactory.Create(token);
     }
 

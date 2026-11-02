@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-11-02T00:54:26.456672Z",
+  "caseCount": 6,
+  "hashesValid": true,
+  "rawRoutesHaveActualHttpStatuses": true,
+  "noSuppliedCredential": true,
+  "privacyFieldChecksPassed": true,
+  "initialFinalPrIdentitiesEqual": true,
+  "note": "Integrity and privacy structural checks only. No verdict/assurance/mandatory-policy labels determined."
+}

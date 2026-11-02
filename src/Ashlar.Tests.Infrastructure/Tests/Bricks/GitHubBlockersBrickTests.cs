@@ -136,7 +136,7 @@ public sealed class GitHubBlockersBrickTests
 
         answer.Verdict.Should().Be("blocked");
         answer.Blockers.Should().ContainSingle().Which.Should().Be(new Blocker(
-            "The required check `cert-gate` has not reported on 0123456789ab.", $"https://github.com/o/r/commit/{Sha}"));
+            "The required check `cert-gate` has not reported on 0123456789ab.", $"https://github.com/o/r/commit/{Sha}", "fail"));
         answer.Notes.Should().ContainSingle().Which.Evidence.Should().Be("https://github.com/o/r/runs/2");
         answer.Unknowns.Should().BeEmpty();
     }
@@ -150,7 +150,7 @@ public sealed class GitHubBlockersBrickTests
         var blocked = Analyze(OpenPr(ci: ci, state: "blocked", protection: unreadable));
         blocked.Verdict.Should().Be("blocked");
         blocked.Blockers.Should().ContainSingle().Which.Should().Be(
-            new Blocker("The check `build` concluded failure.", "https://github.com/o/r/runs/1"));
+            new Blocker("The check `build` concluded failure.", "https://github.com/o/r/runs/1", "unknown"));
         blocked.Unknowns.Select(u => u.What).Should().BeEquivalentTo("Required approvals", "Which checks are required");
 
         var unstable = Analyze(OpenPr(ci: ci, state: "unstable", protection: unreadable));
@@ -345,7 +345,8 @@ public sealed class GitHubBlockersBrickTests
         output.Get<string>("verdict").Should().Be("blocked");
         Reasons(output, "blockers", "reason").Should().Equal("0 of 1 required approving reviews.");
         Reasons(output, "notes", "text").Should().Contain("The check `coverage` concluded failure. It is not required, so it does not block the merge.");
-        Reasons(output, "unknowns", "what").Should().BeEmpty();
+        // This older fixture omitted observed app IDs while binding requirements to app 15368.
+        Reasons(output, "unknowns", "what").Should().Contain("Required check origin");
     }
 
     [Fact]
@@ -396,9 +397,9 @@ public sealed class GitHubBlockersBrickTests
     }
 
     [Fact]
-    public async Task Without_graphql_the_public_required_check_lists_still_decide_and_the_review_rule_stays_unknown()
+    public async Task Without_graphql_or_provider_metadata_the_branch_block_is_reported_without_inventing_an_attribution()
     {
-        // cli/cli#14816 read anonymously: GraphQL needs a token, so only the review decision is lost.
+        // This older name-only fixture omits provider metadata; report GitHub's block and the unknown details.
         const string sha = "6235af8fddba186b2ded7c686c24fe83289f7c46";
         var github = OpenPullWithoutAdmin("cli", "cli", 14816, sha, "trunk",
                 checkRuns: [("lint", "failure")])
@@ -408,9 +409,9 @@ public sealed class GitHubBlockersBrickTests
 
         var output = await Brick(github).ExecuteAsync(Input("https://github.com/cli/cli/pull/14816"), ImplementationType.Deterministic, Context());
 
-        Reasons(output, "blockers", "reason").Should().Equal("The required check `build (ubuntu-latest)` has not reported on 6235af8fddba.");
+        Reasons(output, "blockers", "reason").Should().Equal("GitHub reports merging as blocked by a branch rule this read could not identify (branch protection or a repository ruleset).");
         Reasons(output, "notes", "text").Should().Contain("The check `lint` concluded failure. It is not required, so it does not block the merge.");
-        Reasons(output, "unknowns", "what").Should().Equal("Required approvals");
+        Reasons(output, "unknowns", "what").Should().BeEquivalentTo("Required approvals", "Required check origin");
     }
 
     [Fact]
@@ -436,7 +437,7 @@ public sealed class GitHubBlockersBrickTests
         output.Get<string>("verdict").Should().Be("blocked");
         Reasons(output, "blockers", "reason").Should().ContainSingle(r => r.Contains("merge conflicts"));
         Reasons(output, "unknowns", "what").Should().NotContain("Mergeability");
-        PullReads(github).Should().Be(2);
+        PullReads(github).Should().Be(3);
         waits.Should().Equal(TimeSpan.FromSeconds(2));
     }
 
@@ -451,12 +452,12 @@ public sealed class GitHubBlockersBrickTests
 
         output.Get<string>("verdict").Should().Be("unknown");
         Reasons(output, "unknowns", "what").Should().Contain("Mergeability");
-        PullReads(github).Should().Be(3);
+        PullReads(github).Should().Be(4);
         waits.Should().Equal(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
     }
 
     [Fact]
-    public async Task Computed_mergeability_is_read_once()
+    public async Task Computed_mergeability_is_read_again_for_collection_consistency()
     {
         var waits = new List<TimeSpan>();
         var github = WithGreenOpenPrRoutes(new StubGitHub()
@@ -465,7 +466,7 @@ public sealed class GitHubBlockersBrickTests
         var output = await Brick(github, waits).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
 
         output.Get<string>("verdict").Should().Be("ready");
-        PullReads(github).Should().Be(1);
+        PullReads(github).Should().Be(2);
         waits.Should().BeEmpty();
     }
 
@@ -481,7 +482,7 @@ public sealed class GitHubBlockersBrickTests
 
         output.Get<string>("verdict").Should().Be("unknown");
         Reasons(output, "unknowns", "what").Should().Equal("Mergeability");
-        PullReads(github).Should().Be(3);
+        PullReads(github).Should().Be(4);
     }
 
     [Fact]
@@ -562,6 +563,275 @@ public sealed class GitHubBlockersBrickTests
 
         await act.Should().ThrowAsync<EgressRefusedException>();
         github.Requests.Should().BeEmpty();
+    }
+
+    // ── Versioned evidence contract ─────────────────────────────────────────────────────────────────────
+
+    private static ReleaseEvidencePack Pack(PullRequestFacts pr, string consistency = "stable", string? collectionCheckName = null, bool supplyBase = true)
+    {
+        GitHubTarget.TryParse(Pr, out var target, out _);
+        var snapshot = new BlockerSnapshot(target!, pr with { HeadSha = pr.HeadSha ?? Sha, BaseSha = supplyBase ? pr.BaseSha ?? Sha : pr.BaseSha }, null, [], consistency);
+        return ReleaseEvidence.Create(snapshot, BlockerAnalysis.Analyze(snapshot), At(0), At(1), "test", false, collectionCheckName);
+    }
+
+    [Fact]
+    public void A_ready_snapshot_has_versioned_identity_sources_and_a_matching_report()
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)) with { BaseSha = new string('b', 40) });
+        pack.SchemaVersion.Should().Be("1.0");
+        pack.HeadSha.Should().Be(Sha);
+        pack.BaseRef.Should().Be("master");
+        pack.BaseSha.Should().Be(new string('b', 40));
+        pack.Verdict.Should().Be("ready");
+        pack.Assurance.Should().Be("pass");
+        pack.Findings.Should().OnlyContain(f => f.Sources.Count > 0);
+        pack.AuditId.Should().BeNull();
+        pack.Authorization.AuthenticatedActor.Should().Be("unknown");
+        ReleaseEvidence.Render(pack).Should().Contain("Scoped assurance: **pass**").And.Contain(Sha);
+    }
+
+    [Fact]
+    public void GitHub_ready_does_not_make_unreadable_policy_a_passing_assurance()
+    {
+        var pack = Pack(OpenPr(state: "clean", protection: new ProtectionFacts(null, null, RulesRead: false)));
+        pack.Verdict.Should().Be("ready");
+        pack.Assurance.Should().Be("unknown");
+        pack.Findings.Should().Contain(f => f.Id == "required-check-policy" && f.Status == "unknown");
+    }
+
+    [Fact]
+    public void A_confirmed_blocker_fails_assurance()
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)) with { Draft = true });
+        pack.Verdict.Should().Be("blocked");
+        pack.Assurance.Should().Be("fail");
+    }
+
+    [Fact]
+    public void A_missing_required_check_cannot_pass()
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts(["build"], 0)));
+        pack.Assurance.Should().NotBe("pass");
+        pack.Findings.Should().Contain(f => f.Explanation.Contains("has not reported") && f.Status != "pass");
+    }
+
+    [Fact]
+    public void Fully_observed_pending_required_checks_are_currently_unmet()
+    {
+        var pack = Pack(OpenPr(ci: Ci(checks: [new CheckFact("build", "queued", null, null),
+            new CheckFact("build", "completed", "success", null)]), protection: new ProtectionFacts(["build"], 0)));
+        pack.Assurance.Should().Be("fail");
+    }
+
+    [Fact]
+    public void An_unrecognized_required_check_conclusion_is_unknown()
+    {
+        var pack = Pack(OpenPr(ci: Ci(checks: [new CheckFact("build", "completed", null, null)]),
+            protection: new ProtectionFacts(["build"], 0)));
+        pack.Assurance.Should().Be("unknown");
+    }
+
+    [Fact]
+    public void Conflicting_required_check_results_preserve_the_known_failure()
+    {
+        var pack = Pack(OpenPr(ci: Ci(checks: [new CheckFact("build", "completed", "success", null),
+            new CheckFact("build", "completed", "failure", null)]), protection: new ProtectionFacts(["build"], 0)));
+        pack.Assurance.Should().Be("fail");
+    }
+
+    [Theory]
+    [InlineData("changed")]
+    [InlineData("unknown")]
+    [InlineData("not-checked")]
+    public void Changed_or_unchecked_collection_is_unknown_even_at_a_matching_head(string consistency)
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)), consistency);
+        pack.Assurance.Should().Be("unknown");
+        pack.Freshness.CollectionConsistency.Should().Be(consistency);
+    }
+
+    [Fact]
+    public void An_approval_for_an_old_commit_does_not_establish_current_approval_eligibility()
+    {
+        var pack = Pack(OpenPr(reviews: [new ReviewFact("alice", "APPROVED", Pr + "#r1", At(0), "old-sha")],
+            protection: new ProtectionFacts([], 1)));
+        pack.Assurance.Should().Be("unknown");
+        pack.Findings.Should().Contain(f => f.Id == "stale-approvals" && f.Status == "unknown");
+    }
+
+    [Fact]
+    public void An_optional_collection_check_is_a_note_but_a_required_pending_one_is_circular_and_unmet()
+    {
+        var ci = Ci(checks: [new CheckFact("collect", "in_progress", null, Pr + "/checks")]);
+        var optional = Pack(OpenPr(ci: ci, protection: new ProtectionFacts([], 0)), collectionCheckName: "collect");
+        optional.Assurance.Should().Be("pass");
+        var required = Pack(OpenPr(ci: ci, protection: new ProtectionFacts(["collect"], 0)), collectionCheckName: "collect");
+        required.Verdict.Should().Be("blocked", "legacy verdict remains unchanged");
+        required.Assurance.Should().Be("fail");
+    }
+
+    [Fact]
+    public void Malformed_or_hostile_pr_text_is_not_copied_into_the_pack()
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)) with { Title = Injection });
+        var json = JsonSerializer.Serialize(pack, ReleaseEvidence.JsonOptions);
+        json.Should().NotContain("SYSTEM");
+        ReleaseEvidence.Render(pack).Should().NotContain("SYSTEM");
+    }
+
+    [Fact]
+    public async Task A_head_change_is_recollected_without_relabeling_old_checks()
+    {
+        var github = WithGreenOpenPrRoutes(new StubGitHub()
+            .Sequence("/repos/o/r/pulls/7", (HttpStatusCode.OK, PullJson("true", "clean")),
+                (HttpStatusCode.OK, PullJson("true", "clean").Replace(Sha, new string('b', 40), StringComparison.Ordinal))));
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+        var pack = JsonSerializer.SerializeToElement(output.Get<object>("evidencePack"));
+        pack.GetProperty("headSha").GetString().Should().Be(new string('b', 40));
+        pack.GetProperty("freshness").GetProperty("collectionConsistency").GetString().Should().Be("stable");
+        pack.GetProperty("freshness").GetProperty("collectionAttempts").GetInt32().Should().Be(2);
+        github.Requests.Should().Contain(u => u.AbsolutePath == $"/repos/o/r/commits/{new string('b', 40)}/check-runs");
+        output.Get<string>("assurance").Should().Be("unknown");
+    }
+
+    [Fact]
+    public async Task Missing_permissions_produce_a_versioned_unknown_pack_and_no_token()
+    {
+        var input = Input(Pr);
+        input.Set("githubToken", "test-secret-token");
+        var output = await Brick(new StubGitHub()).ExecuteAsync(input, ImplementationType.Deterministic, Context());
+        output.Get<string>("assurance").Should().Be("unknown");
+        var json = JsonSerializer.Serialize(output.Get<object>("evidencePack"));
+        json.Should().Contain("schemaVersion").And.NotContain("test-secret-token");
+    }
+
+    [Fact]
+    public async Task An_api_failure_cannot_create_a_passing_pack_or_echo_a_response_body()
+    {
+        var github = new StubGitHub().Json("/repos/o/r/pulls/7", "{\"message\":\"secret-body <script>\"}", HttpStatusCode.InternalServerError);
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+        output.Get<string>("assurance").Should().Be("unknown");
+        JsonSerializer.Serialize(output.Get<object>("evidencePack")).Should().NotContain("secret-body");
+    }
+
+    [Fact]
+    public async Task A_complete_supported_policy_can_export_passing_assurance()
+    {
+        var github = WithGreenOpenPrRoutes(new StubGitHub().Json("/repos/o/r/pulls/7", PullJson("true", "clean")))
+            .Json("/repos/o/r/rules/branches/master", "[]");
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+        output.Get<string>("assurance").Should().Be("pass");
+        var pack = JsonSerializer.SerializeToElement(output.Get<object>("evidencePack"));
+        pack.GetProperty("brickVersion").GetString().Should().Be("1.4.0");
+        pack.GetProperty("ashlarVersion").GetString().Should().NotBe("1.4.0");
+    }
+
+    [Theory]
+    [InlineData("[{\"type\":\"required_status_checks\"}]")]
+    [InlineData("[{\"type\":\"pull_request\",\"parameters\":{}}]")]
+    [InlineData("[{}]")]
+    [InlineData("null")]
+    public async Task Malformed_rules_cannot_establish_absent_requirements(string rules)
+    {
+        var github = WithGreenOpenPrRoutes(new StubGitHub().Json("/repos/o/r/pulls/7", PullJson("true", "clean")))
+            .Json("/repos/o/r/rules/branches/master", rules);
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+        output.Get<string>("assurance").Should().Be("unknown");
+    }
+
+    [Fact]
+    public async Task A_bound_required_check_cannot_pass_on_a_same_name_success_alone()
+    {
+        var github = WithGreenOpenPrRoutes(new StubGitHub().Json("/repos/o/r/pulls/7", PullJson("true", "clean")))
+            .Json("/repos/o/r/rules/branches/master", """[{"type":"required_status_checks","parameters":{"required_status_checks":[{"context":"build","integration_id":123}]}}]""");
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+        output.Get<string>("verdict").Should().Be("unknown");
+        output.Get<string>("assurance").Should().Be("unknown");
+        JsonSerializer.Serialize(output.Get<object>("evidencePack")).Should().Contain("required-check-origin");
+    }
+
+    [Fact]
+    public async Task An_uninspected_active_rule_remains_a_mandatory_unknown()
+    {
+        var github = WithGreenOpenPrRoutes(new StubGitHub().Json("/repos/o/r/pulls/7", PullJson("true", "clean")))
+            .Json("/repos/o/r/rules/branches/master", """[{"type":"required_deployments","parameters":{"required_deployment_environments":["production"]}}]""");
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+        output.Get<string>("assurance").Should().Be("unknown");
+        JsonSerializer.Serialize(output.Get<object>("evidencePack")).Should().Contain("required_deployments");
+    }
+
+    [Fact]
+    public async Task Missing_head_identity_is_unknown_instead_of_an_exception_or_pass()
+    {
+        var github = new StubGitHub().Json("/repos/o/r/pulls/7", "{}");
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+        output.Get<string>("assurance").Should().Be("unknown");
+    }
+
+    [Fact]
+    public void Conflicting_review_policy_cannot_pass_assurance()
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 1, "NONE")));
+        pack.Assurance.Should().Be("unknown");
+        pack.Findings.Should().Contain(f => f.Id == "conflicting-review-policy" && f.Status == "unknown");
+    }
+
+    [Fact]
+    public void Source_urls_with_embedded_credentials_are_omitted()
+    {
+        BlockerAnalysis.Link("https://secret-token@ci.example/run/1").Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("", "unknown")]
+    [InlineData(",\"integration_id\":null", "pass")]
+    [InlineData(",\"integration_id\":123", "unknown")]
+    public async Task Required_check_origin_metadata_must_be_explicit(string binding, string expected)
+    {
+        var github = WithGreenOpenPrRoutes(new StubGitHub().Json("/repos/o/r/pulls/7", PullJson("true", "clean")))
+            .Json("/repos/o/r/rules/branches/master", "[{\"type\":\"required_status_checks\",\"parameters\":{\"required_status_checks\":[{\"context\":\"build\"" + binding + "}]}}]");
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+        output.Get<string>("verdict").Should().Be(expected == "pass" ? "ready" : "unknown");
+        output.Get<string>("assurance").Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("", "unknown")]
+    [InlineData(",\"app_id\":null", "pass")]
+    [InlineData(",\"app_id\":123", "unknown")]
+    public async Task Legacy_required_check_origin_metadata_must_be_explicit(string binding, string expected)
+    {
+        var github = WithGreenOpenPrRoutes(new StubGitHub().Json("/repos/o/r/pulls/7", PullJson("true", "clean")))
+            .Json("/repos/o/r/rules/branches/master", "[]")
+            .Json("/repos/o/r/branches/master/protection/required_status_checks", "{\"contexts\":[\"build\"],\"checks\":[{\"context\":\"build\"" + binding + "}]}");
+        var output = await Brick(github).ExecuteAsync(Input(Pr), ImplementationType.Deterministic, Context());
+        output.Get<string>("verdict").Should().Be(expected == "pass" ? "ready" : "unknown");
+        output.Get<string>("assurance").Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("garbage")]
+    [InlineData("")]
+    [InlineData("0123456789abcdef0123456789abcdef0123456")]
+    [InlineData("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")]
+    public void A_malformed_head_commit_cannot_pass_assurance(string head)
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)) with { HeadSha = head });
+        pack.Verdict.Should().Be("ready");
+        pack.Assurance.Should().Be("unknown");
+        pack.Findings.Should().Contain(f => f.Id == "head-identity" && f.Status == "unknown");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("malformed-base")]
+    public void An_unavailable_or_malformed_base_commit_prevents_stable_assurance(string? baseSha)
+    {
+        var pack = Pack(OpenPr(protection: new ProtectionFacts([], 0)) with { BaseSha = baseSha }, supplyBase: false);
+        pack.Verdict.Should().Be("ready");
+        pack.Assurance.Should().Be("unknown");
+        pack.Findings.Should().Contain(f => f.Id == "base-identity" && f.Status == "unknown");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────────────────────────────────
@@ -680,7 +950,7 @@ public sealed class GitHubBlockersBrickTests
     private static string PullJson(string mergeable, string state, bool merged = false) => $$$"""
         {"number":7,"title":"t","state":"{{{(merged ? "closed" : "open")}}}","merged":{{{(merged ? "true" : "false")}}},"draft":false,
          "mergeable":{{{mergeable}}},"mergeable_state":"{{{state}}}","html_url":"{{{Pr}}}",
-         "head":{"sha":"{{{Sha}}}","ref":"feature"},"base":{"ref":"master"}}
+         "head":{"sha":"{{{Sha}}}","ref":"feature"},"base":{"ref":"master","sha":"{{{Sha}}}"}}
         """;
 
     private sealed class RecordingGuard : IEgressGuard

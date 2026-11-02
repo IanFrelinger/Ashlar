@@ -3,7 +3,8 @@ using System.Text;
 
 namespace Ashlar.Bricks.GitHub;
 
-internal sealed record Blocker(string Reason, string Evidence);
+internal sealed record Blocker(string Reason, string Evidence,
+    [property: System.Text.Json.Serialization.JsonIgnore] string? AssuranceStatus = null);
 
 internal sealed record Note(string Text, string? Evidence);
 
@@ -20,8 +21,9 @@ internal sealed record BlockerAnswer(
 /// Turns what was read into an answer. Pure: no I/O, so every rule here is tested without GitHub.
 /// </summary>
 /// <remarks>
-/// Verdicts: <c>blocked</c> (at least one blocker), <c>unknown</c> (no blocker found, but something that could hide one
-/// was not read), <c>ready</c>, and for pull requests <c>merged</c> and <c>closed</c>. A failing check that is not
+/// Verdicts: <c>blocked</c> (at least one blocker), <c>unknown</c> (the current decision cannot be established,
+/// including exhausted recollection even when failed observations remain), <c>ready</c>, and for pull requests
+/// <c>merged</c> and <c>closed</c>. A failing check that is not
 /// required is a note, never a blocker. Only when neither branch protection nor the public required-check lists could
 /// be read does GitHub's own <c>mergeable_state</c> decide whether a failing check blocks: <c>clean</c>,
 /// <c>unstable</c> and <c>has_hooks</c> mean GitHub would allow the merge, so failures are notes.
@@ -64,6 +66,16 @@ internal static class BlockerAnalysis
             verdict = AnalyzeRelease(snapshot.Target, release, blockers, unknowns, notes);
         else
             verdict = UnknownVerdict;
+
+        // A stale positive cannot establish readiness. After the bounded recollection is
+        // exhausted, neither positive nor negative facts establish the current PR decision;
+        // retain those facts under their observed head while reporting an unknown verdict.
+        if ((verdict == Ready || snapshot.CollectionAttempts > 1 && verdict == Blocked)
+            && snapshot.CollectionConsistency is "changed" or "unknown")
+        {
+            unknowns.Add(new Unknown("Collection freshness", "The final pull-request read changed or could not verify the collected head, base and mergeability facts; collect again."));
+            verdict = UnknownVerdict;
+        }
 
         var evidence = new List<string> { snapshot.Target.WebUrl };
         evidence.AddRange(blockers.Select(b => b.Evidence));
@@ -110,7 +122,7 @@ internal static class BlockerAnalysis
                 "Neither branch protection (it needs admin rights) nor the base branch's public required-check lists could be read, so every failing or pending check is listed as a blocker."));
         }
 
-        AnalyzeCi(target, pr.Ci, protection.RequiredChecks, checksAdvisory, "head commit", blockers, unknowns, notes);
+        AnalyzeCi(target, pr.Ci, protection.RequiredChecks, checksAdvisory, "head commit", blockers, unknowns, notes, protection);
 
         if (state == "blocked" && blockers.Count == 0)
         {
@@ -198,7 +210,8 @@ internal static class BlockerAnalysis
         string commitLabel,
         List<Blocker> blockers,
         List<Unknown> unknowns,
-        List<Note> notes)
+        List<Note> notes,
+        ProtectionFacts? protection = null)
     {
         if (ci is null)
         {
@@ -208,7 +221,7 @@ internal static class BlockerAnalysis
 
         var commitUrl = $"https://github.com/{target.Owner}/{target.Repo}/commit/{ci.Sha}";
         var reported = new HashSet<string>(StringComparer.Ordinal);
-        var problems = new List<(string Name, string Reason, string Evidence)>();
+        var problems = new List<(string Name, string Reason, string Evidence, CheckFact? Check, StatusFact? Status)>();
 
         if (ci.Checks is null)
             unknowns.Add(new Unknown("Check runs", $"The check runs on the {commitLabel} could not be read."));
@@ -220,9 +233,9 @@ internal static class BlockerAnalysis
             {
                 reported.Add(check.Name);
                 if (!string.Equals(check.Status, "completed", StringComparison.OrdinalIgnoreCase))
-                    problems.Add((check.Name, $"The check {Quote(check.Name)} is still {check.Status.Replace('_', ' ')}.", Link(check.Url) ?? commitUrl));
+                    problems.Add((check.Name, $"The check {Quote(check.Name)} is still {SafeCheckStatus(check.Status)}.", Link(check.Url) ?? commitUrl, check, null));
                 else if (check.Conclusion is { } conclusion && FailedConclusions.Contains(conclusion))
-                    problems.Add((check.Name, $"The check {Quote(check.Name)} concluded {conclusion.Replace('_', ' ')}.", Link(check.Url) ?? commitUrl));
+                    problems.Add((check.Name, $"The check {Quote(check.Name)} concluded {conclusion.Replace('_', ' ')}.", Link(check.Url) ?? commitUrl, check, null));
             }
         }
 
@@ -235,11 +248,11 @@ internal static class BlockerAnalysis
             foreach (var status in ci.Statuses)
             {
                 reported.Add(status.Context);
-                var state = status.State.ToLowerInvariant();
+                var state = status.State?.ToLowerInvariant();
                 if (state == "pending")
-                    problems.Add((status.Context, $"The status {Quote(status.Context)} is still pending.", Link(status.Url) ?? commitUrl));
+                    problems.Add((status.Context, $"The status {Quote(status.Context)} is still pending.", Link(status.Url) ?? commitUrl, null, status));
                 else if (state is "failure" or "error")
-                    problems.Add((status.Context, $"The status {Quote(status.Context)} reported {state}" + (string.IsNullOrWhiteSpace(status.Description) ? "." : $": {Quote(status.Description)}."), Link(status.Url) ?? commitUrl));
+                    problems.Add((status.Context, $"The status {Quote(status.Context)} reported {state}" + (string.IsNullOrWhiteSpace(status.Description) ? "." : $": {Quote(status.Description)}."), Link(status.Url) ?? commitUrl, null, status));
             }
         }
 
@@ -252,20 +265,69 @@ internal static class BlockerAnalysis
         }
 
         var required = requiredChecks is null ? null : new HashSet<string>(requiredChecks, StringComparer.Ordinal);
-        foreach (var (name, reason, evidence) in problems)
+        foreach (var (name, reason, evidence, check, status) in problems)
         {
             if (advisory || (required is not null && !required.Contains(name)))
                 notes.Add(new Note(reason + " It is not required, so it does not block the merge.", evidence));
+            else if (protection?.CheckRequirements is not null && required is not null)
+            {
+                var bindings = RequiredCheckEvaluation.Requirements(protection, name);
+                var matching = bindings.Where(r => check is not null ? RequiredCheckEvaluation.Matches(r, check)
+                    : RequiredCheckEvaluation.Matches(r, status!)).ToList();
+                if (matching.Count > 0)
+                {
+                    var observations = matching.Select(r => RequiredCheckEvaluation.Observe(r, ci)).ToList();
+                    blockers.Add(new Blocker(reason, evidence, observations.Any(o => o.Status == "fail") ? "fail" : "unknown"));
+                }
+                else if (bindings.Any(r => check is not null ? RequiredCheckEvaluation.Ambiguous(r, check)
+                    : RequiredCheckEvaluation.Ambiguous(r, status!)))
+                    unknowns.Add(new Unknown("Required check origin", reason + " Its app/provider identity could not be bound to a required check."));
+                else
+                    notes.Add(new Note(reason + " It is from a different app than the required provider, so it does not establish a failed requirement.", evidence));
+            }
             else
-                blockers.Add(new Blocker(reason, evidence));
+            {
+                var observations = protection is not null && required is not null
+                    ? RequiredCheckEvaluation.Requirements(protection, name).Select(r => RequiredCheckEvaluation.Observe(r, ci)).ToList() : [];
+                blockers.Add(new Blocker(reason, evidence, protection is null ? null
+                    : observations.Any(o => o.Status == "fail") ? "fail" : "unknown"));
+            }
         }
 
         if (required is not null && ci.Checks is not null && ci.Statuses is not null)
         {
+            if (protection?.CheckRequirements is not null)
+            {
+                foreach (var name in required.OrderBy(n => n, StringComparer.Ordinal))
+                foreach (var binding in RequiredCheckEvaluation.Requirements(protection, name))
+                {
+                    var observed = RequiredCheckEvaluation.Observe(binding, ci);
+                    if (!binding.OriginKnown || observed.AmbiguousOrigin)
+                        unknowns.Add(new Unknown("Required check origin", $"The app/provider identity for required check {Quote(name)} could not be verified."));
+                    else if (observed.Absent)
+                    {
+                        if (observed.Complete)
+                            blockers.Add(new Blocker($"The required check {Quote(name)} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}."
+                                + (binding.AppId is { } app ? $" Expected GitHub App {app}." : ""), commitUrl, "fail"));
+                        else
+                            unknowns.Add(new Unknown("Required check", $"The required check {Quote(name)} was not observed in incomplete CI results; whether it reported is unknown."));
+                    }
+                }
+                return;
+            }
             foreach (var name in required.Where(n => !reported.Contains(n)).OrderBy(n => n, StringComparer.Ordinal))
-                blockers.Add(new Blocker($"The required check {Quote(name)} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}.", commitUrl));
+            {
+                if (ci.ChecksReadComplete && ci.ChecksReported == ci.Checks.Count && ci.StatusesReported == ci.Statuses.Count)
+                    blockers.Add(new Blocker($"The required check {Quote(name)} has not reported on {ci.Sha[..Math.Min(ci.Sha.Length, 12)]}.", commitUrl,
+                        protection?.RequiredCheckOriginsKnown == true ? "fail" : "unknown"));
+                else
+                    unknowns.Add(new Unknown("Required check", $"The required check {Quote(name)} was not observed in incomplete CI results; whether it reported is unknown."));
+            }
         }
     }
+
+    private static string SafeCheckStatus(string status) => status is "queued" or "in_progress" or "waiting" or "pending" or "requested"
+        ? status.Replace('_', ' ') : Quote(status);
 
     /// <summary>
     /// A string read from GitHub as one inline code span: control, format (bidi) and line-separator characters become
@@ -311,7 +373,7 @@ internal static class BlockerAnalysis
     internal static string? Link(string? url)
     {
         if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+            || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp) || !string.IsNullOrEmpty(uri.UserInfo))
             return null;
         return uri.AbsoluteUri.Replace("(", "%28", StringComparison.Ordinal).Replace(")", "%29", StringComparison.Ordinal)
             .Replace(" ", "%20", StringComparison.Ordinal);

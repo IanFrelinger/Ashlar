@@ -1,0 +1,1 @@
+["dotnet", "test", "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj", "--framework", "net10.0", "--filter", "FullyQualifiedName~CertGateFilterCoverageTests", "--no-restore", "--nologo", "-v", "minimal", "-m:2", "-p:NuGetAudit=false", "--logger", "trx;LogFileName=required-github-suite-selector-dropped-green.trx", "--results-directory", "/evidence", "--no-build"]

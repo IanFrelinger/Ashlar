@@ -1,0 +1,25 @@
+{
+  "recorded_at": "2026-11-02T03:17:27.375629+00:00",
+  "commands": [
+    {
+      "label": "wrapper",
+      "argv": [
+        "bash",
+        "tests/scripts/release-evidence-evaluation.test.sh"
+      ],
+      "cwd": "/workspace/Ashlar",
+      "exit_code": 1
+    },
+    {
+      "label": "wrapper-syntax",
+      "argv": [
+        "bash",
+        "-n",
+        "tests/scripts/release-evidence-evaluation.test.sh"
+      ],
+      "cwd": "/workspace/Ashlar",
+      "exit_code": 0
+    }
+  ],
+  "supplemental_status": "Incomplete supplemental study must fail until frozen labels/reports exist; see wrapper logs for actual status."
+}

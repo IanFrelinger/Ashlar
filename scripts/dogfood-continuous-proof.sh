@@ -223,113 +223,40 @@ classify_sweep_log() {
 # cannot drift silently in the direction of a false pass - a rename there makes every verdict here
 # a GAP, which is the safe direction.
 #
-# Parsed with grep and sed rather than jq: jq is not guaranteed on the runner, and a missing tool
-# would turn every row into a GAP for a reason that has nothing to do with the sweep.
-#
-# classify_sweep_log is left UNCHANGED on purpose. Its ten existing assertions include the verbatim
-# replayed log of run 34889059104 - the regression that wrote PASS for a sweep in which nothing ran -
-# and widening its signature to take a directory would put that fixture at risk for no gain.
-
-# Every verdict sidecar under a campaign directory, one path per line, sorted.
-_evidence_sidecars() {
-  local dir="${1:-}"
-  [[ -n "${dir}" && -d "${dir}" ]] || return 0
-  find "${dir}" -type f -name '*.evidence.json' 2>/dev/null | sort || true
+# Python's standard-library JSON parser rejects malformed/duplicate fields. The helper also
+# requires the cited file to remain in this campaign directory and match the archived hash.
+# This is a retained-file check, not a new signature verifier or an independent trust anchor.
+# classify_sweep_log remains unchanged: log verdict and persisted evidence are separate checks.
+_dogfood_evidence() {
+  local mode="$1" dir="${2:-}"
+  if ! command -v python3 >/dev/null 2>&1; then
+    [[ "${mode}" != "reason" ]] || printf '%s' "python3 is unavailable; cannot validate retained evidence"
+    [[ "${mode}" != "classify" ]] || return 3
+    return 0
+  fi
+  local output rc=0
+  output="$(python3 "${ROOT}/scripts/dogfood-evidence.py" "${mode}" "${dir}" 2>/dev/null)" || rc=$?
+  if [[ "${rc}" -ne 0 ]]; then
+    [[ "${mode}" != "reason" ]] || printf '%s' "retained-evidence validation failed; see the helper installation"
+    [[ "${mode}" != "classify" ]] || return 3
+    return 0
+  fi
+  printf '%s' "${output}"
 }
 
-# One QUOTED JSON field. Empty when absent, when its value is unquoted (null), or when it is "".
-_evidence_string() {
-  local file="${1:-}" name="${2:-}"
-  grep -o "\"${name}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "${file}" 2>/dev/null \
-    | head -1 | sed "s/^[^:]*:[[:space:]]*\"//; s/\"\$//" || true
-}
-
-# One UNQUOTED JSON scalar (true / false / null / a number). Empty when absent.
-_evidence_scalar() {
-  local file="${1:-}" name="${2:-}"
-  grep -o "\"${name}\"[[:space:]]*:[[:space:]]*[^\",}]*" "${file}" 2>/dev/null \
-    | head -1 | sed "s/^[^:]*:[[:space:]]*//" | tr -d '[:space:]' || true
-}
-
-# Did this run's record persist and re-verify?
-#
-#   0  exactly one sidecar, "verified": true, and a non-empty signerFingerprint AND recordPath
-#   3  anything else
-#
-# ABSENT MEANS 3, AND THAT CLAUSE IS THE WHOLE POINT. An archive that is never wired up, a spike
-# whose one configuration line was deleted (spikes/ is compiled by nothing, so no gate would say
-# so), a sidecar that was never written - all of them look identical from here, and all of them
-# must produce a GAP row. Without this clause every other guard in this change is decorative: the
-# sweep would keep exiting 0 and the ledger would keep recording PASS for a run with no reviewable
-# record, which is the pre-#630 failure pointed the other way.
-#
-# TWO OR MORE SIDECARS IS ALSO 3. A campaign directory is reused across reruns, and `head -1` over
-# two verdicts would silently let one run decide another's row. Ambiguous evidence is not evidence.
-#
-# An EMPTY signerFingerprint or recordPath is 3 as well: a ledger row cites those two strings, and a
-# citation to an empty string is not a citation.
+# 0 only when one valid sidecar reports verification and its cited record still matches;
+# malformed/ambiguous evidence, a missing record, or changed bytes returns 3 (GAP).
 classify_sweep_evidence() {
-  local dir="${1:-}"
-  local count file
-
-  count="$(_evidence_sidecars "${dir}" | wc -l | tr -d '[:space:]')"
-  [[ "${count}" == "1" ]] || return 3
-
-  file="$(_evidence_sidecars "${dir}" | head -1)"
-  [[ "$(_evidence_scalar "${file}" verified)" == "true" ]] || return 3
-  [[ -n "$(_evidence_string "${file}" signerFingerprint)" ]] || return 3
-  [[ -n "$(_evidence_string "${file}" recordPath)" ]] || return 3
-  return 0
+  _dogfood_evidence classify "${1:-}" || return 3
 }
 
-# Why classify_sweep_evidence said 3, in a sentence a ledger cell can carry.
 sweep_evidence_reason() {
-  local dir="${1:-}"
-  local count file code reason
-
-  count="$(_evidence_sidecars "${dir}" | wc -l | tr -d '[:space:]')"
-  if [[ "${count}" == "0" ]]; then
-    printf '%s' "no *.evidence.json under ${dir}: nothing persisted and re-verified a certification record, so this run left no artefact a row could cite (an archive that was never wired up looks exactly like this)"
-    return 0
-  fi
-  if [[ "${count}" != "1" ]]; then
-    printf '%s' "${count} *.evidence.json files under ${dir}: ambiguous evidence is not evidence, and picking one would let a rerun decide another run's verdict"
-    return 0
-  fi
-
-  file="$(_evidence_sidecars "${dir}" | head -1)"
-  code="$(_evidence_string "${file}" failureCode)"
-  reason="$(_evidence_string "${file}" failureReason)"
-  if [[ -n "${code}" ]]; then
-    printf '%s' "${code}: ${reason}" | cut -c1-400
-    return 0
-  fi
-  if [[ -z "$(_evidence_string "${file}" signerFingerprint)" ]]; then
-    printf '%s' "the record re-verified but the sidecar names no signer fingerprint, so a row built from it could not say who signed"
-    return 0
-  fi
-  if [[ -z "$(_evidence_string "${file}" recordPath)" ]]; then
-    printf '%s' "the record re-verified but the sidecar names no record path, so a row built from it could not cite the file"
-    return 0
-  fi
-  printf '%s' "the sidecar at ${file} does not report \"verified\": true and names no failure code"
+  _dogfood_evidence reason "${1:-}"
 }
 
-# The one line a 3a-counting ledger row has to carry. Empty when there is no single sidecar.
+# Invalid evidence cannot produce a success citation even if it changed after classification.
 sweep_evidence_citation() {
-  local dir="${1:-}"
-  local count file
-
-  count="$(_evidence_sidecars "${dir}" | wc -l | tr -d '[:space:]')"
-  [[ "${count}" == "1" ]] || return 0
-
-  file="$(_evidence_sidecars "${dir}" | head -1)"
-  printf 'record=%s sha256=%s signer=%s pinned=%s dev-hmac=%s' \
-    "$(_evidence_string "${file}" recordPath)" \
-    "$(_evidence_string "${file}" recordSha256)" \
-    "$(_evidence_string "${file}" signerFingerprint)" \
-    "$(_evidence_scalar "${file}" pinningEnabled)" \
-    "$(_evidence_scalar "${file}" usesDevHmacKey)"
+  _dogfood_evidence citation "${1:-}"
 }
 
 # The exception text from the first failed iteration, trimmed of its stack frames and capped so a

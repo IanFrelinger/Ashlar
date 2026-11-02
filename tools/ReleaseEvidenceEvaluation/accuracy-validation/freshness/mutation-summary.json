@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "commit": "a360af5fef0db2d2575ca4a61ee9520d6997ef41",
+  "mutations": [
+    {
+      "id": "recollection-disabled",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/GitHubBlockerReader.cs",
+      "filter": "FullyQualifiedName~GitHubRecollectionTests",
+      "patchSha256": "2dbdcb6cd065bad4028842fce7e1c2612ed462523e851143c5addd92eb9eaa8b",
+      "originalSourceSha256": "b8aa750de142382dc38b738eee9c9f462ef112307071562274b887f01c37a097",
+      "restoredSourceSha256": "b8aa750de142382dc38b738eee9c9f462ef112307071562274b887f01c37a097",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 7,
+          "failed": 14,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.A_single_head_change_replaces_earlier_failure_and_read_errors_with_fresh_facts",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Mergeability_polling_and_recollection_have_a_finite_shared_request_bound",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Changed_mergeability_on_the_same_head_reloads_checks_and_reviews",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"mergeability\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.An_unreadable_second_verification_is_unknown_even_with_a_failed_observation",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Malformed_metadata_on_the_second_final_read_cannot_establish_a_current_decision",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.A_terminal_replacement_preserves_closed_or_merged_semantics_without_collecting_more_ci(merged: False)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.A_terminal_replacement_preserves_closed_or_merged_semantics_without_collecting_more_ci(merged: True)",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.A_changed_base_reloads_policy_for_the_new_base_instead_of_reusing_old_requirements",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"base\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"draft\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Recollection_does_not_make_an_old_commit_approval_current",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"head\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.A_new_head_missing_a_required_check_cannot_borrow_the_old_heads_passing_result"
+        ],
+        "log": "recollection-disabled-red.log",
+        "trx": "recollection-disabled-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 21,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "recollection-disabled-green.log",
+        "trx": "recollection-disabled-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "earlier-read-errors-leak",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/GitHubBlockerReader.cs",
+      "filter": "FullyQualifiedName~GitHubRecollectionTests",
+      "patchSha256": "359b5370b090d3c478296cd4558698b976f02c4eb1c2b05346a67c4d6e391a56",
+      "originalSourceSha256": "b8aa750de142382dc38b738eee9c9f462ef112307071562274b887f01c37a097",
+      "restoredSourceSha256": "b8aa750de142382dc38b738eee9c9f462ef112307071562274b887f01c37a097",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 20,
+          "failed": 1,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.A_single_head_change_replaces_earlier_failure_and_read_errors_with_fresh_facts"
+        ],
+        "log": "earlier-read-errors-leak-red.log",
+        "trx": "earlier-read-errors-leak-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 21,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "earlier-read-errors-leak-green.log",
+        "trx": "earlier-read-errors-leak-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "exhausted-legacy-blocked",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/BlockerAnalysis.cs",
+      "filter": "FullyQualifiedName~GitHubRecollectionTests",
+      "patchSha256": "814c6b72e34ac8ab3d1c304842a91f6a528b904b46a3d55b5027842a26812366",
+      "originalSourceSha256": "7bcdae4fbc3d9e091cf7b738426f77bb8ba4d6981521511466499782b91b8c47",
+      "restoredSourceSha256": "7bcdae4fbc3d9e091cf7b738426f77bb8ba4d6981521511466499782b91b8c47",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 15,
+          "failed": 6,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"head\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"base\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"mergeability\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.An_unreadable_second_verification_is_unknown_even_with_a_failed_observation",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Malformed_metadata_on_the_second_final_read_cannot_establish_a_current_decision",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"draft\")"
+        ],
+        "log": "exhausted-legacy-blocked-red.log",
+        "trx": "exhausted-legacy-blocked-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 21,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "exhausted-legacy-blocked-green.log",
+        "trx": "exhausted-legacy-blocked-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "exhausted-assurance-fail",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/ReleaseEvidencePack.cs",
+      "filter": "FullyQualifiedName~GitHubRecollectionTests",
+      "patchSha256": "9a1575b697a86132c219f26bf00207728daae857460ece76d6d2d7190569fe6e",
+      "originalSourceSha256": "2a7d81c433de2bf03dfffb0f53761be7d1463fbd0e4bfb36279d36317bc4cb63",
+      "restoredSourceSha256": "2a7d81c433de2bf03dfffb0f53761be7d1463fbd0e4bfb36279d36317bc4cb63",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 15,
+          "failed": 6,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Malformed_metadata_on_the_second_final_read_cannot_establish_a_current_decision",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"draft\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"mergeability\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.An_unreadable_second_verification_is_unknown_even_with_a_failed_observation",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"head\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"base\")"
+        ],
+        "log": "exhausted-assurance-fail-red.log",
+        "trx": "exhausted-assurance-fail-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 21,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "exhausted-assurance-fail-green.log",
+        "trx": "exhausted-assurance-fail-green.trx"
+      },
+      "verdict": "KILLED"
+    },
+    {
+      "id": "third-collection-admitted",
+      "path": "src/Ashlar.Bricks.GitHub/GitHub/GitHubBlockerReader.cs",
+      "filter": "FullyQualifiedName~GitHubRecollectionTests",
+      "patchSha256": "794d60d42f1255c8436859fdb69d6555dad7eb7773f83c6b0007145fa2e89117",
+      "originalSourceSha256": "b8aa750de142382dc38b738eee9c9f462ef112307071562274b887f01c37a097",
+      "restoredSourceSha256": "b8aa750de142382dc38b738eee9c9f462ef112307071562274b887f01c37a097",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 16,
+          "failed": 5,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"mergeability\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Mergeability_polling_and_recollection_have_a_finite_shared_request_bound",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"base\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"draft\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests.Repeated_motion_stops_after_two_collections_and_cannot_give_a_current_decision(changed: \"head\")"
+        ],
+        "log": "third-collection-admitted-red.log",
+        "trx": "third-collection-admitted-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 21,
+          "executed": 21,
+          "passed": 21,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "third-collection-admitted-green.log",
+        "trx": "third-collection-admitted-green.trx"
+      },
+      "verdict": "KILLED"
+    }
+  ],
+  "status": "passed"
+}

@@ -1,0 +1,28 @@
+{
+  "commit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+  "command": "NuGetAudit=false bash scripts/run-cert-gate.sh",
+  "exitCode": 1,
+  "counters": {
+    "total": "3931",
+    "executed": "3931",
+    "passed": "3930",
+    "failed": "1",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  },
+  "failedTests": [
+    "Ashlar.Tests.Infrastructure.Tests.Certification.EgressGuardConventionTests.F1_no_file_has_more_outbound_paths_than_its_pin"
+  ],
+  "uncompressedTrxSha256": "823421ce77f7e8af252e11c145bda4d9a40a4e8a70f83032b4036d75e7858dfb",
+  "outcome": "failed; one unlisted primitive in evaluation transport self-test, corrected later; never counted as passing"
+}

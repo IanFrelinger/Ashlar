@@ -1,0 +1,468 @@
+{
+  "brickId": "github.blockers",
+  "brickVersion": "1.3.1",
+  "summary": "PR #136812 is BLOCKED by 3 blocker(s).",
+  "outputs": {
+    "verdict": "blocked",
+    "blockers": [
+      {
+        "reason": "The pull request is a draft.",
+        "evidence": "https://github.com/dotnet/runtime/pull/136812"
+      },
+      {
+        "reason": "0 of 1 required approving reviews.",
+        "evidence": "https://github.com/dotnet/runtime/pull/136812"
+      },
+      {
+        "reason": "The check \u0060Build Analysis\u0060 is still in progress.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025485320"
+      }
+    ],
+    "unknowns": [],
+    "notes": [
+      {
+        "text": "The check \u0060runtime (Build linux-x64 checked CLR_R2R_Tests_linux_x64)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125034513495"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI asmdiffs windows x64)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125032213960"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI tpdiff windows x64)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125031577102"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI asmdiffs windows x86)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125030520542"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI tpdiff windows x86)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125030216089"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI tpdiff linux x64)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125029649113"
+      },
+      {
+        "text": "The check \u0060dotnet-linker-tests (Build windows-x64 release Runtime_Release)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026899426"
+      },
+      {
+        "text": "The check \u0060dotnet-linker-tests (Build linux-x64 release Runtime_Release)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026896919"
+      },
+      {
+        "text": "The check \u0060runtime (Build linux-x64 Release AllSubsets_Mono_LLVMAot_RuntimeTests llvmaot)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026790139"
+      },
+      {
+        "text": "The check \u0060runtime (Build osx-x64 Release AllSubsets_Mono_Interpreter_RuntimeTests monointerpreter)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026787977"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-x64 Release AllSubsets_Mono_Minijit_RuntimeTests minijit)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026787935"
+      },
+      {
+        "text": "The check \u0060runtime (Build osx-x64 Release AllSubsets_Mono_Minijit_RuntimeTests minijit)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026786073"
+      },
+      {
+        "text": "The check \u0060runtime (Build maccatalyst-arm64 Release AllSubsets_CoreCLR_Smoke)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026766818"
+      },
+      {
+        "text": "The check \u0060runtime (Build ios-arm64 Release AllSubsets_CoreCLR_Smoke)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026766750"
+      },
+      {
+        "text": "The check \u0060runtime (Build browser-wasm linux Release LibraryTestsCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026758631"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-arm64 Release NativeAOT_Libraries)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026753322"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-x64 Checked NativeAOT)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026745755"
+      },
+      {
+        "text": "The check \u0060runtime (Build linux-x64 checked Native_GCC)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026738407"
+      },
+      {
+        "text": "The check \u0060runtime (Build linux-loongarch64 Debug CoreCLR_Bootstrapped)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026738354"
+      },
+      {
+        "text": "The check \u0060runtime (Build linux-riscv64 Debug CoreCLR_Bootstrapped)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026735700"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-x64 checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026733206"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-x86 checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026730672"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-arm64 checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026730561"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-x86 Debug Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026727841"
+      },
+      {
+        "text": "The check \u0060runtime (Build linux-arm checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026727599"
+      },
+      {
+        "text": "The check \u0060runtime (Build linux_musl-x64 Debug Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026725035"
+      },
+      {
+        "text": "The check \u0060runtime (Build osx-x64 checked Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026725027"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-x64 checked Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026724930"
+      },
+      {
+        "text": "The check \u0060runtime (Build osx-arm64 checked Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026722331"
+      },
+      {
+        "text": "The check \u0060runtime (Build linux-arm64 checked Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026719929"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-x86 release CoreCLR_AllSubsets)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026719844"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-x64 Debug CoreCLR_AllSubsets)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026717121"
+      },
+      {
+        "text": "The check \u0060runtime (Build osx-arm64 Debug CoreCLR_AllSubsets)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026717076"
+      },
+      {
+        "text": "The check \u0060runtime (Build browser-wasm windows checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026712162"
+      },
+      {
+        "text": "The check \u0060runtime (Build wasi-wasm linux Release LibraryTestsCoreCLR_WASI)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026711911"
+      },
+      {
+        "text": "The check \u0060runtime (Build browser-wasm linux checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026711880"
+      },
+      {
+        "text": "The check \u0060runtime (Build windows-arm64 Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026703920"
+      },
+      {
+        "text": "The check \u0060runtime (Build Monitor Helix Jobs)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026698638"
+      },
+      {
+        "text": "The check \u0060runtime-dev-innerloop (Build windows-x86 release MSBuild_CMake)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125026656626"
+      },
+      {
+        "text": "The check \u0060Build Insights\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025516406"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr hardware-intrinsics (Build osx-arm64 Release NativeAOT)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025415025"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr hardware-intrinsics (Build linux-x64 Release CoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025408160"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr hardware-intrinsics (Build windows-x86 Release NativeAOT)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025408155"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr hardware-intrinsics (Build osx-arm64 Release CoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025408081"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr hardware-intrinsics (Build Monitor Helix Jobs)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025405370"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr hardware-intrinsics (Build windows-x86 Release CoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025405072"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr hardware-intrinsics (Build windows-x64 Release CoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025405046"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr hardware-intrinsics\u0060 is still queued. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025396828"
+      },
+      {
+        "text": "The check \u0060runtime-coreclr superpmi-diffs\u0060 is still queued. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025372477"
+      },
+      {
+        "text": "The check \u0060dotnet-linker-tests\u0060 is still queued. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025355147"
+      },
+      {
+        "text": "The check \u0060runtime-dev-innerloop\u0060 is still queued. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025346662"
+      },
+      {
+        "text": "The check \u0060runtime\u0060 is still queued. It is not required, so it does not block the merge.",
+        "evidence": "https://github.com/dotnet/runtime/runs/125025331675"
+      }
+    ],
+    "evidence": [
+      "https://github.com/dotnet/runtime/pull/136812",
+      "https://github.com/dotnet/runtime/runs/125025485320",
+      "https://github.com/dotnet/runtime/runs/125034513495",
+      "https://github.com/dotnet/runtime/runs/125032213960",
+      "https://github.com/dotnet/runtime/runs/125031577102",
+      "https://github.com/dotnet/runtime/runs/125030520542",
+      "https://github.com/dotnet/runtime/runs/125030216089",
+      "https://github.com/dotnet/runtime/runs/125029649113",
+      "https://github.com/dotnet/runtime/runs/125026899426",
+      "https://github.com/dotnet/runtime/runs/125026896919",
+      "https://github.com/dotnet/runtime/runs/125026790139",
+      "https://github.com/dotnet/runtime/runs/125026787977",
+      "https://github.com/dotnet/runtime/runs/125026787935",
+      "https://github.com/dotnet/runtime/runs/125026786073",
+      "https://github.com/dotnet/runtime/runs/125026766818",
+      "https://github.com/dotnet/runtime/runs/125026766750",
+      "https://github.com/dotnet/runtime/runs/125026758631",
+      "https://github.com/dotnet/runtime/runs/125026753322",
+      "https://github.com/dotnet/runtime/runs/125026745755",
+      "https://github.com/dotnet/runtime/runs/125026738407",
+      "https://github.com/dotnet/runtime/runs/125026738354",
+      "https://github.com/dotnet/runtime/runs/125026735700",
+      "https://github.com/dotnet/runtime/runs/125026733206",
+      "https://github.com/dotnet/runtime/runs/125026730672",
+      "https://github.com/dotnet/runtime/runs/125026730561",
+      "https://github.com/dotnet/runtime/runs/125026727841",
+      "https://github.com/dotnet/runtime/runs/125026727599",
+      "https://github.com/dotnet/runtime/runs/125026725035",
+      "https://github.com/dotnet/runtime/runs/125026725027",
+      "https://github.com/dotnet/runtime/runs/125026724930",
+      "https://github.com/dotnet/runtime/runs/125026722331",
+      "https://github.com/dotnet/runtime/runs/125026719929",
+      "https://github.com/dotnet/runtime/runs/125026719844",
+      "https://github.com/dotnet/runtime/runs/125026717121",
+      "https://github.com/dotnet/runtime/runs/125026717076",
+      "https://github.com/dotnet/runtime/runs/125026712162",
+      "https://github.com/dotnet/runtime/runs/125026711911",
+      "https://github.com/dotnet/runtime/runs/125026711880",
+      "https://github.com/dotnet/runtime/runs/125026703920",
+      "https://github.com/dotnet/runtime/runs/125026698638",
+      "https://github.com/dotnet/runtime/runs/125026656626",
+      "https://github.com/dotnet/runtime/runs/125025516406",
+      "https://github.com/dotnet/runtime/runs/125025415025",
+      "https://github.com/dotnet/runtime/runs/125025408160",
+      "https://github.com/dotnet/runtime/runs/125025408155",
+      "https://github.com/dotnet/runtime/runs/125025408081",
+      "https://github.com/dotnet/runtime/runs/125025405370",
+      "https://github.com/dotnet/runtime/runs/125025405072",
+      "https://github.com/dotnet/runtime/runs/125025405046",
+      "https://github.com/dotnet/runtime/runs/125025396828",
+      "https://github.com/dotnet/runtime/runs/125025372477",
+      "https://github.com/dotnet/runtime/runs/125025355147",
+      "https://github.com/dotnet/runtime/runs/125025346662",
+      "https://github.com/dotnet/runtime/runs/125025331675"
+    ],
+    "answer": "**What is blocking PR #136812?** PR #136812 is BLOCKED by 3 blocker(s).\n\nBlockers:\n- The pull request is a draft. ([evidence](https://github.com/dotnet/runtime/pull/136812))\n- 0 of 1 required approving reviews. ([evidence](https://github.com/dotnet/runtime/pull/136812))\n- The check \u0060Build Analysis\u0060 is still in progress. ([evidence](https://github.com/dotnet/runtime/runs/125025485320))\n\nNotes:\n- The check \u0060runtime (Build linux-x64 checked CLR_R2R_Tests_linux_x64)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125034513495))\n- The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI asmdiffs windows x64)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125032213960))\n- The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI tpdiff windows x64)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125031577102))\n- The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI asmdiffs windows x86)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125030520542))\n- The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI tpdiff windows x86)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125030216089))\n- The check \u0060runtime-coreclr superpmi-diffs (Build SuperPMI tpdiff linux x64)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125029649113))\n- The check \u0060dotnet-linker-tests (Build windows-x64 release Runtime_Release)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026899426))\n- The check \u0060dotnet-linker-tests (Build linux-x64 release Runtime_Release)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026896919))\n- The check \u0060runtime (Build linux-x64 Release AllSubsets_Mono_LLVMAot_RuntimeTests llvmaot)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026790139))\n- The check \u0060runtime (Build osx-x64 Release AllSubsets_Mono_Interpreter_RuntimeTests monointerpreter)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026787977))\n- The check \u0060runtime (Build windows-x64 Release AllSubsets_Mono_Minijit_RuntimeTests minijit)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026787935))\n- The check \u0060runtime (Build osx-x64 Release AllSubsets_Mono_Minijit_RuntimeTests minijit)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026786073))\n- The check \u0060runtime (Build maccatalyst-arm64 Release AllSubsets_CoreCLR_Smoke)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026766818))\n- The check \u0060runtime (Build ios-arm64 Release AllSubsets_CoreCLR_Smoke)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026766750))\n- The check \u0060runtime (Build browser-wasm linux Release LibraryTestsCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026758631))\n- The check \u0060runtime (Build windows-arm64 Release NativeAOT_Libraries)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026753322))\n- The check \u0060runtime (Build windows-x64 Checked NativeAOT)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026745755))\n- The check \u0060runtime (Build linux-x64 checked Native_GCC)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026738407))\n- The check \u0060runtime (Build linux-loongarch64 Debug CoreCLR_Bootstrapped)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026738354))\n- The check \u0060runtime (Build linux-riscv64 Debug CoreCLR_Bootstrapped)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026735700))\n- The check \u0060runtime (Build windows-x64 checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026733206))\n- The check \u0060runtime (Build windows-x86 checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026730672))\n- The check \u0060runtime (Build windows-arm64 checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026730561))\n- The check \u0060runtime (Build windows-x86 Debug Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026727841))\n- The check \u0060runtime (Build linux-arm checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026727599))\n- The check \u0060runtime (Build linux_musl-x64 Debug Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026725035))\n- The check \u0060runtime (Build osx-x64 checked Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026725027))\n- The check \u0060runtime (Build windows-x64 checked Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026724930))\n- The check \u0060runtime (Build osx-arm64 checked Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026722331))\n- The check \u0060runtime (Build linux-arm64 checked Libraries_CheckedCoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026719929))\n- The check \u0060runtime (Build windows-x86 release CoreCLR_AllSubsets)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026719844))\n- The check \u0060runtime (Build windows-x64 Debug CoreCLR_AllSubsets)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026717121))\n- The check \u0060runtime (Build osx-arm64 Debug CoreCLR_AllSubsets)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026717076))\n- The check \u0060runtime (Build browser-wasm windows checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026712162))\n- The check \u0060runtime (Build wasi-wasm linux Release LibraryTestsCoreCLR_WASI)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026711911))\n- The check \u0060runtime (Build browser-wasm linux checked CoreCLR_ReleaseLibraries)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026711880))\n- The check \u0060runtime (Build windows-arm64 Debug AllSubsets_CoreCLR_ReleaseRuntimeLibs)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026703920))\n- The check \u0060runtime (Build Monitor Helix Jobs)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026698638))\n- The check \u0060runtime-dev-innerloop (Build windows-x86 release MSBuild_CMake)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125026656626))\n- The check \u0060Build Insights\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025516406))\n- The check \u0060runtime-coreclr hardware-intrinsics (Build osx-arm64 Release NativeAOT)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025415025))\n- The check \u0060runtime-coreclr hardware-intrinsics (Build linux-x64 Release CoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025408160))\n- The check \u0060runtime-coreclr hardware-intrinsics (Build windows-x86 Release NativeAOT)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025408155))\n- The check \u0060runtime-coreclr hardware-intrinsics (Build osx-arm64 Release CoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025408081))\n- The check \u0060runtime-coreclr hardware-intrinsics (Build Monitor Helix Jobs)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025405370))\n- The check \u0060runtime-coreclr hardware-intrinsics (Build windows-x86 Release CoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025405072))\n- The check \u0060runtime-coreclr hardware-intrinsics (Build windows-x64 Release CoreCLR)\u0060 is still in progress. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025405046))\n- The check \u0060runtime-coreclr hardware-intrinsics\u0060 is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025396828))\n- The check \u0060runtime-coreclr superpmi-diffs\u0060 is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025372477))\n- The check \u0060dotnet-linker-tests\u0060 is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025355147))\n- The check \u0060runtime-dev-innerloop\u0060 is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025346662))\n- The check \u0060runtime\u0060 is still queued. It is not required, so it does not block the merge. ([evidence](https://github.com/dotnet/runtime/runs/125025331675))\n\nRead from https://github.com/dotnet/runtime/pull/136812\n",
+    "assurance": "fail",
+    "evidencePack": {
+      "schemaVersion": "1.0",
+      "repository": "dotnet/runtime",
+      "pullRequest": 136812,
+      "url": "https://github.com/dotnet/runtime/pull/136812",
+      "headSha": "33eb87c9872b320aeed78454a76070b3f768a355",
+      "baseRef": "main",
+      "baseSha": "8586c680f0c3337fd707e3eb891d8250f8f5544c",
+      "collectionStartedAt": "2026-11-02T02:01:00.6058859\u002B00:00",
+      "collectedAt": "2026-11-02T02:01:00.679685\u002B00:00",
+      "ashlarVersion": "0.4.2\u002B7bf31595b7b67940f62441ecb29d132c1561d0ec",
+      "brickVersion": "1.3.1",
+      "auditId": null,
+      "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+      "authorization": {
+        "credential": "not-supplied-to-brick",
+        "effectivePermissions": "not-enumerated",
+        "authenticatedActor": "unknown"
+      },
+      "verdict": "blocked",
+      "assurance": "fail",
+      "findings": [
+        {
+          "id": "blocker-1",
+          "status": "fail",
+          "required": true,
+          "explanation": "The pull request is a draft.",
+          "sources": [
+            "https://github.com/dotnet/runtime/pull/136812"
+          ]
+        },
+        {
+          "id": "blocker-2",
+          "status": "fail",
+          "required": true,
+          "explanation": "0 of 1 required approving reviews.",
+          "sources": [
+            "https://github.com/dotnet/runtime/pull/136812"
+          ]
+        },
+        {
+          "id": "blocker-3",
+          "status": "unknown",
+          "required": true,
+          "explanation": "The check \u0060Build Analysis\u0060 is still in progress.",
+          "sources": [
+            "https://github.com/dotnet/runtime/runs/125025485320"
+          ]
+        },
+        {
+          "id": "head-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "A 40-character hexadecimal head commit was observed at collection start.",
+          "sources": [
+            "https://github.com/dotnet/runtime/pull/136812"
+          ]
+        },
+        {
+          "id": "base-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+          "sources": [
+            "https://github.com/dotnet/runtime/pull/136812"
+          ]
+        },
+        {
+          "id": "collection-consistency",
+          "status": "pass",
+          "required": true,
+          "explanation": "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+          "sources": [
+            "https://github.com/dotnet/runtime/pull/136812"
+          ]
+        },
+        {
+          "id": "required-check-policy",
+          "status": "pass",
+          "required": true,
+          "explanation": "Required check names were read from GitHub policy sources.",
+          "sources": [
+            "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_status_checks",
+            "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+            "https://api.github.com/repos/dotnet/runtime/rules/branches/main",
+            "https://api.github.com/repos/dotnet/runtime/branches/main"
+          ]
+        },
+        {
+          "id": "rulesets",
+          "status": "pass",
+          "required": true,
+          "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+          "sources": [
+            "https://api.github.com/repos/dotnet/runtime/rules/branches/main"
+          ]
+        },
+        {
+          "id": "required-check-origin",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Required check app/provider bindings could not be verified; a matching check name alone is insufficient.",
+          "sources": [
+            "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_status_checks",
+            "https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews",
+            "https://api.github.com/repos/dotnet/runtime/rules/branches/main",
+            "https://api.github.com/repos/dotnet/runtime/branches/main"
+          ]
+        },
+        {
+          "id": "unsupported-rule-9",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Detected mandatory rule \u0060deletion\u0060 is outside this collector\u0027s supported policy evaluation.",
+          "sources": [
+            "https://api.github.com/repos/dotnet/runtime/rules/branches/main"
+          ]
+        },
+        {
+          "id": "unsupported-rule-10",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Detected mandatory rule \u0060non_fast_forward\u0060 is outside this collector\u0027s supported policy evaluation.",
+          "sources": [
+            "https://api.github.com/repos/dotnet/runtime/rules/branches/main"
+          ]
+        },
+        {
+          "id": "unsupported-rule-11",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Detected mandatory rule \u0060creation\u0060 is outside this collector\u0027s supported policy evaluation.",
+          "sources": [
+            "https://api.github.com/repos/dotnet/runtime/rules/branches/main"
+          ]
+        },
+        {
+          "id": "approval-policy",
+          "status": "fail",
+          "required": true,
+          "explanation": "GitHub reports required review approval as unsatisfied.",
+          "sources": [
+            "https://github.com/dotnet/runtime/pull/136812"
+          ]
+        },
+        {
+          "id": "required-check-14",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Observations named \u0060license/cla\u0060 could not be bound to the required app/provider; their conclusions do not establish satisfaction or failure of that requirement.",
+          "sources": [
+            "https://github.com/dotnet/runtime/runs/125028785577"
+          ]
+        },
+        {
+          "id": "required-check-15",
+          "status": "unknown",
+          "required": true,
+          "explanation": "Observations named \u0060Build Analysis\u0060 could not be bound to the required app/provider; their conclusions do not establish satisfaction or failure of that requirement.",
+          "sources": [
+            "https://github.com/dotnet/runtime/runs/125025485320"
+          ]
+        }
+      ],
+      "limitations": [
+        "Human release decision required; this pack does not prove compliance or authorize a release.",
+        "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+        "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+        "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+        "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+      ],
+      "freshness": {
+        "collectionConsistency": "stable",
+        "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+      }
+    },
+    "evidenceMarkdown": "## Pull-request evidence snapshot\n\n[\u0060dotnet/runtime\u0060 PR #136812](https://github.com/dotnet/runtime/pull/136812)\n\nGitHub verdict: **blocked**. Scoped assurance: **fail**.\n\nHead: \u006033eb87c9872b320aeed78454a76070b3f768a355\u0060; base: \u0060main\u0060 (\u00608586c680f0c3337fd707e3eb891d8250f8f5544c\u0060).\n\nCollected: 2026-11-02T02:01:00.6796850\u002B00:00; schema 1.0; Ashlar \u00600.4.2\u002B7bf31595b7b67940f62441ecb29d132c1561d0ec\u0060; brick \u00601.3.1\u0060.\n\n- **fail**: The pull request is a draft. [source](https://github.com/dotnet/runtime/pull/136812)\n\n- **fail**: 0 of 1 required approving reviews. [source](https://github.com/dotnet/runtime/pull/136812)\n\n- **unknown**: The check \u0060Build Analysis\u0060 is still in progress. [source](https://github.com/dotnet/runtime/runs/125025485320)\n\n- **pass**: A 40-character hexadecimal head commit was observed at collection start. [source](https://github.com/dotnet/runtime/pull/136812)\n\n- **pass**: The relevant base reference and 40-character hexadecimal commit were observed. [source](https://github.com/dotnet/runtime/pull/136812)\n\n- **pass**: The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot. [source](https://github.com/dotnet/runtime/pull/136812)\n\n- **pass**: Required check names were read from GitHub policy sources. [source](https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_status_checks) [source](https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews) [source](https://api.github.com/repos/dotnet/runtime/rules/branches/main) [source](https://api.github.com/repos/dotnet/runtime/branches/main)\n\n- **pass**: Active branch rules were read (this collector evaluates check and review requirements only). [source](https://api.github.com/repos/dotnet/runtime/rules/branches/main)\n\n- **unknown**: Required check app/provider bindings could not be verified; a matching check name alone is insufficient. [source](https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_status_checks) [source](https://api.github.com/repos/dotnet/runtime/branches/main/protection/required_pull_request_reviews) [source](https://api.github.com/repos/dotnet/runtime/rules/branches/main) [source](https://api.github.com/repos/dotnet/runtime/branches/main)\n\n- **unknown**: Detected mandatory rule \u0060deletion\u0060 is outside this collector\u0027s supported policy evaluation. [source](https://api.github.com/repos/dotnet/runtime/rules/branches/main)\n\n- **unknown**: Detected mandatory rule \u0060non_fast_forward\u0060 is outside this collector\u0027s supported policy evaluation. [source](https://api.github.com/repos/dotnet/runtime/rules/branches/main)\n\n- **unknown**: Detected mandatory rule \u0060creation\u0060 is outside this collector\u0027s supported policy evaluation. [source](https://api.github.com/repos/dotnet/runtime/rules/branches/main)\n\n- **fail**: GitHub reports required review approval as unsatisfied. [source](https://github.com/dotnet/runtime/pull/136812)\n\n- **unknown**: Observations named \u0060license/cla\u0060 could not be bound to the required app/provider; their conclusions do not establish satisfaction or failure of that requirement. [source](https://github.com/dotnet/runtime/runs/125028785577)\n\n- **unknown**: Observations named \u0060Build Analysis\u0060 could not be bound to the required app/provider; their conclusions do not establish satisfaction or failure of that requirement. [source](https://github.com/dotnet/runtime/runs/125025485320)\n\nLimitations:\n\n- Human release decision required; this pack does not prove compliance or authorize a release.\n\n- No repository code, PR body, diff, private file content, artifact payload or access token is included.\n\n- GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.\n\n- API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.\n\n- No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately.\n"
+  }
+}

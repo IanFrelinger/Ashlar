@@ -37,7 +37,9 @@ Each row documents one dated dogfood run or infrastructure milestone:
 
 ## Continuous Proof
 
-The scheduled workflow (`.github/workflows/dogfood-continuous-proof.yml`) runs autonomy loop sweeps on canary objectives and automatically appends rows to this ledger on completion. Rows are appended via CI automation; manual edits for infrastructure milestones are also permitted.
+The scheduled workflow (`.github/workflows/dogfood-continuous-proof.yml`) runs held autonomy loop sweeps on canary objectives and prepares a ledger row, record and verification sidecar as artifacts. It has `contents: read`: it does not update this tracked ledger. A human must review the artifacts and land a dated row. Infrastructure milestones may also be recorded manually.
+
+As reviewed 2026-11-01, current code supports persistence/re-read/Strict verification and configurable signer pinning; the September rows describe their historical runs and retain their gaps. A newer run does not upgrade those rows. See [the dated baseline](development-baseline-2026-11-01.md). Autonomy and design-partner marketing remain HOLD; artifacts alone do not satisfy the scorecard.
 
 **Current canary:** `rgb-hex-parse` (6-digit hex color parser from `samples/autonomy-objectives/`)
 

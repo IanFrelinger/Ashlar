@@ -1,0 +1,320 @@
+{
+  "baseline_candidate_commit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "candidate_commit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "candidate_mode": "baseline",
+  "case_count": 3,
+  "cases": [
+    {
+      "actual_assurance": "unknown",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [
+        "legacy_ready_unknown_readiness"
+      ],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "unknown",
+      "expected_readiness": "unknown",
+      "export_status": "success",
+      "id": "public-ready-01",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "pass",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "pass",
+      "expected_readiness": "ready",
+      "export_status": "success",
+      "id": "public-ready-02",
+      "run_status": "answered"
+    },
+    {
+      "actual_assurance": "pass",
+      "actual_legacy_verdict": "ready",
+      "allowable_legacy_verdicts": [
+        "ready"
+      ],
+      "blockers": {
+        "evidence": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        },
+        "legacy": {
+          "incorrect_result_ids": [],
+          "matched_reference_ids": [],
+          "missed_blocker_ids": [],
+          "reference_blocker_ids": [],
+          "reported_blocker_ids": [],
+          "unassessable_result_ids": []
+        }
+      },
+      "disclosures": [],
+      "error_message": null,
+      "error_type": null,
+      "expected_assurance": "pass",
+      "expected_readiness": "ready",
+      "export_status": "success",
+      "id": "public-ready-03",
+      "run_status": "answered"
+    }
+  ],
+  "failure_case_ids": [
+    "public-ready-01"
+  ],
+  "inputs": {
+    "annotations_sha256": "322e11bf79f8dd4e07322893228b5c5801f4d837aec7669c6df5040464510aba",
+    "fixture_manifest_sha256": "17e01f26dff07b58d004b43ae12c5c3959e6a58b36b0a22ef56b0aa107919035",
+    "ground_truth_sha256": "56bb3ef07b040e87de45d3fa304e694ec4a34d43d3dbc69eb77d9abc2b5b2bc1",
+    "run_manifest_sha256": "61e4b9cceceb03bc0d8698a636325d32708a093c7a4552dc41bb2da0b2e3c5cf"
+  },
+  "limitations": [
+    "A small fixed sample does not establish general accuracy.",
+    "Expected policy and blockers come only from frozen independent review labels.",
+    "Artifact hashes establish retained-record consistency, not proof of reviewer blinding chronology.",
+    "Legacy readiness and scoped assurance are separate metrics; collector errors remain errors."
+  ],
+  "metrics": {
+    "answered_cases": {
+      "case_ids": [
+        "public-ready-01",
+        "public-ready-02",
+        "public-ready-03"
+      ],
+      "denominator": 3,
+      "numerator": 3,
+      "rate": 1.0,
+      "unit": "cases"
+    },
+    "assurance_false_pass_combined": {
+      "case_ids": [],
+      "denominator": 1,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "assurance_false_pass_known_fail": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "cases"
+    },
+    "assurance_false_pass_unknown": {
+      "case_ids": [],
+      "denominator": 1,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "assurance_unknown_among_answered": {
+      "case_ids": [
+        "public-ready-01"
+      ],
+      "denominator": 3,
+      "numerator": 1,
+      "rate": 0.3333333333333333,
+      "unit": "cases"
+    },
+    "assurance_unknown_results": {
+      "case_ids": [
+        "public-ready-01"
+      ],
+      "denominator": 3,
+      "numerator": 1,
+      "rate": 0.3333333333333333,
+      "unit": "cases"
+    },
+    "collection_failures": {
+      "case_ids": [],
+      "denominator": 3,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "evidence_cases_with_incorrect_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "cases"
+    },
+    "evidence_cases_with_missed_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "cases"
+    },
+    "evidence_cases_with_unassessable_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "cases"
+    },
+    "evidence_incorrect_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "blocker instances"
+    },
+    "evidence_missed_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "blocker instances"
+    },
+    "evidence_unassessable_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "blocker instances"
+    },
+    "export_failures": {
+      "case_ids": [],
+      "denominator": 3,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "harness_failures": {
+      "case_ids": [],
+      "denominator": 3,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "legacy_cases_with_incorrect_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "cases"
+    },
+    "legacy_cases_with_missed_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "cases"
+    },
+    "legacy_cases_with_unassessable_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "cases"
+    },
+    "legacy_compatibility_disagreements": {
+      "case_ids": [],
+      "denominator": 3,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "legacy_false_ready_known_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "cases"
+    },
+    "legacy_incorrect_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "blocker instances"
+    },
+    "legacy_missed_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "blocker instances"
+    },
+    "legacy_ready_unknown_readiness": {
+      "case_ids": [
+        "public-ready-01"
+      ],
+      "denominator": 1,
+      "numerator": 1,
+      "rate": 1.0,
+      "unit": "cases"
+    },
+    "legacy_unassessable_blockers": {
+      "case_ids": [],
+      "denominator": 0,
+      "numerator": 0,
+      "rate": null,
+      "unit": "blocker instances"
+    },
+    "legacy_unknown_among_answered": {
+      "case_ids": [],
+      "denominator": 3,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    },
+    "legacy_unknown_results": {
+      "case_ids": [],
+      "denominator": 3,
+      "numerator": 0,
+      "rate": 0.0,
+      "unit": "cases"
+    }
+  },
+  "review_scope": "AI-only independent review; no human, customer, productivity, or release-approval claim",
+  "schema_version": 1
+}

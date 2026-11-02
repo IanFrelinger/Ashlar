@@ -1,0 +1,14 @@
+{
+  "productionCheckout": "5b01673b02ba31808ccdd74be3ac5a1b350951c5",
+  "command": [
+    "python3",
+    "tools/ReleaseEvidenceEvaluation/validation/session-subreaper.py",
+    "bash",
+    "scripts/ci/run-repo-gates.sh"
+  ],
+  "passed": 48,
+  "failed": 0,
+  "exitCode": 0,
+  "workingTree": "Same production source as checkout; staged final documentation/evidence artifacts were present.",
+  "log": "repo-gates.txt.gz"
+}

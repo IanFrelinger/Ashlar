@@ -1,0 +1,28 @@
+  Ashlar.Certification.Contracts -> /repo/src/Ashlar.Certification.Contracts/bin/Release/net10.0/Ashlar.Certification.Contracts.dll
+  Ashlar.Brick.Contracts -> /repo/src/Ashlar.Brick.Contracts/bin/Release/net10.0/Ashlar.Brick.Contracts.dll
+  Ashlar.Abstractions -> /repo/src/Ashlar.Abstractions/bin/Release/net10.0/Ashlar.Abstractions.dll
+  Ashlar.Tools.Assembly -> /repo/src/Ashlar.Tools.Assembly/bin/Release/net10.0/Ashlar.Tools.Assembly.dll
+  Ashlar.Mcp.Server -> /repo/src/Ashlar.Mcp.Server/bin/Release/net10.0/Ashlar.Mcp.Server.dll
+  Ashlar.Transport.Grpc -> /repo/src/Ashlar.Transport.Grpc/bin/Release/net10.0/Ashlar.Transport.Grpc.dll
+  Ashlar.AI.Pipeline -> /repo/src/Ashlar.AI.Pipeline/bin/Release/net10.0/Ashlar.AI.Pipeline.dll
+  Ashlar.Contracts -> /repo/src/Ashlar.Contracts/bin/Release/net10.0/Ashlar.Contracts.dll
+  Ashlar.Policies -> /repo/src/Ashlar.Policies/bin/Release/net10.0/Ashlar.Policies.dll
+  Ashlar.Core.Domain -> /repo/src/Ashlar.Core.Domain/bin/Release/net10.0/Ashlar.Core.Domain.dll
+  Ashlar.Runtime -> /repo/src/Ashlar.Runtime/bin/Release/net10.0/Ashlar.Runtime.dll
+  Ashlar.Brick.Contracts -> /repo/src/Ashlar.Brick.Contracts/bin/Release/netstandard2.0/Ashlar.Brick.Contracts.dll
+  Ashlar.Analyzers -> /repo/src/Ashlar.Analyzers/bin/Release/netstandard2.0/Ashlar.Analyzers.dll
+  Ashlar.Bricks.GitHub -> /repo/src/Ashlar.Bricks.GitHub/bin/Release/net10.0/Ashlar.Bricks.GitHub.dll
+  Ashlar.Core.Application -> /repo/src/Ashlar.Core.Application/bin/Release/net10.0/Ashlar.Core.Application.dll
+  Ashlar.Tools.Dev -> /repo/src/Ashlar.Tools.Dev/bin/Release/net10.0/Ashlar.Tools.Dev.dll
+  Ashlar.Infrastructure -> /repo/src/Ashlar.Infrastructure/bin/Release/net10.0/Ashlar.Infrastructure.dll
+  Ashlar.Orchestration -> /repo/src/Ashlar.Orchestration/bin/Release/net10.0/Ashlar.Orchestration.dll
+  Ashlar.Mcp.Bricks -> /repo/src/Ashlar.Mcp.Bricks/bin/Release/net10.0/Ashlar.Mcp.Bricks.dll
+  Ashlar.BackgroundAgents -> /repo/src/Ashlar.BackgroundAgents/bin/Release/net10.0/Ashlar.BackgroundAgents.dll
+  Ashlar.Hosting -> /repo/src/Ashlar.Hosting/bin/Release/net10.0/Ashlar.Hosting.dll
+  Ashlar.Mcp.Server.Host -> /repo/src/Ashlar.Mcp.Server.Host/bin/Release/net10.0/Ashlar.Mcp.Server.Host.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:01:18.88

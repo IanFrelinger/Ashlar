@@ -1,0 +1,17 @@
+[
+  [
+    "provider-binding-ignored",
+    "(requirement.AppId is null || requirement.AppId == check.AppId)",
+    "true"
+  ],
+  [
+    "malformed-id-becomes-any-provider",
+    "return value is null or int or long;",
+    "return true;"
+  ],
+  [
+    "global-origin-flag-masks-known-context",
+    "if (protection.CheckRequirements is { } bindings)",
+    "if (protection.CheckRequirements is { } bindings && protection.RequiredCheckOriginsKnown)"
+  ]
+]

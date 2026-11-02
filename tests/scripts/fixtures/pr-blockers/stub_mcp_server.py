@@ -24,7 +24,9 @@ def send(obj):
     sys.stdout.flush()
 
 
-log({"env.ExposedBrickIds__0": os.environ.get("Ashlar__Mcp__Bricks__ExposedBrickIds__0")})
+log({"env.ExposedBrickIds__0": os.environ.get("Ashlar__Mcp__Bricks__ExposedBrickIds__0"),
+     "env.CredentialPresent": bool(os.environ.get("ASHLAR_GITHUB_TOKEN")),
+     "env.Repository": os.environ.get("ASHLAR_GITHUB_REPOSITORY")})
 
 OUTPUTS = {
     "blocked": {
@@ -46,7 +48,7 @@ for line in sys.stdin:
     if method == "initialize":
         send({"jsonrpc": "2.0", "method": "notifications/message", "params": {"level": "info", "data": "hi"}})
         send({"jsonrpc": "2.0", "id": msg["id"], "result": {
-            "protocolVersion": msg["params"]["protocolVersion"],
+            "protocolVersion": "1900-01-01" if mode == "wrong-protocol" else msg["params"]["protocolVersion"],
             "capabilities": {"tools": {}},
             "serverInfo": {"name": "stub", "version": "0"},
         }})
@@ -75,6 +77,24 @@ for line in sys.stdin:
         key = "blocked" if mode in ("blocked", "structured") else "ready"
         payload = {"brickId": "github.blockers", "brickVersion": "1.0.0", "auditId": f"audit-{key}",
                    "summary": key, "outputs": OUTPUTS[key]}
+        if mode.startswith("pack-"):
+            assurance = "unknown" if mode == "pack-unknown" else "pass"
+            payload["outputs"]["evidencePack"] = {
+                "schemaVersion": "1.0", "repository": "o/r", "pullRequest": 7,
+                "headSha": "a" * 40, "verdict": "ready", "assurance": assurance,
+                "auditId": None, "findings": [], "limitations": ["Snapshot only"],
+            }
+            payload["outputs"]["evidenceMarkdown"] = f"# Release evidence\n\nAssurance: {assurance}\n"
+            if mode == "pack-mismatch":
+                payload["outputs"]["evidencePack"]["verdict"] = "blocked"
+            if mode == "pack-new-schema":
+                payload["outputs"]["evidencePack"]["schemaVersion"] = "999"
+        if mode == "hostile-verdict":
+            payload["outputs"]["verdict"] = "ready\nforged-output=true"
+        if mode == "hostile-audit":
+            payload["auditId"] = "audit\nforged-output=true"
+        if mode == "hostile-answer":
+            payload["outputs"]["answer"] = "::error::untrusted workflow command"
         result = {"content": [{"type": "text", "text": json.dumps(payload)}]}
         if mode == "structured":
             result = {"content": [{"type": "text", "text": "not json"}], "structuredContent": payload}

@@ -1,0 +1,138 @@
+{
+  "brickId": "github.blockers",
+  "brickVersion": "1.3.1",
+  "summary": "PR #1 is BLOCKED by 1 blocker(s).",
+  "outputs": {
+    "verdict": "blocked",
+    "blockers": [
+      {
+        "reason": "The branch is behind \u0060main\u0060, and the base branch requires branches to be up to date.",
+        "evidence": "https://github.com/eval/fixture/pull/1"
+      }
+    ],
+    "unknowns": [],
+    "notes": [
+      {
+        "text": "Read 1 check run(s) and 0 commit status(es) on the head commit 15c780bf53d3; none is failing or pending.",
+        "evidence": "https://github.com/eval/fixture/commit/15c780bf53d3fb1249b6291702668dc62e91ae10"
+      }
+    ],
+    "evidence": [
+      "https://github.com/eval/fixture/pull/1",
+      "https://github.com/eval/fixture/commit/15c780bf53d3fb1249b6291702668dc62e91ae10"
+    ],
+    "answer": "**What is blocking PR #1?** PR #1 is BLOCKED by 1 blocker(s).\n\nBlockers:\n- The branch is behind \u0060main\u0060, and the base branch requires branches to be up to date. ([evidence](https://github.com/eval/fixture/pull/1))\n\nNotes:\n- Read 1 check run(s) and 0 commit status(es) on the head commit 15c780bf53d3; none is failing or pending. ([evidence](https://github.com/eval/fixture/commit/15c780bf53d3fb1249b6291702668dc62e91ae10))\n\nRead from https://github.com/eval/fixture/pull/1\n",
+    "assurance": "fail",
+    "evidencePack": {
+      "schemaVersion": "1.0",
+      "repository": "eval/fixture",
+      "pullRequest": 1,
+      "url": "https://github.com/eval/fixture/pull/1",
+      "headSha": "15c780bf53d3fb1249b6291702668dc62e91ae10",
+      "baseRef": "main",
+      "baseSha": "61fda2d15fad717e0e3d9fc1f4d0dd31c9ff70aa",
+      "collectionStartedAt": "2026-11-02T02:05:53.7389865\u002B00:00",
+      "collectedAt": "2026-11-02T02:05:53.7429345\u002B00:00",
+      "ashlarVersion": "0.4.2\u002Bb4b77b7f47975c64873dd8dc458329a584228d36",
+      "brickVersion": "1.3.1",
+      "auditId": null,
+      "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+      "authorization": {
+        "credential": "supplied-to-client",
+        "effectivePermissions": "not-enumerated",
+        "authenticatedActor": "unknown"
+      },
+      "verdict": "blocked",
+      "assurance": "fail",
+      "findings": [
+        {
+          "id": "blocker-1",
+          "status": "fail",
+          "required": true,
+          "explanation": "The branch is behind \u0060main\u0060, and the base branch requires branches to be up to date.",
+          "sources": [
+            "https://github.com/eval/fixture/pull/1"
+          ]
+        },
+        {
+          "id": "head-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "A 40-character hexadecimal head commit was observed at collection start.",
+          "sources": [
+            "https://github.com/eval/fixture/pull/1"
+          ]
+        },
+        {
+          "id": "base-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+          "sources": [
+            "https://github.com/eval/fixture/pull/1"
+          ]
+        },
+        {
+          "id": "collection-consistency",
+          "status": "pass",
+          "required": true,
+          "explanation": "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+          "sources": [
+            "https://github.com/eval/fixture/pull/1"
+          ]
+        },
+        {
+          "id": "required-check-policy",
+          "status": "pass",
+          "required": true,
+          "explanation": "Required check names were read from GitHub policy sources.",
+          "sources": [
+            "https://api.github.com/repos/eval/fixture/branches/main/protection/required_status_checks",
+            "https://api.github.com/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+            "https://api.github.com/repos/eval/fixture/rules/branches/main",
+            "https://api.github.com/repos/eval/fixture/branches/main"
+          ]
+        },
+        {
+          "id": "rulesets",
+          "status": "pass",
+          "required": true,
+          "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+          "sources": [
+            "https://api.github.com/repos/eval/fixture/rules/branches/main"
+          ]
+        },
+        {
+          "id": "approval-policy",
+          "status": "pass",
+          "required": true,
+          "explanation": "GitHub\u0027s review decision, or a fully read zero-approval rule, establishes the review requirement.",
+          "sources": [
+            "https://github.com/eval/fixture/pull/1"
+          ]
+        },
+        {
+          "id": "required-check-8",
+          "status": "pass",
+          "required": true,
+          "explanation": "Observed required check \u0060ci / integration\u0060 has a passing conclusion.",
+          "sources": [
+            "https://github.com/eval/fixture/actions/runs/200100"
+          ]
+        }
+      ],
+      "limitations": [
+        "Human release decision required; this pack does not prove compliance or authorize a release.",
+        "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+        "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+        "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+        "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+      ],
+      "freshness": {
+        "collectionConsistency": "stable",
+        "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+      }
+    },
+    "evidenceMarkdown": "## Pull-request evidence snapshot\n\n[\u0060eval/fixture\u0060 PR #1](https://github.com/eval/fixture/pull/1)\n\nGitHub verdict: **blocked**. Scoped assurance: **fail**.\n\nHead: \u006015c780bf53d3fb1249b6291702668dc62e91ae10\u0060; base: \u0060main\u0060 (\u006061fda2d15fad717e0e3d9fc1f4d0dd31c9ff70aa\u0060).\n\nCollected: 2026-11-02T02:05:53.7429345\u002B00:00; schema 1.0; Ashlar \u00600.4.2\u002Bb4b77b7f47975c64873dd8dc458329a584228d36\u0060; brick \u00601.3.1\u0060.\n\n- **fail**: The branch is behind \u0060main\u0060, and the base branch requires branches to be up to date. [source](https://github.com/eval/fixture/pull/1)\n\n- **pass**: A 40-character hexadecimal head commit was observed at collection start. [source](https://github.com/eval/fixture/pull/1)\n\n- **pass**: The relevant base reference and 40-character hexadecimal commit were observed. [source](https://github.com/eval/fixture/pull/1)\n\n- **pass**: The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot. [source](https://github.com/eval/fixture/pull/1)\n\n- **pass**: Required check names were read from GitHub policy sources. [source](https://api.github.com/repos/eval/fixture/branches/main/protection/required_status_checks) [source](https://api.github.com/repos/eval/fixture/branches/main/protection/required_pull_request_reviews) [source](https://api.github.com/repos/eval/fixture/rules/branches/main) [source](https://api.github.com/repos/eval/fixture/branches/main)\n\n- **pass**: Active branch rules were read (this collector evaluates check and review requirements only). [source](https://api.github.com/repos/eval/fixture/rules/branches/main)\n\n- **pass**: GitHub\u0027s review decision, or a fully read zero-approval rule, establishes the review requirement. [source](https://github.com/eval/fixture/pull/1)\n\n- **pass**: Observed required check \u0060ci / integration\u0060 has a passing conclusion. [source](https://github.com/eval/fixture/actions/runs/200100)\n\nLimitations:\n\n- Human release decision required; this pack does not prove compliance or authorize a release.\n\n- No repository code, PR body, diff, private file content, artifact payload or access token is included.\n\n- GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.\n\n- API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.\n\n- No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately.\n"
+  }
+}

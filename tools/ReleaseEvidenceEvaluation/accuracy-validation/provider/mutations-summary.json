@@ -1,0 +1,182 @@
+{
+  "commit": "76c8be38be32abe88781ffeb7549a969fd77cad2",
+  "filter": "FullyQualifiedName~GitHubProviderAssuranceRegressionTests",
+  "mutations": [
+    {
+      "id": "provider-binding-ignored",
+      "file": "src/Ashlar.Bricks.GitHub/GitHub/RequiredCheckEvaluation.cs",
+      "patchSha256": "054d9f2f21a4988b656a37724d3d26fad2e8751048bc08ccb9c208a9cc1568c1",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 63,
+          "executed": 63,
+          "passed": 60,
+          "failed": 3,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_required_app_is_evaluated_independently_of_a_same_name_optional_app(requiredConclusion: null, otherConclusion: \"success\", verdict: \"blocked\", assurance: \"fail\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_required_app_is_evaluated_independently_of_a_same_name_optional_app(requiredConclusion: \"success\", otherConclusion: \"failure\", verdict: \"ready\", assurance: \"pass\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.An_unidentified_same_name_check_neither_satisfies_nor_fails_a_bound_requirement(conclusion: \"failure\")"
+        ],
+        "log": "provider-binding-ignored-red.log",
+        "trx": "provider-binding-ignored-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 63,
+          "executed": 63,
+          "passed": 63,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "provider-binding-ignored-green.log",
+        "trx": "provider-binding-ignored-green.trx"
+      },
+      "restoredPorcelainEmpty": true
+    },
+    {
+      "id": "malformed-id-becomes-any-provider",
+      "file": "src/Ashlar.Bricks.GitHub/GitHub/RequiredCheckEvaluation.cs",
+      "patchSha256": "179b97297eb01be130e37de9cc28f40030d1ea455b10518d2b00175c3223ac74",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 63,
+          "executed": 63,
+          "passed": 57,
+          "failed": 6,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Branch_bindings_distinguish_explicit_any_app_from_omitted_or_invalid_metadata(binding: \",\\\"app_id\\\":444.5\", assurance: \"unknown\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Branch_bindings_distinguish_explicit_any_app_from_omitted_or_invalid_metadata(binding: \",\\\"app_id\\\":\\\"444\\\"\", assurance: \"unknown\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Ruleset_bindings_do_not_infer_missing_or_undocumented_negative_origins(binding: \",\\\"integration_id\\\":444.5\", assurance: \"unknown\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Ruleset_bindings_do_not_infer_missing_or_undocumented_negative_origins(binding: \",\\\"integration_id\\\":\\\"444\\\"\", assurance: \"unknown\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Ruleset_bindings_do_not_infer_missing_or_undocumented_negative_origins(binding: \",\\\"integration_id\\\":true\", assurance: \"unknown\")",
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.Branch_bindings_distinguish_explicit_any_app_from_omitted_or_invalid_metadata(binding: \",\\\"app_id\\\":true\", assurance: \"unknown\")"
+        ],
+        "log": "malformed-id-becomes-any-provider-red.log",
+        "trx": "malformed-id-becomes-any-provider-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 63,
+          "executed": 63,
+          "passed": 63,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "malformed-id-becomes-any-provider-green.log",
+        "trx": "malformed-id-becomes-any-provider-green.trx"
+      },
+      "restoredPorcelainEmpty": true
+    },
+    {
+      "id": "global-origin-flag-masks-known-context",
+      "file": "src/Ashlar.Bricks.GitHub/GitHub/RequiredCheckEvaluation.cs",
+      "patchSha256": "1e824b8248f93b611a2e1d6d65aab1d966bd57f37a30c5588ad9886ed1ffe5c0",
+      "red": {
+        "exitCode": 1,
+        "counts": {
+          "total": 63,
+          "executed": 63,
+          "passed": 62,
+          "failed": 1,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [
+          "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests.A_context_without_origin_metadata_does_not_erase_another_contexts_confirmed_failure"
+        ],
+        "log": "global-origin-flag-masks-known-context-red.log",
+        "trx": "global-origin-flag-masks-known-context-red.trx"
+      },
+      "green": {
+        "exitCode": 0,
+        "counts": {
+          "total": 63,
+          "executed": 63,
+          "passed": 63,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "failedTests": [],
+        "log": "global-origin-flag-masks-known-context-green.log",
+        "trx": "global-origin-flag-masks-known-context-green.trx"
+      },
+      "restoredPorcelainEmpty": true
+    }
+  ],
+  "status": "passed"
+}

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "1.0",
+  "repository": "eval/fixture",
+  "pullRequest": 1,
+  "url": "https://github.com/eval/fixture/pull/1",
+  "headSha": "4af92d8a4bd1079a48371783ecb7041b86e4b7e6",
+  "baseRef": "main",
+  "baseSha": "27b52d536e127903f2fa51fa5f8ae5bb7e6e0a0e",
+  "collectionStartedAt": "2026-11-02T01:09:06.4115638\u002B00:00",
+  "collectedAt": "2026-11-02T01:09:06.4151784\u002B00:00",
+  "ashlarVersion": "0.4.2\u002B47a7c8506b89670d977265ce342a962d35858cd5",
+  "brickVersion": "1.3.0",
+  "auditId": null,
+  "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+  "authorization": {
+    "credential": "supplied-to-client",
+    "effectivePermissions": "not-enumerated",
+    "authenticatedActor": "unknown"
+  },
+  "verdict": "blocked",
+  "assurance": "fail",
+  "findings": [
+    {
+      "id": "blocker-1",
+      "status": "fail",
+      "required": true,
+      "explanation": "\u0060synthetic-reviewer-1\u0060 requested changes.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1#pullrequestreview-400092"
+      ]
+    },
+    {
+      "id": "head-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "A 40-character hexadecimal head commit was observed at collection start.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "base-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "collection-consistency",
+      "status": "pass",
+      "required": true,
+      "explanation": "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "required-check-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check names were read from GitHub policy sources.",
+      "sources": [
+        "https://api.github.com/repos/eval/fixture/branches/main/protection/required_status_checks",
+        "https://api.github.com/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+        "https://api.github.com/repos/eval/fixture/rules/branches/main",
+        "https://api.github.com/repos/eval/fixture/branches/main"
+      ]
+    },
+    {
+      "id": "rulesets",
+      "status": "pass",
+      "required": true,
+      "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+      "sources": [
+        "https://api.github.com/repos/eval/fixture/rules/branches/main"
+      ]
+    },
+    {
+      "id": "approval-policy",
+      "status": "fail",
+      "required": true,
+      "explanation": "GitHub reports required review approval as unsatisfied.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    }
+  ],
+  "limitations": [
+    "Human release decision required; this pack does not prove compliance or authorize a release.",
+    "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+    "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+    "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+    "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+  ],
+  "freshness": {
+    "collectionConsistency": "stable",
+    "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+  }
+}

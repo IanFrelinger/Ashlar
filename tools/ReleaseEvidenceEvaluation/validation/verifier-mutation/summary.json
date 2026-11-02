@@ -1,0 +1,16 @@
+{
+  "candidate_commit": "7bf31595b7b67940f62441ecb29d132c1561d0ec",
+  "scope": "Disposable clone only; no .NET, API calls, or shared/frozen-input edits",
+  "mutation": "Single checked_file SHA256 equality assertion changed to require(True)",
+  "source_file": "tools/ReleaseEvidenceEvaluation/verify_retained.py",
+  "original_source_sha256": "81b2f8c35dbcbaf95bf01c4ae11ff825e4d819e3d56d87c39297c1cc29684b81",
+  "restored_source_sha256": "81b2f8c35dbcbaf95bf01c4ae11ff825e4d819e3d56d87c39297c1cc29684b81",
+  "mutant_exit_code": 1,
+  "mutant_tests_run": 6,
+  "mutant_assertion_failures": 3,
+  "mutant_runtime_errors": 0,
+  "restored_exit_code": 0,
+  "restored_tests_run": 6,
+  "restored_tests_green": 6,
+  "restored_porcelain_clean": true
+}

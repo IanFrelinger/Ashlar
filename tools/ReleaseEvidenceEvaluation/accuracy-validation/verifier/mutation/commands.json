@@ -1,0 +1,127 @@
+[
+  {
+    "label": "clone",
+    "argv": [
+      "git",
+      "clone",
+      "--quiet",
+      "--no-hardlinks",
+      "/workspace/Ashlar",
+      "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout"
+    ],
+    "cwd": "/workspace/Ashlar",
+    "returncode": 0
+  },
+  {
+    "label": "checkout",
+    "argv": [
+      "git",
+      "checkout",
+      "--quiet",
+      "--detach",
+      "743bbf924bb8f39e4bea4bc04221be72487097f9"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "commit",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "initial-status",
+    "argv": [
+      "git",
+      "status",
+      "--porcelain=v1"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "source-flip",
+    "argv": [
+      "git",
+      "diff",
+      "--",
+      "tools/ReleaseEvidenceEvaluation/verify_retained.py"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "source-mutation",
+    "operation": "exact UTF-8 line replacement",
+    "path": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout/tools/ReleaseEvidenceEvaluation/verify_retained.py",
+    "before": "    require(expected <= set(declared), \"Supplemental freeze omits a required independent review record\")",
+    "after": "    require(True, \"Supplemental freeze omits a required independent review record\")  # MUTANT: bypass expected-five declaration"
+  },
+  {
+    "label": "mutant-tests",
+    "argv": [
+      "python3",
+      "-B",
+      "tools/ReleaseEvidenceEvaluation/test_verify_retained.py"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 1
+  },
+  {
+    "label": "restore",
+    "argv": [
+      "git",
+      "restore",
+      "--source=HEAD",
+      "--",
+      "tools/ReleaseEvidenceEvaluation/verify_retained.py"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "restored-diff",
+    "argv": [
+      "git",
+      "diff",
+      "--exit-code"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "restored-status",
+    "argv": [
+      "git",
+      "status",
+      "--porcelain=v1"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "restored-tests",
+    "argv": [
+      "python3",
+      "-B",
+      "tools/ReleaseEvidenceEvaluation/test_verify_retained.py"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "final-status",
+    "argv": [
+      "git",
+      "status",
+      "--porcelain=v1"
+    ],
+    "cwd": "/workspace/scratch/accuracy-verifier-evidence/mutation/checkout",
+    "returncode": 0
+  }
+]

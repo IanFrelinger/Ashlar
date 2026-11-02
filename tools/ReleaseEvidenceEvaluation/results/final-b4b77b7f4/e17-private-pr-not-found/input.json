@@ -1,0 +1,324 @@
+{
+  "schemaVersion": "1.0",
+  "id": "e17-private-pr-not-found",
+  "category": "restricted-authorization",
+  "kind": "synthetic",
+  "intent": "The target is a synthetic private repository not visible to this credential. The initial PR endpoint and all other repository endpoints return HTTP404 Not Found; no PR facts are disclosed.",
+  "target": "https://github.com/eval/fixture/pull/1",
+  "credentialSupplied": true,
+  "sanitizedAuthorization": {
+    "mode": "synthetic authenticated token without repository access",
+    "tokenRetained": false,
+    "repositoryVisibility": "private-unreadable",
+    "permissionsAssumed": []
+  },
+  "identity": {
+    "initial": null,
+    "final": null,
+    "reason": "The target identity was not returned to this authorization context."
+  },
+  "collectionInterval": {
+    "start": "2025-02-12T10:00:00Z",
+    "end": "2025-02-12T10:00:04Z",
+    "kind": "synthetic scenario clock; not a measured collection duration"
+  },
+  "sources": [
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/commits/statuses#get-the-combined-status-for-a-specific-reference"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/pulls/reviews#list-reviews-for-a-pull-request"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/branches/branch-protection#get-status-checks-protection"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/branches/branch-protection#get-pull-request-review-protection"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/rest/branches/branches#get-a-branch"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches"
+    },
+    {
+      "kind": "official-policy-documentation",
+      "url": "https://docs.github.com/en/graphql/reference/enums#pullrequestreviewdecision"
+    }
+  ],
+  "syntheticDisclosure": "All repository, account, PR, provider job and commit identities are fabricated; these are not captures of a live repository.",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/pulls/1",
+      "responses": [
+        {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "message": "Not Found",
+            "documentation_url": "https://docs.github.com/rest",
+            "status": "404"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/pulls/1/reviews",
+      "responses": [
+        {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "message": "Not Found",
+            "documentation_url": "https://docs.github.com/rest",
+            "status": "404"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/check-runs",
+      "responses": [
+        {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "message": "Not Found",
+            "documentation_url": "https://docs.github.com/rest",
+            "status": "404"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/status",
+      "responses": [
+        {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "message": "Not Found",
+            "documentation_url": "https://docs.github.com/rest",
+            "status": "404"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+      "responses": [
+        {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "message": "Not Found",
+            "documentation_url": "https://docs.github.com/rest",
+            "status": "404"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+      "responses": [
+        {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "message": "Not Found",
+            "documentation_url": "https://docs.github.com/rest",
+            "status": "404"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+      "responses": [
+        {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "message": "Not Found",
+            "documentation_url": "https://docs.github.com/rest",
+            "status": "404"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main",
+      "responses": [
+        {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "message": "Not Found",
+            "documentation_url": "https://docs.github.com/rest",
+            "status": "404"
+          }
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "responses": [
+        {
+          "status": 404,
+          "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+          },
+          "body": {
+            "message": "Not Found",
+            "documentation_url": "https://docs.github.com/rest",
+            "status": "404"
+          }
+        }
+      ]
+    }
+  ],
+  "endpointInventory": [
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/pulls/1",
+      "responses": [
+        {
+          "status": 404,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/pulls/1/reviews",
+      "responses": [
+        {
+          "status": 404,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/check-runs",
+      "responses": [
+        {
+          "status": 404,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/commits/5a97ddaf09cc9350cd03baa53066fe78497c8eff/status",
+      "responses": [
+        {
+          "status": 404,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+      "responses": [
+        {
+          "status": 404,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+      "responses": [
+        {
+          "status": 404,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+      "responses": [
+        {
+          "status": 404,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/eval/fixture/branches/main",
+      "responses": [
+        {
+          "status": 404,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "responses": [
+        {
+          "status": 404,
+          "representation": "JSON",
+          "fault": null
+        }
+      ]
+    }
+  ]
+}

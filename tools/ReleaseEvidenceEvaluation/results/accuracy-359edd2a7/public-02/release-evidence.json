@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "1.0",
+  "repository": "IanFrelinger/Ashlar",
+  "pullRequest": 853,
+  "url": "https://github.com/IanFrelinger/Ashlar/pull/853",
+  "headSha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+  "baseRef": "master",
+  "baseSha": "6bc6f1b7eb327c6de4870f37bb2cc4d6361b64a5",
+  "collectionStartedAt": "2026-11-02T03:31:21.5718318\u002B00:00",
+  "collectedAt": "2026-11-02T03:31:21.5852836\u002B00:00",
+  "ashlarVersion": "0.4.2\u002B359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+  "brickVersion": "1.4.0",
+  "auditId": null,
+  "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+  "authorization": {
+    "credential": "not-supplied-to-brick",
+    "effectivePermissions": "not-enumerated",
+    "authenticatedActor": "unknown"
+  },
+  "verdict": "blocked",
+  "assurance": "fail",
+  "findings": [
+    {
+      "id": "blocker-1",
+      "status": "fail",
+      "required": true,
+      "explanation": "The branch has merge conflicts with \u0060master\u0060.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/pull/853"
+      ]
+    },
+    {
+      "id": "unavailable-1",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Required approvals: Branch protection is not readable with this token (it needs admin rights), and GitHub\u0027s review decision could not be read; the pull request has 0 approving review(s).",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/pull/853"
+      ]
+    },
+    {
+      "id": "head-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "A 40-character hexadecimal head commit was observed for this snapshot\u0027s collection attempt.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/pull/853"
+      ]
+    },
+    {
+      "id": "base-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/pull/853"
+      ]
+    },
+    {
+      "id": "collection-consistency",
+      "status": "pass",
+      "required": true,
+      "explanation": "The final PR read agreed with this attempt\u0027s head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/pull/853"
+      ]
+    },
+    {
+      "id": "required-check-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check names were read from GitHub policy sources.",
+      "sources": [
+        "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+        "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews",
+        "https://api.github.com/repos/IanFrelinger/Ashlar/rules/branches/master",
+        "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master"
+      ]
+    },
+    {
+      "id": "rulesets",
+      "status": "pass",
+      "required": true,
+      "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+      "sources": [
+        "https://api.github.com/repos/IanFrelinger/Ashlar/rules/branches/master"
+      ]
+    },
+    {
+      "id": "approval-policy",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Approval count alone does not establish current code-owner, last-push or stale-review requirements.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/pull/853"
+      ]
+    },
+    {
+      "id": "required-check-9",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check \u0060cert-gate\u0060 from GitHub App 15368 has a passing conclusion.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555673/job/121068063234"
+      ]
+    },
+    {
+      "id": "required-check-10",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check \u0060build-core\u0060 from GitHub App 15368 has a passing conclusion.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555703/job/121068062721"
+      ]
+    },
+    {
+      "id": "required-check-11",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check \u0060shell-lint\u0060 from GitHub App 15368 has a passing conclusion.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555687/job/121068062509"
+      ]
+    },
+    {
+      "id": "required-check-12",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check \u0060lychee (README \u002B docs)\u0060 from GitHub App 15368 has a passing conclusion.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555665/job/121068062574"
+      ]
+    },
+    {
+      "id": "required-check-13",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check \u0060Readiness summary\u0060 from GitHub App 15368 has a passing conclusion.",
+      "sources": [
+        "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121080265709",
+        "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121073604995"
+      ]
+    }
+  ],
+  "limitations": [
+    "Human release decision required; this pack does not prove compliance or authorize a release.",
+    "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+    "GitHub rules are not fully reimplemented: deployment, merge-queue, legacy-status provider identity, signatures, bypass permissions and custom rules require separate review.",
+    "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+    "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+  ],
+  "freshness": {
+    "collectionConsistency": "stable",
+    "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted.",
+    "collectionAttempts": 1
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "brickId": "github.blockers",
+  "brickVersion": "1.3.1",
+  "summary": "PR #3432 is READY: nothing blocking was found.",
+  "outputs": {
+    "verdict": "ready",
+    "blockers": [],
+    "unknowns": [],
+    "notes": [
+      {
+        "text": "Read 32 check run(s) and 0 commit status(es) on the head commit 65f4b31f9148; none is failing or pending.",
+        "evidence": "https://github.com/jqlang/jq/commit/65f4b31f9148dced73f782ff21c024539776eae6"
+      }
+    ],
+    "evidence": [
+      "https://github.com/jqlang/jq/pull/3432",
+      "https://github.com/jqlang/jq/commit/65f4b31f9148dced73f782ff21c024539776eae6"
+    ],
+    "answer": "**What is blocking PR #3432?** PR #3432 is READY: nothing blocking was found.\n\nNotes:\n- Read 32 check run(s) and 0 commit status(es) on the head commit 65f4b31f9148; none is failing or pending. ([evidence](https://github.com/jqlang/jq/commit/65f4b31f9148dced73f782ff21c024539776eae6))\n\nRead from https://github.com/jqlang/jq/pull/3432\n",
+    "assurance": "pass",
+    "evidencePack": {
+      "schemaVersion": "1.0",
+      "repository": "jqlang/jq",
+      "pullRequest": 3432,
+      "url": "https://github.com/jqlang/jq/pull/3432",
+      "headSha": "65f4b31f9148dced73f782ff21c024539776eae6",
+      "baseRef": "master",
+      "baseSha": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847",
+      "collectionStartedAt": "2026-11-02T03:26:00.544667\u002B00:00",
+      "collectedAt": "2026-11-02T03:26:00.5616726\u002B00:00",
+      "ashlarVersion": "0.4.2\u002B86c6e9e18da496264d2e138efcbd18fabc1558bc",
+      "brickVersion": "1.3.1",
+      "auditId": null,
+      "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+      "authorization": {
+        "credential": "not-supplied-to-brick",
+        "effectivePermissions": "not-enumerated",
+        "authenticatedActor": "unknown"
+      },
+      "verdict": "ready",
+      "assurance": "pass",
+      "findings": [
+        {
+          "id": "head-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "A 40-character hexadecimal head commit was observed at collection start.",
+          "sources": [
+            "https://github.com/jqlang/jq/pull/3432"
+          ]
+        },
+        {
+          "id": "base-identity",
+          "status": "pass",
+          "required": true,
+          "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+          "sources": [
+            "https://github.com/jqlang/jq/pull/3432"
+          ]
+        },
+        {
+          "id": "collection-consistency",
+          "status": "pass",
+          "required": true,
+          "explanation": "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+          "sources": [
+            "https://github.com/jqlang/jq/pull/3432"
+          ]
+        },
+        {
+          "id": "required-check-policy",
+          "status": "pass",
+          "required": true,
+          "explanation": "Required check names were read from GitHub policy sources.",
+          "sources": [
+            "https://api.github.com/repos/jqlang/jq/branches/master/protection/required_status_checks",
+            "https://api.github.com/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+            "https://api.github.com/repos/jqlang/jq/rules/branches/master",
+            "https://api.github.com/repos/jqlang/jq/branches/master"
+          ]
+        },
+        {
+          "id": "rulesets",
+          "status": "pass",
+          "required": true,
+          "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+          "sources": [
+            "https://api.github.com/repos/jqlang/jq/rules/branches/master"
+          ]
+        },
+        {
+          "id": "approval-policy",
+          "status": "pass",
+          "required": true,
+          "explanation": "GitHub\u0027s review decision, or a fully read zero-approval rule, establishes the review requirement.",
+          "sources": [
+            "https://github.com/jqlang/jq/pull/3432"
+          ]
+        }
+      ],
+      "limitations": [
+        "Human release decision required; this pack does not prove compliance or authorize a release.",
+        "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+        "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+        "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+        "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+      ],
+      "freshness": {
+        "collectionConsistency": "stable",
+        "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+      }
+    },
+    "evidenceMarkdown": "## Pull-request evidence snapshot\n\n[\u0060jqlang/jq\u0060 PR #3432](https://github.com/jqlang/jq/pull/3432)\n\nGitHub verdict: **ready**. Scoped assurance: **pass**.\n\nHead: \u006065f4b31f9148dced73f782ff21c024539776eae6\u0060; base: \u0060master\u0060 (\u0060ac35c7dcbb991fa0f3c3196dd00ca479211e9847\u0060).\n\nCollected: 2026-11-02T03:26:00.5616726\u002B00:00; schema 1.0; Ashlar \u00600.4.2\u002B86c6e9e18da496264d2e138efcbd18fabc1558bc\u0060; brick \u00601.3.1\u0060.\n\n- **pass**: A 40-character hexadecimal head commit was observed at collection start. [source](https://github.com/jqlang/jq/pull/3432)\n\n- **pass**: The relevant base reference and 40-character hexadecimal commit were observed. [source](https://github.com/jqlang/jq/pull/3432)\n\n- **pass**: The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot. [source](https://github.com/jqlang/jq/pull/3432)\n\n- **pass**: Required check names were read from GitHub policy sources. [source](https://api.github.com/repos/jqlang/jq/branches/master/protection/required_status_checks) [source](https://api.github.com/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews) [source](https://api.github.com/repos/jqlang/jq/rules/branches/master) [source](https://api.github.com/repos/jqlang/jq/branches/master)\n\n- **pass**: Active branch rules were read (this collector evaluates check and review requirements only). [source](https://api.github.com/repos/jqlang/jq/rules/branches/master)\n\n- **pass**: GitHub\u0027s review decision, or a fully read zero-approval rule, establishes the review requirement. [source](https://github.com/jqlang/jq/pull/3432)\n\nLimitations:\n\n- Human release decision required; this pack does not prove compliance or authorize a release.\n\n- No repository code, PR body, diff, private file content, artifact payload or access token is included.\n\n- GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.\n\n- API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.\n\n- No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately.\n"
+  }
+}

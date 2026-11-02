@@ -81,6 +81,23 @@ public sealed class CertGateFilterCoverageTests
             ConventionSuffix);
     }
 
+    [Fact]
+    public void Deterministic_GitHub_evidence_and_credential_regressions_are_selected_by_the_required_gate()
+    {
+        var selectors = ReadFilterSelectors();
+        var suites = new[]
+        {
+            typeof(Bricks.GitHubBlockersBrickTests),
+            typeof(Bricks.GitHubReadAccessTests),
+            typeof(Bricks.GitHubEvaluationRegressionTests),
+            typeof(Bricks.GitHubProviderAssuranceRegressionTests),
+            typeof(Bricks.GitHubRecollectionTests),
+        };
+        foreach (var suite in suites)
+            selectors.Should().Contain(s => suite.FullName!.Contains(s, StringComparison.Ordinal),
+                "the deterministic {0} suite protects release-evidence safety and must not become advisory", suite.Name);
+    }
+
     /// <summary>
     /// Parses the <c>FullyQualifiedName~...</c> substrings out of CERT_GATE_FILTER. Reading the
     /// script keeps this test and the gate from drifting; restating the filter here would let them.

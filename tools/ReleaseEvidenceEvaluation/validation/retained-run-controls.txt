@@ -1,0 +1,17 @@
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.052s
+
+OK
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 1.792s
+
+OK
+......
+----------------------------------------------------------------------
+Ran 6 tests in 1.274s
+
+OK
+Verified 3 retained evaluation run(s): baseline-47a7c8506, final-b4b77b7f4, repaired-7bf31595b
+Nonzero baseline findings are retained; this check verifies evidence consistency, not zero error rates.

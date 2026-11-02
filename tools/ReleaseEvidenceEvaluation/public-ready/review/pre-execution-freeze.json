@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "frozen_at_utc": "2026-11-02T03:24:34.619328+00:00",
+  "scope": "Three additional public captures and pre-output independent AI labels; source policy semantics corrected by adjudication before any outputs, both initial reviews preserved. Original36studyunchanged.",
+  "independent_ai_reviews": 2,
+  "human_reviews_of_this_study": 0,
+  "required_review_records": [
+    "tools/ReleaseEvidenceEvaluation/public-ready/review/first-ground-truth.json",
+    "tools/ReleaseEvidenceEvaluation/public-ready/review/second-ground-truth.json",
+    "tools/ReleaseEvidenceEvaluation/public-ready/review/first-preregistration.md",
+    "tools/ReleaseEvidenceEvaluation/public-ready/review/second-preregistration.md",
+    "tools/ReleaseEvidenceEvaluation/public-ready/review/adjudication.json",
+    "tools/ReleaseEvidenceEvaluation/SCORING.md",
+    "tools/ReleaseEvidenceEvaluation/review/ground-truth-protocol.md"
+  ],
+  "files": [
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/Program.cs",
+      "sha256": "1c973a9034d0adcdda5c194296337763ee0c49b9ef9f4ff5232507b2ea9084bf"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/SCORING.md",
+      "sha256": "5c3b4a5af2a9418e65cf2b60127beadfd37b53bf1662ae8045dd4174999b83df"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/capture-public-ready.py",
+      "sha256": "70767c4a1e629fe5e453de2489ebc02070fe8e2fa3ba5ab7bca863941bfc5f36"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/discovery.json",
+      "sha256": "29645e0175ca71dd4f221f03ff1af48b6c2094523845cacd357af084259d1d5c"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/input-manifest.json",
+      "sha256": "17e01f26dff07b58d004b43ae12c5c3959e6a58b36b0a22ef56b0aa107919035"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/manifest.json",
+      "sha256": "84191b5f1fa6f5acc7743c8ed0ce8852ed6e6a1f2df0c97513880f31e599fc2d"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json",
+      "sha256": "8d653b33e4a88675ec7e1994258dc0210aefb7cc12f112ef0e63e0354895d986"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/routes.json",
+      "sha256": "a66311bba9488a24f515a163032977f305399424789100607b79c6cffb53e149"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/sha256.json",
+      "sha256": "41ed28bd3016a4ef9cd1f94fa3bf0c248975fec5845d76ed3da7eeab6d8aca02"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json",
+      "sha256": "d0c06311f1fcc47f90c86b400655b596517b8c582efe719c652dfa4b70c6871f"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/routes.json",
+      "sha256": "f552d1435b114bf7894a877b608ae7dad3642317cd8c21a6f25074be05789b31"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/sha256.json",
+      "sha256": "a5bad801141c51f6675e5ce1495b7c56715bbfddb4364fc7e13f1d2c72fd529c"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json",
+      "sha256": "3490c9aed9a8487afef3476136f04b15f45a563fe05472715f899c4a325e386e"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/routes.json",
+      "sha256": "9a1740635e856f4c52a9e1402d0939ff06bb495db99c01d2b7778e5596f77483"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/sha256.json",
+      "sha256": "0d049c79416c5b4c6bff868d81758006134314ee56a150f91b87be60e297f06a"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/adjudicated-ground-truth.json",
+      "sha256": "56bb3ef07b040e87de45d3fa304e694ec4a34d43d3dbc69eb77d9abc2b5b2bc1"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/adjudication.json",
+      "sha256": "b836b62b5b0104c6a87a4e4bb93955ce7f1f98e9850eeded5e8712f4d45de496"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/first-ground-truth.json",
+      "sha256": "a6a3854776e04ed83f65b9bab635acd31d6b491304ca8674d0d079e6710107bf"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/first-preregistration.md",
+      "sha256": "2fa23c98b9937d43b3312fa0a9af239a56c75e7a08ec1c8c6692e33e33ad43d7"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/second-ground-truth.json",
+      "sha256": "18647576e44e4157bd53e06aa444ca715150cfa796bfb1e5f34743ee5b19ac4d"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/review/second-preregistration.md",
+      "sha256": "abb030d5d5b6b467d0ba4e67df1e5cd8a7f9d6456edf7a152432744aad1ab0fe"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/review/ground-truth-protocol.md",
+      "sha256": "ac707d94a3c6968d9ddd79363ccfc3fef0d757dc17e9430bc327181782f21ab5"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/run-replay.sh",
+      "sha256": "9a3a43b603af17a394cbeeb607f7a1a1ef52956efd26d932740f1e69cab2e22f"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/score.py",
+      "sha256": "87a014cdb9877eca7299e715a68e9e7a16066e5c7c961187c095d4b0e1f146f9"
+    }
+  ]
+}

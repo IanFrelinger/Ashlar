@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "86c6e9e18da496264d2e138efcbd18fabc1558bc",
+  "scope": "Supplemental public PR captures selected for operational-clean metadata; no oracle labels or candidate output. Separate from original36.",
+  "source_manifests": [
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/manifest.json",
+      "sha256": "84191b5f1fa6f5acc7743c8ed0ce8852ed6e6a1f2df0c97513880f31e599fc2d"
+    }
+  ],
+  "cases": [
+    {
+      "id": "public-ready-01",
+      "kind": "public",
+      "category": "public-operational-clean-selection",
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/routes.json",
+      "sha256": "a66311bba9488a24f515a163032977f305399424789100607b79c6cffb53e149",
+      "capture_files": {
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/capture.json": "8d653b33e4a88675ec7e1994258dc0210aefb7cc12f112ef0e63e0354895d986",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/routes.json": "a66311bba9488a24f515a163032977f305399424789100607b79c6cffb53e149",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-01/sha256.json": "41ed28bd3016a4ef9cd1f94fa3bf0c248975fec5845d76ed3da7eeab6d8aca02"
+      }
+    },
+    {
+      "id": "public-ready-02",
+      "kind": "public",
+      "category": "public-operational-clean-selection",
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/routes.json",
+      "sha256": "f552d1435b114bf7894a877b608ae7dad3642317cd8c21a6f25074be05789b31",
+      "capture_files": {
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/capture.json": "d0c06311f1fcc47f90c86b400655b596517b8c582efe719c652dfa4b70c6871f",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/routes.json": "f552d1435b114bf7894a877b608ae7dad3642317cd8c21a6f25074be05789b31",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-02/sha256.json": "a5bad801141c51f6675e5ce1495b7c56715bbfddb4364fc7e13f1d2c72fd529c"
+      }
+    },
+    {
+      "id": "public-ready-03",
+      "kind": "public",
+      "category": "public-operational-clean-selection",
+      "path": "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/routes.json",
+      "sha256": "9a1740635e856f4c52a9e1402d0939ff06bb495db99c01d2b7778e5596f77483",
+      "capture_files": {
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/capture.json": "3490c9aed9a8487afef3476136f04b15f45a563fe05472715f899c4a325e386e",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/routes.json": "9a1740635e856f4c52a9e1402d0939ff06bb495db99c01d2b7778e5596f77483",
+        "tools/ReleaseEvidenceEvaluation/public-ready/public-ready-03/sha256.json": "0d049c79416c5b4c6bff868d81758006134314ee56a150f91b87be60e297f06a"
+      }
+    }
+  ]
+}

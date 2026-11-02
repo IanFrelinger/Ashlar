@@ -1,0 +1,14 @@
+[
+  {
+    "sequence": 1,
+    "method": "GET",
+    "path": "/repos/eval/fixture/pulls/1",
+    "matchedRoute": "/repos/eval/fixture/pulls/1",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 404,
+    "fault": null,
+    "responseBodySha256": "ee0aba578e0da11dc8fdff3ce2604143077b2c68cc9eacf2eb541b1c4d0cd76e"
+  }
+]

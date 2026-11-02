@@ -47,6 +47,13 @@ builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 
 builder.Services.AddAshlar();
 
+// Credentials stay in the host's environment/configuration, outside model-visible tool arguments.
+// Supplying one setting without the other fails startup. This scope applies to these registered
+// GitHub bricks only; it does not confine a client that can call GitHub outside this process.
+var githubAccess = GitHubReadAccess.FromConfiguration(key => builder.Configuration[key]);
+if (githubAccess is not null)
+    builder.Services.AddSingleton(githubAccess);
+
 // Read-only repo tools available for allowlisting out of the box. Nothing is exposed until the
 // operator lists ids in ExposedToolIds; mutating tools (repo.fs.write, git commit, dotnet run)
 // are deliberately not pre-registered — hosts that want them must add them explicitly.

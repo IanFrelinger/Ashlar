@@ -1,0 +1,122 @@
+[
+  {
+    "sequence": 1,
+    "method": "GET",
+    "path": "/repos/eval/fixture/pulls/1",
+    "matchedRoute": "/repos/eval/fixture/pulls/1",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "7f023546b598137c0051d638b63b631d9b612d23cc79e4a65ace90a5a6991a30"
+  },
+  {
+    "sequence": 2,
+    "method": "GET",
+    "path": "/repos/eval/fixture/pulls/1/reviews",
+    "matchedRoute": "/repos/eval/fixture/pulls/1/reviews",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  {
+    "sequence": 3,
+    "method": "GET",
+    "path": "/repos/eval/fixture/commits/f29d174207d30ab92dcc0e398725edd7d8c5db9f/check-runs",
+    "matchedRoute": "/repos/eval/fixture/commits/f29d174207d30ab92dcc0e398725edd7d8c5db9f/check-runs",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "731927363407c1fe1e21803d2f1888cfa77ec392b38a55596557232dc7aca438"
+  },
+  {
+    "sequence": 4,
+    "method": "GET",
+    "path": "/repos/eval/fixture/commits/f29d174207d30ab92dcc0e398725edd7d8c5db9f/status",
+    "matchedRoute": "/repos/eval/fixture/commits/f29d174207d30ab92dcc0e398725edd7d8c5db9f/status",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "82b4c5bbad85f94e7e542138bbc769976b1dcba3ca2771a57948d9e770739783"
+  },
+  {
+    "sequence": 5,
+    "method": "GET",
+    "path": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+    "matchedRoute": "/repos/eval/fixture/branches/main/protection/required_status_checks",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 403,
+    "fault": null,
+    "responseBodySha256": "f4c371c6cc9926ab50c5f26991fe22642a588cebe2a2208776a98f7f7be7b83a"
+  },
+  {
+    "sequence": 6,
+    "method": "GET",
+    "path": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+    "matchedRoute": "/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 403,
+    "fault": null,
+    "responseBodySha256": "f4c371c6cc9926ab50c5f26991fe22642a588cebe2a2208776a98f7f7be7b83a"
+  },
+  {
+    "sequence": 7,
+    "method": "GET",
+    "path": "/repos/eval/fixture/rules/branches/main?per_page=100",
+    "matchedRoute": "/repos/eval/fixture/rules/branches/main?per_page=100",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 403,
+    "fault": null,
+    "responseBodySha256": "f4c371c6cc9926ab50c5f26991fe22642a588cebe2a2208776a98f7f7be7b83a"
+  },
+  {
+    "sequence": 8,
+    "method": "POST",
+    "path": "/graphql",
+    "matchedRoute": "/graphql",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": "1f0805a2159b961c40804b0c0c1c220f4f68c1d642c9104189915a37dfd27531",
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "67bcabcea1d9d730565e4dd2f1ce3330832dc71ea2bc7aa2d035a10d2e658829"
+  },
+  {
+    "sequence": 9,
+    "method": "GET",
+    "path": "/repos/eval/fixture/branches/main",
+    "matchedRoute": "/repos/eval/fixture/branches/main",
+    "responseIndex": 0,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 403,
+    "fault": null,
+    "responseBodySha256": "f4c371c6cc9926ab50c5f26991fe22642a588cebe2a2208776a98f7f7be7b83a"
+  },
+  {
+    "sequence": 10,
+    "method": "GET",
+    "path": "/repos/eval/fixture/pulls/1",
+    "matchedRoute": "/repos/eval/fixture/pulls/1",
+    "responseIndex": 1,
+    "requestAuthorizationPresent": true,
+    "requestBodySha256": null,
+    "status": 200,
+    "fault": null,
+    "responseBodySha256": "7f023546b598137c0051d638b63b631d9b612d23cc79e4a65ace90a5a6991a30"
+  }
+]

@@ -117,6 +117,22 @@ writes it, so compare the last one logged with the last record; for the rest, ke
 
 Logs go to stderr; stdout carries only MCP JSON-RPC.
 
+For the single-repository read-only workflow, supply `ASHLAR_GITHUB_TOKEN` and
+`ASHLAR_GITHUB_REPOSITORY=owner/repository` to the host process. Both must be nonempty; partial
+configuration fails startup. All three built-in GitHub bricks then refuse another repository
+before constructing a client, and the host credential overrides any `githubToken` argument.
+The Action uses this path so the token does not travel in MCP arguments or argument hashes.
+Use a fine-grained token or GitHub App installation token limited to that repository with the
+read permissions listed in the [Action documentation](../../actions/pr-blockers/README.md).
+GitHub enforces the token's permissions; this setting grants none by itself. With neither
+setting present, existing anonymous and explicit `githubToken` calls continue to work.
+
+The host receives the credential and sends GitHub API requests. Its stdio client can choose
+allowlisted calls and receives the resulting evidence, which may contain private check names
+and source links. Configure the client/model's own data handling accordingly. The repository
+scope limits these built-in bricks; it does not stop an agent with its own shell, credentials,
+or network access from bypassing the host. No container or network isolation is created here.
+
 ## Known limits
 
 - **Host-registered bricks are not certificate-checked.** The built-in bricks are admitted because this host

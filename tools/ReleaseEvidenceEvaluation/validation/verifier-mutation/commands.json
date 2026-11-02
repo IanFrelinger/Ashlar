@@ -1,0 +1,120 @@
+[
+  {
+    "label": "clone",
+    "argv": [
+      "git",
+      "clone",
+      "--quiet",
+      "--no-hardlinks",
+      "/workspace/Ashlar",
+      "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout"
+    ],
+    "cwd": "/workspace/Ashlar",
+    "returncode": 0
+  },
+  {
+    "label": "checkout",
+    "argv": [
+      "git",
+      "checkout",
+      "--quiet",
+      "--detach",
+      "7bf31595b"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "commit",
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "before-status",
+    "argv": [
+      "git",
+      "status",
+      "--porcelain=v1"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "source-flip",
+    "argv": [
+      "git",
+      "diff",
+      "--",
+      "tools/ReleaseEvidenceEvaluation/verify_retained.py"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "mutant-tests",
+    "argv": [
+      "python3",
+      "-B",
+      "tools/ReleaseEvidenceEvaluation/test_verify_retained.py"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 1
+  },
+  {
+    "label": "restore",
+    "argv": [
+      "git",
+      "restore",
+      "--source=HEAD",
+      "--",
+      "tools/ReleaseEvidenceEvaluation/verify_retained.py"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "restored-diff",
+    "argv": [
+      "git",
+      "diff",
+      "--exit-code"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "restored-status",
+    "argv": [
+      "git",
+      "status",
+      "--porcelain=v1"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "restored-tests",
+    "argv": [
+      "python3",
+      "-B",
+      "tools/ReleaseEvidenceEvaluation/test_verify_retained.py"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 0
+  },
+  {
+    "label": "final-status",
+    "argv": [
+      "git",
+      "status",
+      "--porcelain=v1"
+    ],
+    "cwd": "/workspace/Ashlar/scratch/evaluation-verifier-mutation/checkout",
+    "returncode": 0
+  }
+]

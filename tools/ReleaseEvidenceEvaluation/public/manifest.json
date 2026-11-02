@@ -1,0 +1,292 @@
+{
+  "schemaVersion": "1.0",
+  "frozenAt": "2026-11-02T00:54:26.456672Z",
+  "caseCount": 6,
+  "repositoryCount": 3,
+  "selection": "Two open PRs per public repository, chosen from recent/open discovery metadata for draft/non-draft and repository variation before candidate results. No selection by candidate success/failure. Pilot transport capture is excluded.",
+  "authorization": "No request Authorization header supplied by capture code; no credentials read or persisted. Inherited proxy may inject an upstream identity not observable to this task. Effective scopes are unknown.",
+  "captureMethod": "Sequential PR cases; up to4 concurrent independent metadata endpoints per case; PR and branch read before/after; actual HTTP status and selected headers retained; Link pagination followed; zero retries.",
+  "machine": {
+    "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14"
+  },
+  "scope": "Capture agent read no production collector implementation, candidate outputs, or tests; wrote no expected labels. Metadata fields only.",
+  "cases": [
+    {
+      "id": "public-01",
+      "repository": "IanFrelinger/Ashlar",
+      "pullRequest": 900,
+      "sourceUrl": "https://github.com/IanFrelinger/Ashlar/pull/900",
+      "collection": {
+        "startedAt": "2026-11-02T00:53:31.973718Z",
+        "finishedAt": "2026-11-02T00:53:35.419739Z",
+        "durationSeconds": 3.446021,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "initial": {
+          "headSha": "023e90a698abc11456a1c7d7665a629ae0b3436c",
+          "baseSha": "5e0beeae3b037508f23b475d98d13cc7e64c25de",
+          "baseRef": "master"
+        },
+        "final": {
+          "headSha": "023e90a698abc11456a1c7d7665a629ae0b3436c",
+          "baseSha": "5e0beeae3b037508f23b475d98d13cc7e64c25de",
+          "baseRef": "master"
+        }
+      },
+      "branchIdentity": {
+        "initial": "5e0beeae3b037508f23b475d98d13cc7e64c25de",
+        "final": "5e0beeae3b037508f23b475d98d13cc7e64c25de"
+      },
+      "observations": {
+        "reviewCount": 0,
+        "checkPageCount": 2,
+        "checkRunCount": 40,
+        "checkTotalCount": 40,
+        "combinedStatusCount": 0,
+        "requiredStatusPolicyHttp": 403,
+        "requiredReviewPolicyHttp": 403,
+        "activeRulesHttp": 200,
+        "graphqlHttp": 200,
+        "graphqlErrorsPresent": false
+      },
+      "files": {
+        "tools/ReleaseEvidenceEvaluation/public/public-01/capture.json": "cd7ed2257483f1d6a8448a5562ae68bae09688826454347fc58d3f9663dfe623",
+        "tools/ReleaseEvidenceEvaluation/public/public-01/routes.json": "92a61455b4355273bc5dbc29b5f57763983e1304a4fb65888f6b83f2a69ea781"
+      }
+    },
+    {
+      "id": "public-02",
+      "repository": "IanFrelinger/Ashlar",
+      "pullRequest": 853,
+      "sourceUrl": "https://github.com/IanFrelinger/Ashlar/pull/853",
+      "collection": {
+        "startedAt": "2026-11-02T00:53:35.426966Z",
+        "finishedAt": "2026-11-02T00:53:38.705033Z",
+        "durationSeconds": 3.278067,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "initial": {
+          "headSha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+          "baseSha": "6bc6f1b7eb327c6de4870f37bb2cc4d6361b64a5",
+          "baseRef": "master"
+        },
+        "final": {
+          "headSha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+          "baseSha": "6bc6f1b7eb327c6de4870f37bb2cc4d6361b64a5",
+          "baseRef": "master"
+        }
+      },
+      "branchIdentity": {
+        "initial": "5e0beeae3b037508f23b475d98d13cc7e64c25de",
+        "final": "5e0beeae3b037508f23b475d98d13cc7e64c25de"
+      },
+      "observations": {
+        "reviewCount": 0,
+        "checkPageCount": 2,
+        "checkRunCount": 53,
+        "checkTotalCount": 53,
+        "combinedStatusCount": 0,
+        "requiredStatusPolicyHttp": 403,
+        "requiredReviewPolicyHttp": 403,
+        "activeRulesHttp": 200,
+        "graphqlHttp": 200,
+        "graphqlErrorsPresent": false
+      },
+      "files": {
+        "tools/ReleaseEvidenceEvaluation/public/public-02/capture.json": "7bb305920cd6d67f9988b16acd4ca20255777e86b1ee1a5be1c63d42e62320c6",
+        "tools/ReleaseEvidenceEvaluation/public/public-02/routes.json": "a0b198d807ea02d149bc4ab88ab7c7de9f95452c06c6a465b65bea2908a9df63"
+      }
+    },
+    {
+      "id": "public-03",
+      "repository": "cli/cli",
+      "pullRequest": 14781,
+      "sourceUrl": "https://github.com/cli/cli/pull/14781",
+      "collection": {
+        "startedAt": "2026-11-02T00:53:38.711335Z",
+        "finishedAt": "2026-11-02T00:53:41.901333Z",
+        "durationSeconds": 3.189998,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "initial": {
+          "headSha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+          "baseSha": "a81663f7d80d620b092dab3056778a79ff3e279c",
+          "baseRef": "trunk"
+        },
+        "final": {
+          "headSha": "2e734c0e0a194e9b323e1b2aea98aea16b0f49d7",
+          "baseSha": "a81663f7d80d620b092dab3056778a79ff3e279c",
+          "baseRef": "trunk"
+        }
+      },
+      "branchIdentity": {
+        "initial": "9490d204a2ba95434153dedce99898ce9f281426",
+        "final": "9490d204a2ba95434153dedce99898ce9f281426"
+      },
+      "observations": {
+        "reviewCount": 2,
+        "checkPageCount": 1,
+        "checkRunCount": 18,
+        "checkTotalCount": 18,
+        "combinedStatusCount": 0,
+        "requiredStatusPolicyHttp": 403,
+        "requiredReviewPolicyHttp": 403,
+        "activeRulesHttp": 200,
+        "graphqlHttp": 200,
+        "graphqlErrorsPresent": false
+      },
+      "files": {
+        "tools/ReleaseEvidenceEvaluation/public/public-03/capture.json": "94197fd3e30fb004e20144185a300ce6109338f32661b08690e23d257f2c15a4",
+        "tools/ReleaseEvidenceEvaluation/public/public-03/routes.json": "4d8949b8492bef17b10a782feb9ca9bc620db6852aa4ff5ddeb2bd5b560e1e27"
+      }
+    },
+    {
+      "id": "public-04",
+      "repository": "cli/cli",
+      "pullRequest": 14845,
+      "sourceUrl": "https://github.com/cli/cli/pull/14845",
+      "collection": {
+        "startedAt": "2026-11-02T00:53:41.905218Z",
+        "finishedAt": "2026-11-02T00:53:44.984971Z",
+        "durationSeconds": 3.079753,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "initial": {
+          "headSha": "04c4ebf52e7033a83eb38e9741c8ace05bf8617b",
+          "baseSha": "93d24ce9ffefb6cc86bde89b50271457bb0ef9cb",
+          "baseRef": "trunk"
+        },
+        "final": {
+          "headSha": "04c4ebf52e7033a83eb38e9741c8ace05bf8617b",
+          "baseSha": "93d24ce9ffefb6cc86bde89b50271457bb0ef9cb",
+          "baseRef": "trunk"
+        }
+      },
+      "branchIdentity": {
+        "initial": "9490d204a2ba95434153dedce99898ce9f281426",
+        "final": "9490d204a2ba95434153dedce99898ce9f281426"
+      },
+      "observations": {
+        "reviewCount": 2,
+        "checkPageCount": 1,
+        "checkRunCount": 11,
+        "checkTotalCount": 11,
+        "combinedStatusCount": 0,
+        "requiredStatusPolicyHttp": 403,
+        "requiredReviewPolicyHttp": 403,
+        "activeRulesHttp": 200,
+        "graphqlHttp": 200,
+        "graphqlErrorsPresent": false
+      },
+      "files": {
+        "tools/ReleaseEvidenceEvaluation/public/public-04/capture.json": "3e3e6bc770f622bdf94458ed6ef8cbaa16d350461384e71d416a2f731caf0a06",
+        "tools/ReleaseEvidenceEvaluation/public/public-04/routes.json": "955451e323116cc2ccdbd9fe2104cb9eb615e516451c45382ac309570cf61804"
+      }
+    },
+    {
+      "id": "public-05",
+      "repository": "dotnet/runtime",
+      "pullRequest": 136790,
+      "sourceUrl": "https://github.com/dotnet/runtime/pull/136790",
+      "collection": {
+        "startedAt": "2026-11-02T00:53:44.988399Z",
+        "finishedAt": "2026-11-02T00:53:49.159789Z",
+        "durationSeconds": 4.17139,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "initial": {
+          "headSha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+          "baseSha": "f368d14df0c3905d3b80073d709685af83ba895d",
+          "baseRef": "main"
+        },
+        "final": {
+          "headSha": "ad55c6469eaa9e521a2e0a0ef9be9a0e07d8fd42",
+          "baseSha": "f368d14df0c3905d3b80073d709685af83ba895d",
+          "baseRef": "main"
+        }
+      },
+      "branchIdentity": {
+        "initial": "82d89ecead16d3a5d85391285255e1aa559585f4",
+        "final": "82d89ecead16d3a5d85391285255e1aa559585f4"
+      },
+      "observations": {
+        "reviewCount": 1,
+        "checkPageCount": 4,
+        "checkRunCount": 97,
+        "checkTotalCount": 97,
+        "combinedStatusCount": 0,
+        "requiredStatusPolicyHttp": 403,
+        "requiredReviewPolicyHttp": 403,
+        "activeRulesHttp": 200,
+        "graphqlHttp": 200,
+        "graphqlErrorsPresent": false
+      },
+      "files": {
+        "tools/ReleaseEvidenceEvaluation/public/public-05/capture.json": "564729e5c5c56d3fad3a628f436a9a0876583c43cfb7971107fa755a6d682529",
+        "tools/ReleaseEvidenceEvaluation/public/public-05/routes.json": "44f263061bedeeae66afcbe914bc267a95e92f76eb51bfaf75314540e05cdba0"
+      }
+    },
+    {
+      "id": "public-06",
+      "repository": "dotnet/runtime",
+      "pullRequest": 136812,
+      "sourceUrl": "https://github.com/dotnet/runtime/pull/136812",
+      "collection": {
+        "startedAt": "2026-11-02T00:53:49.168412Z",
+        "finishedAt": "2026-11-02T00:53:53.861103Z",
+        "durationSeconds": 4.692691,
+        "sequentialCaseCapture": true,
+        "parallelWithinCaseEndpoints": 4,
+        "retries": 0
+      },
+      "identity": {
+        "initial": {
+          "headSha": "33eb87c9872b320aeed78454a76070b3f768a355",
+          "baseSha": "8586c680f0c3337fd707e3eb891d8250f8f5544c",
+          "baseRef": "main"
+        },
+        "final": {
+          "headSha": "33eb87c9872b320aeed78454a76070b3f768a355",
+          "baseSha": "8586c680f0c3337fd707e3eb891d8250f8f5544c",
+          "baseRef": "main"
+        }
+      },
+      "branchIdentity": {
+        "initial": "82d89ecead16d3a5d85391285255e1aa559585f4",
+        "final": "82d89ecead16d3a5d85391285255e1aa559585f4"
+      },
+      "observations": {
+        "reviewCount": 0,
+        "checkPageCount": 5,
+        "checkRunCount": 145,
+        "checkTotalCount": 145,
+        "combinedStatusCount": 0,
+        "requiredStatusPolicyHttp": 403,
+        "requiredReviewPolicyHttp": 403,
+        "activeRulesHttp": 200,
+        "graphqlHttp": 200,
+        "graphqlErrorsPresent": false
+      },
+      "files": {
+        "tools/ReleaseEvidenceEvaluation/public/public-06/capture.json": "eb49fff1548d4f49442ed5399c0a24c23fac6d8956db3a659d8766046f227198",
+        "tools/ReleaseEvidenceEvaluation/public/public-06/routes.json": "328a8fe737ecf96aa33233bb0835bc1adf5f634b471e2c2090c46ef7160e4dfd"
+      }
+    }
+  ]
+}

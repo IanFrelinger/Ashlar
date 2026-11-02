@@ -28,6 +28,12 @@ inputs:
     description: '"false" skips installing the .NET 10 SDK when the job already has it.'
     required: false
     default: "true"
+  collection-check-name:
+    description: >-
+      Exact GitHub check name of this collection job, if known. Only proven optional checks may
+      be excluded from assurance; known unsatisfied required checks fail, unverifiable requirements remain unknown.
+    required: false
+    default: ""
 
 outputs:
   verdict:
@@ -39,6 +45,15 @@ outputs:
   audit-id:
     description: Audit id of the brick call
     value: ${{ steps.ask.outputs.audit-id }}
+  assurance:
+    description: pass, fail, unknown, or not-applicable; separate from the legacy verdict
+    value: ${{ steps.ask.outputs.assurance }}
+  evidence-json:
+    description: Absolute path to the versioned JSON release-evidence snapshot
+    value: ${{ steps.ask.outputs.evidence-json }}
+  evidence-markdown:
+    description: Absolute path to the matching readable report
+    value: ${{ steps.ask.outputs.evidence-markdown }}
 
 runs:
   using: composite
@@ -63,6 +78,7 @@ runs:
         ASHLAR_PR_BLOCKERS_URL: ${{ inputs.url || github.event.pull_request.html_url }}
         ASHLAR_GITHUB_TOKEN: ${{ inputs.github-token }}
         ASHLAR_FAIL_ON_BLOCKED: ${{ inputs.fail-on-blocked }}
+        ASHLAR_COLLECTION_CHECK_NAME: ${{ inputs.collection-check-name }}
         Ashlar__Audit__File__Directory: ${{ runner.temp }}/ashlar-mcp-audit
       run: |
         root="$(cd "$GITHUB_ACTION_PATH/../.." && pwd)"

@@ -1,0 +1,36 @@
+{
+  "files": [
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/verify_retained.py",
+      "sha256": "4f946cf96c968123d3762bce4b98e45bf96e8fb20f794399da2c6697888d839c"
+    },
+    {
+      "path": "tools/ReleaseEvidenceEvaluation/test_verify_retained.py",
+      "sha256": "d4913e14a454a0c2ae0bed4755160c41f5963672355786a309eeebedf61d7deb"
+    },
+    {
+      "path": "tests/scripts/release-evidence-evaluation.test.sh",
+      "sha256": "3bcad01077feeb7dcf53e79d2f1a9f533c9e25f372059b64684c4c6f0388a78c"
+    },
+    {
+      "path": "ci/cert-gate-assertions.md",
+      "sha256": "6598c817a503dc12d930c9548df5f78d05056c42aaed2da5777dd3b9d2a73ffb"
+    }
+  ],
+  "artificial_tests": {
+    "scorer": 11,
+    "runner_status": 5,
+    "retained_verifier": 9,
+    "all_passed": true
+  },
+  "original_retained_study": {
+    "runs_verified": 3,
+    "all_byte_rescores_match": true
+  },
+  "supplemental_retained_study": {
+    "verified": false,
+    "reason": "pre-execution-freeze.json does not yet exist",
+    "wrapper_exit": 1
+  },
+  "bash_syntax_exit": 0
+}

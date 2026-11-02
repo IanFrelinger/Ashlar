@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-11-02 03:11:08 UTC",
+  "review_type": "post-output ground-truth label review",
+  "reviewer": "Conversation user; identity not independently authenticated by this record",
+  "case_id": "e29-app-bound-and-deployment-rule",
+  "raw_case_sha256": "469feda8f2a8d181297c78c89b8d67b00c84e60881239b9da546a42949823604",
+  "frozen_labels_sha256": "85b97df9b1b08dfe1585855b684324171f0ebec50ea3eac4902805de0db5c3e1",
+  "facts_reviewed": "Policy requires ci / unit from app 44444 and a production deployment. App 44444 succeeds; the same name from app 55555 fails; deployment was not inspected.",
+  "judgment_reviewed": "Required CI satisfied; optional-app failure is not a blocker; overall assurance unknown because deployment remains unverified.",
+  "user_response": "Agree with this judgment",
+  "reviewed_case_count": 1,
+  "labels_changed": false,
+  "limits": [
+    "Not a blinded independent review",
+    "Not review of the other 35 cases or new public captures",
+    "Not code, release, pilot, marketing or autonomy approval"
+  ]
+}

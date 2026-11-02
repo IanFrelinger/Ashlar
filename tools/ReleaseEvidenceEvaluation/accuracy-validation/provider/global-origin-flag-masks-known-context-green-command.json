@@ -1,0 +1,17 @@
+[
+  "dotnet",
+  "test",
+  "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+  "-f",
+  "net10.0",
+  "--no-restore",
+  "--filter",
+  "FullyQualifiedName~GitHubProviderAssuranceRegressionTests",
+  "--logger",
+  "trx;LogFileName=global-origin-flag-masks-known-context-green.trx",
+  "--results-directory",
+  "/provider-evidence",
+  "--nologo",
+  "-v",
+  "minimal"
+]

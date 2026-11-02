@@ -1,0 +1,2011 @@
+{
+  "id": "public-02",
+  "kind": "public",
+  "category": "public-observed-metadata-policy-visibility",
+  "sourceUrl": "https://github.com/IanFrelinger/Ashlar/pull/853",
+  "target": "https://github.com/IanFrelinger/Ashlar/pull/853",
+  "credentialSupplied": false,
+  "identity": {
+    "initial": {
+      "headSha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+      "baseSha": "6bc6f1b7eb327c6de4870f37bb2cc4d6361b64a5",
+      "baseRef": "master"
+    },
+    "final": {
+      "headSha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+      "baseSha": "6bc6f1b7eb327c6de4870f37bb2cc4d6361b64a5",
+      "baseRef": "master"
+    }
+  },
+  "sanitizedAuthorization": {
+    "requestAuthorizationHeaderSupplied": false,
+    "transport": "inherited HTTP_PROXY/HTTPS_PROXY with inherited CA trust",
+    "upstreamProxyIdentity": "not observable; authenticated proxy injection is possible",
+    "configuredRuntimeCredentials": "none reported by current cloud environment readiness",
+    "managedConnectorUsedForCaseRoutes": false,
+    "scopeLimit": "Evidence establishes only visibility through this proxy during the recorded interval. Token scopes and effective repository permissions are unknown. Credential-not-supplied-to-brick is distinct from upstream anonymous authentication."
+  },
+  "sources": [
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/pulls/853",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 0
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/pulls/853/reviews",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 1
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 2
+    },
+    {
+      "uri": "https://api.github.com/repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=2",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 3
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/statuses/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6?per_page=100",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 4
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/status",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 5
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 6
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+      "method": "GET",
+      "status": 403,
+      "captureFile": "capture.json",
+      "recordIndex": 7
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews",
+      "method": "GET",
+      "status": 403,
+      "captureFile": "capture.json",
+      "recordIndex": 8
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/rules/branches/master?per_page=100",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 9
+    },
+    {
+      "uri": "https://api.github.com/graphql",
+      "method": "POST",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 10
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 11
+    },
+    {
+      "uri": "https://api.github.com/repos/IanFrelinger/Ashlar/pulls/853",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 12
+    }
+  ],
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/repos/IanFrelinger/Ashlar/pulls/853",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json; charset=utf-8",
+            "date": "Mon, 02 Nov 2026 00:53:35 GMT",
+            "etag": "\"a46c8c1a4e6d02c678a3f97a09a9cf5da55ad03e3657509ac5d130550f9cfaf9\"",
+            "last-modified": "Wed, 28 Oct 2026 01:53:46 GMT",
+            "x-accepted-oauth-scopes": "repo",
+            "x-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14973",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "C782:133F1C:3911C8D:BD7971B:6AE7DF0F"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/IanFrelinger/Ashlar/pulls/853",
+            "id": 5001578052,
+            "node_id": "PR_kwDOPX15Ts8AAAABKh4GRA",
+            "html_url": "https://github.com/IanFrelinger/Ashlar/pull/853",
+            "number": 853,
+            "state": "open",
+            "locked": false,
+            "title": "feat: add production safeguards for embedded AI workflows",
+            "created_at": "2026-10-25T03:48:16Z",
+            "updated_at": "2026-10-25T04:19:49Z",
+            "closed_at": null,
+            "merged_at": null,
+            "merge_commit_sha": null,
+            "draft": false,
+            "mergeable": false,
+            "mergeable_state": "dirty",
+            "merged": false,
+            "rebaseable": false,
+            "author_association": "OWNER",
+            "head": {
+              "label": "IanFrelinger:feat/production-workflow-guards",
+              "ref": "feat/production-workflow-guards",
+              "sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+              "repo": {
+                "id": 1031633230,
+                "full_name": "IanFrelinger/Ashlar",
+                "private": false,
+                "html_url": "https://github.com/IanFrelinger/Ashlar",
+                "default_branch": "master"
+              }
+            },
+            "base": {
+              "label": "IanFrelinger:master",
+              "ref": "master",
+              "sha": "6bc6f1b7eb327c6de4870f37bb2cc4d6361b64a5",
+              "repo": {
+                "id": 1031633230,
+                "full_name": "IanFrelinger/Ashlar",
+                "private": false,
+                "html_url": "https://github.com/IanFrelinger/Ashlar",
+                "default_branch": "master"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json; charset=utf-8",
+            "date": "Mon, 02 Nov 2026 00:53:38 GMT",
+            "etag": "\"a46c8c1a4e6d02c678a3f97a09a9cf5da55ad03e3657509ac5d130550f9cfaf9\"",
+            "last-modified": "Wed, 28 Oct 2026 01:53:46 GMT",
+            "x-accepted-oauth-scopes": "repo",
+            "x-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14962",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "9E26:4FCA4:3FC69A:D2EB40:6AE7DF12"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/IanFrelinger/Ashlar/pulls/853",
+            "id": 5001578052,
+            "node_id": "PR_kwDOPX15Ts8AAAABKh4GRA",
+            "html_url": "https://github.com/IanFrelinger/Ashlar/pull/853",
+            "number": 853,
+            "state": "open",
+            "locked": false,
+            "title": "feat: add production safeguards for embedded AI workflows",
+            "created_at": "2026-10-25T03:48:16Z",
+            "updated_at": "2026-10-25T04:19:49Z",
+            "closed_at": null,
+            "merged_at": null,
+            "merge_commit_sha": null,
+            "draft": false,
+            "mergeable": false,
+            "mergeable_state": "dirty",
+            "merged": false,
+            "rebaseable": false,
+            "author_association": "OWNER",
+            "head": {
+              "label": "IanFrelinger:feat/production-workflow-guards",
+              "ref": "feat/production-workflow-guards",
+              "sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+              "repo": {
+                "id": 1031633230,
+                "full_name": "IanFrelinger/Ashlar",
+                "private": false,
+                "html_url": "https://github.com/IanFrelinger/Ashlar",
+                "default_branch": "master"
+              }
+            },
+            "base": {
+              "label": "IanFrelinger:master",
+              "ref": "master",
+              "sha": "6bc6f1b7eb327c6de4870f37bb2cc4d6361b64a5",
+              "repo": {
+                "id": 1031633230,
+                "full_name": "IanFrelinger/Ashlar",
+                "private": false,
+                "html_url": "https://github.com/IanFrelinger/Ashlar",
+                "default_branch": "master"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/IanFrelinger/Ashlar/pulls/853/reviews",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:36 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"2af8ea9b7918f6f14fef0ec029acc146bfc3c3aef27bfa7b6c27fc4ec8315f28\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14970",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "63D0:E04D7:3A267A:BF3F49:6AE7DF10"
+          },
+          "body": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:36 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"0716967e3029e41b39a131e563de65c7ff08683cb12643d36159507d3d9da1c4\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "link": "<https://api.github.com/repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=2>; rel=\"next\", <https://api.github.com/repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=2>; rel=\"last\"",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14972",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "871E:1A0311:11B660A:39E3CD0:6AE7DF0D"
+          },
+          "body": {
+            "total_count": 53,
+            "check_runs": [
+              {
+                "id": 121080265709,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMPI77Q",
+                "name": "Readiness summary",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121080265709",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121080265709",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121080265709",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:56:07Z",
+                "completed_at": "2026-10-25T04:56:10Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073836526,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMJAh7g",
+                "name": "Docker ${{ matrix.label }} — build · smoke",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073836526",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073836526",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073836526",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-10-25T04:20:02Z",
+                "completed_at": "2026-10-25T04:20:02Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073835483,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMJAd2w",
+                "name": "Debian-Container (container) — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073835483",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835483",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835483",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:20:05Z",
+                "completed_at": "2026-10-25T04:24:13Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073835447,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMJAdtw",
+                "name": "Ubuntu-Container (container) — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073835447",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835447",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835447",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:20:05Z",
+                "completed_at": "2026-10-25T04:23:28Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073835444,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMJAdtA",
+                "name": "Linux — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073835444",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835444",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835444",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:20:05Z",
+                "completed_at": "2026-10-25T04:41:59Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073835443,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMJAdsw",
+                "name": "macOS — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073835443",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835443",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835443",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:20:06Z",
+                "completed_at": "2026-10-25T04:44:18Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073835415,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMJAdlw",
+                "name": "Docker CLI image — build · smoke · discover",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073835415",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835415",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835415",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:20:05Z",
+                "completed_at": "2026-10-25T04:21:16Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073835349,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMJAdVQ",
+                "name": "Alpine-Container (container) — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073835349",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835349",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835349",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:20:05Z",
+                "completed_at": "2026-10-25T04:23:47Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073835347,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMJAdUw",
+                "name": "Windows — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073835347",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835347",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073835347",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:20:09Z",
+                "completed_at": "2026-10-25T04:56:04Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073802984,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMI-e6A",
+                "name": "Changes — core paths touched?",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073802984",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073802984",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161484103/job/121073802984",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:19:54Z",
+                "completed_at": "2026-10-25T04:20:02Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854259572
+                }
+              },
+              {
+                "id": 121073799766,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMI-SVg",
+                "name": "verify",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073799766",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161483179/job/121073799766",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161483179/job/121073799766",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:19:53Z",
+                "completed_at": "2026-10-25T04:20:01Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854257238
+                }
+              },
+              {
+                "id": 121073799624,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMI-RyA",
+                "name": "testing-strategy",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073799624",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161483185/job/121073799624",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161483185/job/121073799624",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:19:53Z",
+                "completed_at": "2026-10-25T04:20:00Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108854257239
+                }
+              },
+              {
+                "id": 121073604995,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMIyZgw",
+                "name": "Readiness summary",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121073604995",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121073604995",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121073604995",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:18:48Z",
+                "completed_at": "2026-10-25T04:18:51Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121072728393,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMH85SQ",
+                "name": "testing-strategy",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121072728393",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161126709/job/121072728393",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161126709/job/121072728393",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:14:01Z",
+                "completed_at": "2026-10-25T04:14:09Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108853315002
+                }
+              },
+              {
+                "id": 121072728091,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMH84Gw",
+                "name": "verify",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121072728091",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161126658/job/121072728091",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40161126658/job/121072728091",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T04:14:00Z",
+                "completed_at": "2026-10-25T04:14:08Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108853314855
+                }
+              },
+              {
+                "id": 121068155348,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDlx1A",
+                "name": "Docker ${{ matrix.label }} — build · smoke",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068155348",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068155348",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068155348",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-10-25T03:48:51Z",
+                "completed_at": "2026-10-25T03:48:51Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121068154593,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDlu4Q",
+                "name": "Windows — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068154593",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154593",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154593",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:54Z",
+                "completed_at": "2026-10-25T04:18:46Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121068154501,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDluhQ",
+                "name": "Alpine-Container (container) — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068154501",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154501",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154501",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:49:38Z",
+                "completed_at": "2026-10-25T03:53:19Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121068154499,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDlugw",
+                "name": "Ubuntu-Container (container) — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068154499",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154499",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154499",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:50:14Z",
+                "completed_at": "2026-10-25T03:54:13Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121068154469,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDluZQ",
+                "name": "Linux — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068154469",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154469",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154469",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:49:38Z",
+                "completed_at": "2026-10-25T04:11:49Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121068154464,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDluYA",
+                "name": "macOS — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068154464",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154464",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154464",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:54Z",
+                "completed_at": "2026-10-25T04:11:51Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121068154434,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDluQg",
+                "name": "Debian-Container (container) — setup · discover · dry-run",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068154434",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154434",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154434",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:55Z",
+                "completed_at": "2026-10-25T03:52:57Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121068154433,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDluQQ",
+                "name": "Docker CLI image — build · smoke · discover",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068154433",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154433",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068154433",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:49:06Z",
+                "completed_at": "2026-10-25T03:50:28Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121068063234,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgKAg",
+                "name": "cert-gate",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068063234",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555673/job/121068063234",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555673/job/121068063234",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:57Z",
+                "completed_at": "2026-10-25T03:54:50Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197201
+                }
+              },
+              {
+                "id": 121068062788,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgIRA",
+                "name": "Ashlar.Client ↔ in-process Ashlar.API (net10)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062788",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062788",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062788",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:45Z",
+                "completed_at": "2026-10-25T03:50:49Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197130
+                }
+              },
+              {
+                "id": 121068062778,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgIOg",
+                "name": "MCP/A2A adapter suites",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062778",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555708/job/121068062778",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555708/job/121068062778",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:49:03Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197293
+                }
+              },
+              {
+                "id": 121068062766,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgILg",
+                "name": "Standalone brick authoring scaffold",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062766",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062766",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062766",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:49:03Z",
+                "completed_at": "2026-10-25T03:50:56Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197130
+                }
+              },
+              {
+                "id": 121068062721,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgIAQ",
+                "name": "build-core",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062721",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555703/job/121068062721",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555703/job/121068062721",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:56Z",
+                "completed_at": "2026-10-25T03:50:53Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197276
+                }
+              },
+              {
+                "id": 121068062671,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHzw",
+                "name": "NuGet local pack → StableSdkHostSample",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062671",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062671",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062671",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:45Z",
+                "completed_at": "2026-10-25T03:50:49Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197130
+                }
+              },
+              {
+                "id": 121068062665,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHyQ",
+                "name": "uat (tiers 0-2, 4-10)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062665",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555637/job/121068062665",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555637/job/121068062665",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:52:43Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197119
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=2",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:37 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"81bd32248d19d7016686948e43e2d0b4186c3695007fab2655b27590a0b0b1ff\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "link": "<https://api.github.com/repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=1>; rel=\"prev\", <https://api.github.com/repositories/1031633230/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/check-runs?page=1>; rel=\"first\"",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14964",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "30B1:293B65:11D3176:3A42724:6AE7DF10"
+          },
+          "body": {
+            "total_count": 53,
+            "check_runs": [
+              {
+                "id": 121068062645,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHtQ",
+                "name": "CLI image build + smoke",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062645",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062645",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062645",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:49:35Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197130
+                }
+              },
+              {
+                "id": 121068062635,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHqw",
+                "name": "net10.0 trimmed / AOT publish → canonical bytes (execute) (aot)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062635",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062635",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062635",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:48:54Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197152
+                }
+              },
+              {
+                "id": 121068062622,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHng",
+                "name": "API image + curl /health + /api/status",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062622",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062622",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062622",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:49:35Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197130
+                }
+              },
+              {
+                "id": 121068062619,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHmw",
+                "name": "Ashlar.API protocol endpoints (ProdStyle)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062619",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555708/job/121068062619",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555708/job/121068062619",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:50:15Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197293
+                }
+              },
+              {
+                "id": 121068062618,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHmg",
+                "name": "External product shape (brick + host + client)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062618",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062618",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062618",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:42Z",
+                "completed_at": "2026-10-25T03:51:44Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197130
+                }
+              },
+              {
+                "id": 121068062607,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHjw",
+                "name": "packed-certification-trust",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062607",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555643/job/121068062607",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555643/job/121068062607",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:48:54Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197136
+                }
+              },
+              {
+                "id": 121068062603,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHiw",
+                "name": "net10.0 trimmed / AOT publish → canonical bytes (execute) (trim-full-reflection-on)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062603",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062603",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062603",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:48:50Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197152
+                }
+              },
+              {
+                "id": 121068062592,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHgA",
+                "name": "net9.0 runtime ← lib/net8.0 asset (execute)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062592",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062592",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062592",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:48:52Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197152
+                }
+              },
+              {
+                "id": 121068062581,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHdQ",
+                "name": "net10.0 trimmed / AOT publish → canonical bytes (execute) (trim-partial)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062581",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062581",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062581",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:48:51Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197152
+                }
+              },
+              {
+                "id": 121068062574,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHbg",
+                "name": "lychee (README + docs)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062574",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555665/job/121068062574",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555665/job/121068062574",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:32Z",
+                "completed_at": "2026-10-25T03:48:42Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197185
+                }
+              },
+              {
+                "id": 121068062567,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHZw",
+                "name": "net10.0 trimmed / AOT publish → canonical bytes (execute) (trim-full)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062567",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062567",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062567",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:48:53Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197152
+                }
+              },
+              {
+                "id": 121068062531,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHQw",
+                "name": "testing-strategy",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062531",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555701/job/121068062531",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555701/job/121068062531",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:48:29Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197282
+                }
+              },
+              {
+                "id": 121068062513,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHMQ",
+                "name": "uat cross-platform (tiers 8, 9)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062513",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555637/job/121068062513",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555637/job/121068062513",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:53Z",
+                "completed_at": "2026-10-25T03:51:09Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197119
+                }
+              },
+              {
+                "id": 121068062509,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHLQ",
+                "name": "shell-lint",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062509",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555687/job/121068062509",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555687/job/121068062509",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:53Z",
+                "completed_at": "2026-10-25T03:50:29Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197241
+                }
+              },
+              {
+                "id": 121068062491,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHGw",
+                "name": "kernel-gate",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062491",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555667/job/121068062491",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555667/job/121068062491",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:50:12Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197191
+                }
+              },
+              {
+                "id": 121068062487,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHFw",
+                "name": "Pack script vs Ashlar.Hosting graph",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062487",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062487",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555641/job/121068062487",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:48:39Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197130
+                }
+              },
+              {
+                "id": 121068062470,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgHBg",
+                "name": "Changes — core paths touched?",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062470",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068062470",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555642/job/121068062470",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:41Z",
+                "completed_at": "2026-10-25T03:48:50Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197129
+                }
+              },
+              {
+                "id": 121068062454,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgG9g",
+                "name": "build-orchestration-tests",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062454",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555639/job/121068062454",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555639/job/121068062454",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:50:32Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197124
+                }
+              },
+              {
+                "id": 121068062451,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgG8w",
+                "name": "verify",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062451",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555636/job/121068062451",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555636/job/121068062451",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:28Z",
+                "completed_at": "2026-10-25T03:48:38Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197121
+                }
+              },
+              {
+                "id": 121068062428,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgG3A",
+                "name": "kernel-coverage",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062428",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555675/job/121068062428",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555675/job/121068062428",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:58:03Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197213
+                }
+              },
+              {
+                "id": 121068062400,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgGwA",
+                "name": "security-gate",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062400",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555643/job/121068062400",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555643/job/121068062400",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:51:17Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197136
+                }
+              },
+              {
+                "id": 121068062393,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgGuQ",
+                "name": "netstandard2.0 asset under Mono (execute)",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062393",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062393",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555651/job/121068062393",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:49:00Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197152
+                }
+              },
+              {
+                "id": 121068062205,
+                "node_id": "CR_kwDOPX15Ts8AAAAcMDgF_Q",
+                "name": "verify",
+                "head_sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                "url": "https://api.github.com/repos/IanFrelinger/Ashlar/check-runs/121068062205",
+                "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555645/job/121068062205",
+                "details_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/40159555645/job/121068062205",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-25T03:48:22Z",
+                "completed_at": "2026-10-25T03:48:42Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 108849197139
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/IanFrelinger/Ashlar/statuses/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6?per_page=100",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:36 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"2af8ea9b7918f6f14fef0ec029acc146bfc3c3aef27bfa7b6c27fc4ec8315f28\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "repo, repo:status",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14971",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "240F:208CBF:1225CD0:3BB6F66:6AE7DF0F"
+          },
+          "body": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/status",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:36 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"682b46d4183b8f7ef5712be873fce1b4aba77d17ea89d43c29bc9b6db1da1ceb\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "repo, repo:status",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14969",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "AEB9:29618:11F0808:3A91CF9:6AE7DF10"
+          },
+          "body": {
+            "state": "pending",
+            "sha": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+            "total_count": 0,
+            "url": "https://api.github.com/repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6/status",
+            "commit_url": "https://api.github.com/repos/IanFrelinger/Ashlar/commits/8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+            "statuses": []
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/IanFrelinger/Ashlar/branches/master",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:36 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"d39ef8b2a86a081233ee6f9537fe9c1d2b115391dc05b82d6668bc2087d27005\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14968",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "CC63:18E436:11FB39B:3AD61F0:6AE7DF0E"
+          },
+          "body": {
+            "name": "master",
+            "protected": true,
+            "protection": {
+              "enabled": true,
+              "required_status_checks": {
+                "enforcement_level": "everyone",
+                "contexts": [
+                  "cert-gate",
+                  "build-core",
+                  "shell-lint",
+                  "lychee (README + docs)",
+                  "Readiness summary"
+                ],
+                "checks": [
+                  {
+                    "context": "cert-gate",
+                    "app_id": 15368
+                  },
+                  {
+                    "context": "build-core",
+                    "app_id": 15368
+                  },
+                  {
+                    "context": "shell-lint",
+                    "app_id": 15368
+                  },
+                  {
+                    "context": "lychee (README + docs)",
+                    "app_id": 15368
+                  },
+                  {
+                    "context": "Readiness summary",
+                    "app_id": 15368
+                  }
+                ]
+              }
+            },
+            "protection_url": "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection",
+            "_links": {
+              "self": "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master",
+              "html": "https://github.com/IanFrelinger/Ashlar/tree/master"
+            },
+            "commit": {
+              "sha": "5e0beeae3b037508f23b475d98d13cc7e64c25de",
+              "url": "https://api.github.com/repos/IanFrelinger/Ashlar/commits/5e0beeae3b037508f23b475d98d13cc7e64c25de"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:38 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"d39ef8b2a86a081233ee6f9537fe9c1d2b115391dc05b82d6668bc2087d27005\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14963",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "6957:104A43:32D5B8:A5D176:6AE7DF12"
+          },
+          "body": {
+            "name": "master",
+            "protected": true,
+            "protection": {
+              "enabled": true,
+              "required_status_checks": {
+                "enforcement_level": "everyone",
+                "contexts": [
+                  "cert-gate",
+                  "build-core",
+                  "shell-lint",
+                  "lychee (README + docs)",
+                  "Readiness summary"
+                ],
+                "checks": [
+                  {
+                    "context": "cert-gate",
+                    "app_id": 15368
+                  },
+                  {
+                    "context": "build-core",
+                    "app_id": 15368
+                  },
+                  {
+                    "context": "shell-lint",
+                    "app_id": 15368
+                  },
+                  {
+                    "context": "lychee (README + docs)",
+                    "app_id": 15368
+                  },
+                  {
+                    "context": "Readiness summary",
+                    "app_id": 15368
+                  }
+                ]
+              }
+            },
+            "protection_url": "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master/protection",
+            "_links": {
+              "self": "https://api.github.com/repos/IanFrelinger/Ashlar/branches/master",
+              "html": "https://github.com/IanFrelinger/Ashlar/tree/master"
+            },
+            "commit": {
+              "sha": "5e0beeae3b037508f23b475d98d13cc7e64c25de",
+              "url": "https://api.github.com/repos/IanFrelinger/Ashlar/commits/5e0beeae3b037508f23b475d98d13cc7e64c25de"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/IanFrelinger/Ashlar/branches/master/protection/required_status_checks",
+      "responses": [
+        {
+          "status": 403,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:36 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14967",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "2B56:354049:127E119:3C8699E:6AE7DF0D"
+          },
+          "body": {
+            "message": "Resource not accessible by integration",
+            "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection",
+            "status": "403"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/IanFrelinger/Ashlar/branches/master/protection/required_pull_request_reviews",
+      "responses": [
+        {
+          "status": 403,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:36 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14966",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "2B56:354049:127E140:3C86A17:6AE7DF10"
+          },
+          "body": {
+            "message": "Resource not accessible by integration",
+            "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-pull-request-review-protection",
+            "status": "403"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/IanFrelinger/Ashlar/rules/branches/master?per_page=100",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 00:53:36 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"2af8ea9b7918f6f14fef0ec029acc146bfc3c3aef27bfa7b6c27fc4ec8315f28\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "repo",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14965",
+            "x-ratelimit-reset": "1793584199",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "BCDB:191843:12DDB3A:3DBA1E5:6AE7DF0F"
+          },
+          "body": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json; charset=utf-8",
+            "date": "Mon, 02 Nov 2026 00:53:37 GMT",
+            "x-accepted-oauth-scopes": "repo",
+            "x-oauth-scopes": "",
+            "x-ratelimit-limit": "10000",
+            "x-ratelimit-remaining": "9997",
+            "x-ratelimit-reset": "1793584252",
+            "x-ratelimit-resource": "graphql",
+            "x-github-request-id": "2B56:354049:127E688:3C87BC5:6AE7DF10"
+          },
+          "body": {
+            "data": {
+              "repository": {
+                "pull_request": {
+                  "review_decision": null,
+                  "commits": {
+                    "nodes": [
+                      {
+                        "commit": {
+                          "oid": "8b9fda6a16e3bde4b9051e1ae385e813c0df87f6",
+                          "status_check_rollup": {
+                            "contexts": {
+                              "nodes": [
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "build-core",
+                                  "is_required": true
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "cert-gate",
+                                  "is_required": true
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "NuGet local pack → StableSdkHostSample",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "lychee (README + docs)",
+                                  "is_required": true
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Changes — core paths touched?",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Changes — core paths touched?",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "kernel-gate",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "kernel-coverage",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "MCP/A2A adapter suites",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "build-orchestration-tests",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "net9.0 runtime ← lib/net8.0 asset (execute)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "security-gate",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "shell-lint",
+                                  "is_required": true
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "testing-strategy",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "testing-strategy",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "testing-strategy",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "verify",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "verify",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "verify",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "verify",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "uat (tiers 0-2, 4-10)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "CLI image build + smoke",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Linux — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Linux — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Ashlar.API protocol endpoints (ProdStyle)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "net10.0 trimmed / AOT publish → canonical bytes (execute) (trim-partial)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "packed-certification-trust",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "uat cross-platform (tiers 8, 9)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "macOS — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "macOS — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "net10.0 trimmed / AOT publish → canonical bytes (execute) (trim-full)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Windows — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Windows — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "net10.0 trimmed / AOT publish → canonical bytes (execute) (trim-full-reflection-on)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "net10.0 trimmed / AOT publish → canonical bytes (execute) (aot)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Standalone brick authoring scaffold",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Ubuntu-Container (container) — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Ubuntu-Container (container) — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "netstandard2.0 asset under Mono (execute)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Alpine-Container (container) — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Alpine-Container (container) — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Debian-Container (container) — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Debian-Container (container) — setup · discover · dry-run",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "External product shape (brick + host + client)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Docker CLI image — build · smoke · discover",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Docker CLI image — build · smoke · discover",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Docker ${{ matrix.label }} — build · smoke",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Docker ${{ matrix.label }} — build · smoke",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "API image + curl /health + /api/status",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Ashlar.Client ↔ in-process Ashlar.API (net10)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Readiness summary",
+                                  "is_required": true
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Readiness summary",
+                                  "is_required": true
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "Pack script vs Ashlar.Hosting graph",
+                                  "is_required": false
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "captureNotes": {
+    "source": "Captured real public GitHub API metadata; no synthetic substitutions",
+    "bodyProjection": "See capture.json sanitization. Relevant API field names/shapes and retained values preserved.",
+    "graphql": "Actual query/result retained as source evidence; brick is invoked without a supplied token and may skip this endpoint.",
+    "pagination": "Actual Link headers followed until no rel=next; exact request paths retained. No invented pages or policy.",
+    "initialFinalResponses": "Sequential repeated route responses preserve capture order; final repeats only in offline transport per runner convention."
+  }
+}

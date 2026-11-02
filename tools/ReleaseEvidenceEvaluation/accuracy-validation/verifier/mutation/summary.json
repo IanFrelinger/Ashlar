@@ -1,0 +1,17 @@
+{
+  "commit": "743bbf924bb8f39e4bea4bc04221be72487097f9",
+  "mutation": "One-line bypass of expected-five required_review_records subset assertion",
+  "specific_red_test": "test_supplemental_missing_labels_reviews_or_reports_is_not_skipped",
+  "mutant_tests_run": 9,
+  "mutant_assertion_failures": 1,
+  "mutant_runtime_import_compile_errors": 0,
+  "mutant_exit": 1,
+  "restored_tests_run": 9,
+  "restored_tests_green": 9,
+  "restored_exit": 0,
+  "restored_source_byte_exact": true,
+  "original_source_sha256": "4f946cf96c968123d3762bce4b98e45bf96e8fb20f794399da2c6697888d839c",
+  "restored_source_sha256": "4f946cf96c968123d3762bce4b98e45bf96e8fb20f794399da2c6697888d839c",
+  "final_porcelain_empty": true,
+  "scope": "Disposable clone only; no shared source or frozen input edits; no .NET or API calls"
+}

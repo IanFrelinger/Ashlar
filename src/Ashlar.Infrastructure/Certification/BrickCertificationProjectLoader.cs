@@ -136,7 +136,9 @@ public static class BrickCertificationProjectLoader
         JsonValueKind.Number => element.GetDouble(),
         JsonValueKind.True => true,
         JsonValueKind.False => false,
-        _ => element.GetRawText()
+        // Preserve aggregate kinds: converting an object/array witness into its JSON text
+        // would let a brick returning that text as a string satisfy the wrong contract.
+        _ => element.Clone()
     };
 
     private static readonly JsonSerializerOptions JsonOptions = new()

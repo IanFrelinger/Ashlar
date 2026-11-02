@@ -1,0 +1,65 @@
+{
+  "note": "Exact patches and transcripts compressed to preserve intentional whitespace; recorded bytes unchanged. Other compressed logs/TRXs are mapped by production-controls/archive-index.json.",
+  "records": [
+    {
+      "recordedPath": "production-controls/freshness-allows-stale-ready-applied.diff",
+      "archivedPath": "production-controls/freshness-allows-stale-ready-applied.diff.gz",
+      "uncompressedSha256": "06b96e71c4ef319ee449da437fb9eaf497834bbdccf846964582a4c92add4e3e"
+    },
+    {
+      "recordedPath": "production-controls/metadata-accepts-unverified-identity-applied.diff",
+      "archivedPath": "production-controls/metadata-accepts-unverified-identity-applied.diff.gz",
+      "uncompressedSha256": "df76f9c090315947cc3300669fe0a5946204f2df2abaaa41197f8ccb243bc800"
+    },
+    {
+      "recordedPath": "production-controls/pagination-reverses-link-guard-applied.diff",
+      "archivedPath": "production-controls/pagination-reverses-link-guard-applied.diff.gz",
+      "uncompressedSha256": "a3a82a788a37071baf0b786627d76abd6ee07f4c75cdd82c8fd5a81d1463b8be"
+    },
+    {
+      "recordedPath": "production-controls/partial-ci-wrongly-proves-absence-applied.diff",
+      "archivedPath": "production-controls/partial-ci-wrongly-proves-absence-applied.diff.gz",
+      "uncompressedSha256": "6669fb4bff8735709cdbaf4c0a9d13308b525f7dcc31a12e52450f58555a93dc"
+    },
+    {
+      "recordedPath": "production-controls/pending-required-result-loses-failure-applied.diff",
+      "archivedPath": "production-controls/pending-required-result-loses-failure-applied.diff.gz",
+      "uncompressedSha256": "c9cacb958a52edc8321e2e83000fddef2d3267cd460bd17cef84dd3e553f3a3b"
+    },
+    {
+      "recordedPath": "production-controls/provider-name-alone-becomes-proof-applied.diff",
+      "archivedPath": "production-controls/provider-name-alone-becomes-proof-applied.diff.gz",
+      "uncompressedSha256": "08d9ad0e9ce7c7e07c092e7baed604679efd35dabc8e722fde04e321afbb3afc"
+    },
+    {
+      "recordedPath": "production-controls/required-github-suite-selector-dropped-applied.diff",
+      "archivedPath": "production-controls/required-github-suite-selector-dropped-applied.diff.gz",
+      "uncompressedSha256": "411e81091e9805e1f9328c56682e71861560b0bab2934162d62d9252adad96b0"
+    },
+    {
+      "recordedPath": "production-controls/selftest-outbound-primitive-unlisted-applied.diff",
+      "archivedPath": "production-controls/selftest-outbound-primitive-unlisted-applied.diff.gz",
+      "uncompressedSha256": "418bf673b5977210d2e2053cdc981193363b25b7000de67fd05a97985344c7ca"
+    },
+    {
+      "recordedPath": "self-test-correction.diff",
+      "archivedPath": "self-test-correction.diff.gz",
+      "uncompressedSha256": "d9579ee7bb994cba0d4f84e876d29d18f0dbed9c5249a5dc642696f081d4f659"
+    },
+    {
+      "recordedPath": "verifier-mutation/mutant.patch",
+      "archivedPath": "verifier-mutation/mutant.patch.gz",
+      "uncompressedSha256": "5536ceef07d79d6d289f1f9d7be22ff94898fbc19536bd397153bbba86434a7f"
+    },
+    {
+      "recordedPath": "verifier-mutation/source-flip.stdout.txt",
+      "archivedPath": "verifier-mutation/source-flip.stdout.txt.gz",
+      "uncompressedSha256": "5536ceef07d79d6d289f1f9d7be22ff94898fbc19536bd397153bbba86434a7f"
+    },
+    {
+      "recordedPath": "wrapper-mutation/red.txt",
+      "archivedPath": "wrapper-mutation/red.txt.gz",
+      "uncompressedSha256": "07fc1b25c712eeed68c3371f4e39112c1634848d730b250b9b38a04613e8342f"
+    }
+  ]
+}

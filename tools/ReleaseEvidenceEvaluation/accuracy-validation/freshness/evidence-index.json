@@ -1,0 +1,228 @@
+{
+  "files": [
+    {
+      "path": "bin/docker",
+      "sha256": "e52debc64fed26e0d3adadae93b25d324b81ed45f4282b93632ed681798108e2"
+    },
+    {
+      "path": "earlier-read-errors-leak-after-green-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "earlier-read-errors-leak-applied.diff",
+      "sha256": "359b5370b090d3c478296cd4558698b976f02c4eb1c2b05346a67c4d6e391a56"
+    },
+    {
+      "path": "earlier-read-errors-leak-green-command.json",
+      "sha256": "84a834244796b0717d23894ce8d7b69c75e6ec4590598681da86b0d401e390e6"
+    },
+    {
+      "path": "earlier-read-errors-leak-green.log",
+      "sha256": "a1a5cc58500d3c1ffc03e13b048e36eb0c11ee566cdf7dc410170dcda206cd49"
+    },
+    {
+      "path": "earlier-read-errors-leak-green.trx",
+      "sha256": "9e1a8624f773982466c7a12f90e4a6820eda9bbfe2471b1e33d7978cdbf15074"
+    },
+    {
+      "path": "earlier-read-errors-leak-red-command.json",
+      "sha256": "62c39d116242844e41e66b91b74588716bc304ea04e45d53667a12ea6a236e5a"
+    },
+    {
+      "path": "earlier-read-errors-leak-red.log",
+      "sha256": "33a7bd2d8f85038be87246548e65a8629fc708527e179ae0faf4a4e7fad95565"
+    },
+    {
+      "path": "earlier-read-errors-leak-red.trx",
+      "sha256": "08231224a48820d0af9edfa0edd6dc5be29f5be445b0aee043d46000cf992ddf"
+    },
+    {
+      "path": "earlier-read-errors-leak-restored-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "exhausted-assurance-fail-after-green-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "exhausted-assurance-fail-applied.diff",
+      "sha256": "9a1575b697a86132c219f26bf00207728daae857460ece76d6d2d7190569fe6e"
+    },
+    {
+      "path": "exhausted-assurance-fail-green-command.json",
+      "sha256": "a9454475c76ad8ed73077a3f85cfec9b8b799496931b033dc79d5357a8f3af5b"
+    },
+    {
+      "path": "exhausted-assurance-fail-green.log",
+      "sha256": "5b41c656d45cd358dc0a4c3a9b0691790f0720c4c942f7c2a1e82e1e6e00d688"
+    },
+    {
+      "path": "exhausted-assurance-fail-green.trx",
+      "sha256": "0665c61626cdeb659f88675a89a5dab2c2fcf22e9b04bb23a178e4b41c5dee83"
+    },
+    {
+      "path": "exhausted-assurance-fail-red-command.json",
+      "sha256": "b4298d6e42c9c68bf1bc19452070772d6f14ad6992c0332831f2222b574a0462"
+    },
+    {
+      "path": "exhausted-assurance-fail-red.log",
+      "sha256": "383936be08d6a148f92613fd6706c0b8b9fb77f884c3136f5e6f46877a37b1f0"
+    },
+    {
+      "path": "exhausted-assurance-fail-red.trx",
+      "sha256": "0197247955e75bc641f8c14e6303ad8b3f069362758d763904d389434cfb2b55"
+    },
+    {
+      "path": "exhausted-assurance-fail-restored-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "exhausted-legacy-blocked-after-green-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "exhausted-legacy-blocked-applied.diff",
+      "sha256": "814c6b72e34ac8ab3d1c304842a91f6a528b904b46a3d55b5027842a26812366"
+    },
+    {
+      "path": "exhausted-legacy-blocked-green-command.json",
+      "sha256": "993b023302a66e64c56ac1f53297b8dc0dcac3ffe5d841fd1355e2476cc31a3c"
+    },
+    {
+      "path": "exhausted-legacy-blocked-green.log",
+      "sha256": "cb55dee0832d936efaf7e64084d5eed01e4a2dbb798678010749f064efb467f6"
+    },
+    {
+      "path": "exhausted-legacy-blocked-green.trx",
+      "sha256": "e0143a41fae0b99987f5ca2d0353c926afd4d617353dc58b58ff8c20e6926190"
+    },
+    {
+      "path": "exhausted-legacy-blocked-red-command.json",
+      "sha256": "3d410f06bbc635ccf7d10565ba99bba0cf618804e1f26f091d810231d63c89df"
+    },
+    {
+      "path": "exhausted-legacy-blocked-red.log",
+      "sha256": "8dd48fbd96003a2c2bba37c71451fe4f388692c1ec4fedcfe294f188a06de8a9"
+    },
+    {
+      "path": "exhausted-legacy-blocked-red.trx",
+      "sha256": "1b09eafb6e41efe9bbfb85fdf3af2fbd2fd5f3faf55404326e02c90632790064"
+    },
+    {
+      "path": "exhausted-legacy-blocked-restored-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "focused-2.log",
+      "sha256": "badc624e41866e2ebe65fe93b178f37b81fabf347b049d10d822f55ac7762599"
+    },
+    {
+      "path": "focused.log",
+      "sha256": "4d41c6c59cffa36e9dfa5d78b63d3d4016c811f44eeb2b42ee7bc851ac37aa80"
+    },
+    {
+      "path": "initial-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mutation-bin/docker",
+      "sha256": "d70f2946021844fb7af34e3b56f015c8b34759a6d195076b3235b61f795e4467"
+    },
+    {
+      "path": "mutation-container.txt",
+      "sha256": "23b6eae8ca7f989a39d4dcf4c02da9a78e7c63829726ffbc3d56d057cbd01016"
+    },
+    {
+      "path": "mutation-driver.log",
+      "sha256": "d6a9dc01f6ed2e47c9ab217e2fe8544941d9369fb611f626347d278378af6438"
+    },
+    {
+      "path": "mutation-plan.json",
+      "sha256": "a7a8c7cf16a48de148e970361dd514868c0b85cbaf360fc68981f62226bb2257"
+    },
+    {
+      "path": "mutation-summary.json",
+      "sha256": "d32bd3d6d6c9c6d7d3fa64f2f07a9df855682feae6baee5de84fa496aa0bf6e3"
+    },
+    {
+      "path": "recollection-disabled-after-green-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "recollection-disabled-applied.diff",
+      "sha256": "2dbdcb6cd065bad4028842fce7e1c2612ed462523e851143c5addd92eb9eaa8b"
+    },
+    {
+      "path": "recollection-disabled-green-command.json",
+      "sha256": "74fbe3d6423936c5cca6abb0509094eb55741388c42fe66aae8f05bcf891af7f"
+    },
+    {
+      "path": "recollection-disabled-green.log",
+      "sha256": "b7b4635233d2e10a951a7b6a15fbae9852dd18603c00bc136ca3f62697a0e24f"
+    },
+    {
+      "path": "recollection-disabled-green.trx",
+      "sha256": "2565f2da4f9ba6e0064507dd21529a57b2a765e3d182e150e79541f041ccfa63"
+    },
+    {
+      "path": "recollection-disabled-red-command.json",
+      "sha256": "43394275609239e2a8c02f64f300b882e74bacc2d2d10f3c53116a2311ea7468"
+    },
+    {
+      "path": "recollection-disabled-red.log",
+      "sha256": "938d91abc07a763e442d073779021bf11a8e67003854715e111ce0fdcd2aa9d8"
+    },
+    {
+      "path": "recollection-disabled-red.trx",
+      "sha256": "98eb8b3cc679888a5c910baf32f840a515ab138263675858516d2c68c802af71"
+    },
+    {
+      "path": "recollection-disabled-restored-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "result.json",
+      "sha256": "5c9f4325949d517d27edc322d996e7dbc94fbd1ed2b371f82e7ad05103f9dc59"
+    },
+    {
+      "path": "run-mutations.py",
+      "sha256": "be1028df623aeffe72fa3797f4326ac2881cac9d8646d27aac05a5a6d28f7bbb"
+    },
+    {
+      "path": "third-collection-admitted-after-green-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "third-collection-admitted-applied.diff",
+      "sha256": "794d60d42f1255c8436859fdb69d6555dad7eb7773f83c6b0007145fa2e89117"
+    },
+    {
+      "path": "third-collection-admitted-green-command.json",
+      "sha256": "0627e03c637a55618948995c8ff25b6cb70b5e1341015a47acecb242a6098789"
+    },
+    {
+      "path": "third-collection-admitted-green.log",
+      "sha256": "dcc6a5933cc57ced692412292819f8ecd3da7bd2e374bd5b75f9b2bdf48beae9"
+    },
+    {
+      "path": "third-collection-admitted-green.trx",
+      "sha256": "8dcad069d2b9b1c7572dcc528058afc40f48b71d4818c7abb2eaa954d065fa34"
+    },
+    {
+      "path": "third-collection-admitted-red-command.json",
+      "sha256": "878a83fb772788b5278d747fd6f2c374b4135356fc52cb233c2e55d5d5d946dc"
+    },
+    {
+      "path": "third-collection-admitted-red.log",
+      "sha256": "f24fd9b24312b2fbed618e83dec8377763a35e9ca4ef01ed23c069ec5d8f9bab"
+    },
+    {
+      "path": "third-collection-admitted-red.trx",
+      "sha256": "46476d3f1499e778847f129da3b601ca0020d2cbc2e5dc155eef4e35c3c48e68"
+    },
+    {
+      "path": "third-collection-admitted-restored-porcelain.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

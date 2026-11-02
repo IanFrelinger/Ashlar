@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-02",
+  "os": "Ubuntu24.04.5LTS",
+  "architecture": "linux-x64",
+  "sdk": "10.0.403",
+  "runtimes": {
+    "Microsoft.NETCore.App": [
+      "8.0.33",
+      "10.0.14"
+    ],
+    "Microsoft.AspNetCore.App": [
+      "8.0.33",
+      "10.0.14"
+    ]
+  },
+  "image": "ashlar-devtest:slim",
+  "imageId": "sha256:1d9680d11acd9cf5ff2c6f99b14ed6f4fcacf2f3ce005ba892fbe7ee01457be8",
+  "containerMemoryLimit": "6g",
+  "replayNetwork": "none",
+  "certificationNetwork": "none",
+  "coreBuildNetwork": "normal proxy/CA path after incomplete-cache offline restore failed",
+  "cache": "shared warm NuGet volume; separate measurements explicitly use new profiles",
+  "nugetAudit": false,
+  "defaultBranchObserved": "master",
+  "defaultBranchCommit": "5e0beeae3b037508f23b475d98d13cc7e64c25de",
+  "authorization": "no token supplied by evaluation/capture code; live proxy upstream authentication not observable",
+  "scope": "local development validation; no hosted CI, release, deployment, customer-data or general agent-sandbox claim"
+}

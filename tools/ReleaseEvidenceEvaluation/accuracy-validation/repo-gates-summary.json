@@ -1,0 +1,31 @@
+{
+  "checkout": "7ad37a17fb560b394d8c31027884f0bcd270d063",
+  "productionCandidate": "359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+  "command": [
+    "python3",
+    "tools/ReleaseEvidenceEvaluation/validation/session-subreaper.py",
+    "bash",
+    "scripts/ci/run-repo-gates.sh"
+  ],
+  "exitCode": 0,
+  "passed": 48,
+  "failed": 0,
+  "productionSourceComparison": {
+    "command": [
+      "git",
+      "diff",
+      "--exit-code",
+      "359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+      "7ad37a17fb560b394d8c31027884f0bcd270d063",
+      "--",
+      "src/Ashlar.Bricks.GitHub/GitHub",
+      "src/Ashlar.Mcp.Server.Host",
+      "src/Ashlar.Tests.Infrastructure/Tests/Bricks",
+      "src/Ashlar.Tests.Infrastructure/Tests/Certification/CertGateFilterCoverageTests.cs",
+      "scripts/cert-gate-config.sh"
+    ],
+    "exitCode": 0,
+    "stdout": ""
+  },
+  "scope": "Local repo checks with Linux subreaper; no hosted CI status or native PID1 success claim"
+}

@@ -1,0 +1,127 @@
+{
+  "productionCommit": "359edd2a731a43c7f14f31233ca312b96a0a5bb0",
+  "fullNet8": {
+    "total": 3989,
+    "executed": 3989,
+    "passed": 3989,
+    "failed": 0,
+    "error": 0,
+    "timeout": 0,
+    "aborted": 0,
+    "inconclusive": 0,
+    "passedButRunAborted": 0,
+    "notRunnable": 0,
+    "notExecuted": 0,
+    "disconnected": 0,
+    "warning": 0,
+    "completed": 0,
+    "inProgress": 0,
+    "pending": 0
+  },
+  "focusedNet10": {
+    "total": 235,
+    "executed": 235,
+    "passed": 235,
+    "failed": 0,
+    "error": 0,
+    "timeout": 0,
+    "aborted": 0,
+    "inconclusive": 0,
+    "passedButRunAborted": 0,
+    "notRunnable": 0,
+    "notExecuted": 0,
+    "disconnected": 0,
+    "warning": 0,
+    "completed": 0,
+    "inProgress": 0,
+    "pending": 0
+  },
+  "sourcePorcelainEmpty": true,
+  "coreFirstAttemptExit": 1,
+  "coreRetryExit": 0,
+  "coreRetryReason": "Nested restore tried unreachable NuGet vulnerability data offline; NuGetAudit=false applied to entire retry restore/build; no dependency security audit claimed.",
+  "mutations": [
+    {
+      "group": "freshness",
+      "sourceCommit": "a360af5fef0db2d2575ca4a61ee9520d6997ef41",
+      "id": "recollection-disabled",
+      "redFailed": 14,
+      "redTotal": 21,
+      "greenPassed": 21,
+      "greenTotal": 21
+    },
+    {
+      "group": "freshness",
+      "sourceCommit": "a360af5fef0db2d2575ca4a61ee9520d6997ef41",
+      "id": "earlier-read-errors-leak",
+      "redFailed": 1,
+      "redTotal": 21,
+      "greenPassed": 21,
+      "greenTotal": 21
+    },
+    {
+      "group": "freshness",
+      "sourceCommit": "a360af5fef0db2d2575ca4a61ee9520d6997ef41",
+      "id": "exhausted-legacy-blocked",
+      "redFailed": 6,
+      "redTotal": 21,
+      "greenPassed": 21,
+      "greenTotal": 21
+    },
+    {
+      "group": "freshness",
+      "sourceCommit": "a360af5fef0db2d2575ca4a61ee9520d6997ef41",
+      "id": "exhausted-assurance-fail",
+      "redFailed": 6,
+      "redTotal": 21,
+      "greenPassed": 21,
+      "greenTotal": 21
+    },
+    {
+      "group": "freshness",
+      "sourceCommit": "a360af5fef0db2d2575ca4a61ee9520d6997ef41",
+      "id": "third-collection-admitted",
+      "redFailed": 5,
+      "redTotal": 21,
+      "greenPassed": 21,
+      "greenTotal": 21
+    },
+    {
+      "group": "provider",
+      "sourceCommit": "76c8be38be32abe88781ffeb7549a969fd77cad2",
+      "id": "provider-binding-ignored",
+      "redFailed": 3,
+      "redTotal": 63,
+      "greenPassed": 63,
+      "greenTotal": 63
+    },
+    {
+      "group": "provider",
+      "sourceCommit": "76c8be38be32abe88781ffeb7549a969fd77cad2",
+      "id": "malformed-id-becomes-any-provider",
+      "redFailed": 6,
+      "redTotal": 63,
+      "greenPassed": 63,
+      "greenTotal": 63
+    },
+    {
+      "group": "provider",
+      "sourceCommit": "76c8be38be32abe88781ffeb7549a969fd77cad2",
+      "id": "global-origin-flag-masks-known-context",
+      "redFailed": 1,
+      "redTotal": 63,
+      "greenPassed": 63,
+      "greenTotal": 63
+    }
+  ],
+  "verifierMutation": {
+    "sourceCommit": "743bbf924bb8f39e4bea4bc04221be72487097f9",
+    "failed": 1,
+    "total": 9,
+    "restoredPassed": 9
+  },
+  "localProofRefs": [
+    "codex/evidence-accuracy-provider",
+    "codex/evidence-accuracy-recollection"
+  ]
+}

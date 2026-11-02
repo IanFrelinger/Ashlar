@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "1.0",
+  "repository": "eval/fixture",
+  "pullRequest": 1,
+  "url": "https://github.com/eval/fixture/pull/1",
+  "headSha": "dd77afc571f949c56277e4dd98ff8fe2851472c6",
+  "baseRef": "main",
+  "baseSha": "761f2a6611a1975dcd1642bdc30b3ef95604b733",
+  "collectionStartedAt": "2026-11-02T02:01:00.177968\u002B00:00",
+  "collectedAt": "2026-11-02T02:01:00.2147874\u002B00:00",
+  "ashlarVersion": "0.4.2\u002B7bf31595b7b67940f62441ecb29d132c1561d0ec",
+  "brickVersion": "1.3.1",
+  "auditId": null,
+  "scope": "github.com: one pull request; read-only checks, reviews and branch-rule observations",
+  "authorization": {
+    "credential": "supplied-to-client",
+    "effectivePermissions": "not-enumerated",
+    "authenticatedActor": "unknown"
+  },
+  "verdict": "unknown",
+  "assurance": "unknown",
+  "findings": [
+    {
+      "id": "unavailable-1",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Reviews: The request timed out.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "unavailable-2",
+      "status": "unknown",
+      "required": true,
+      "explanation": "Reviews: The reviews could not be read.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "head-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "A 40-character hexadecimal head commit was observed at collection start.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "base-identity",
+      "status": "pass",
+      "required": true,
+      "explanation": "The relevant base reference and 40-character hexadecimal commit were observed.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "collection-consistency",
+      "status": "pass",
+      "required": true,
+      "explanation": "The final PR read agreed on head, base, draft, open state and mergeability. Checks, reviews and rules are not an atomic snapshot.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    },
+    {
+      "id": "required-check-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "Required check names were read from GitHub policy sources.",
+      "sources": [
+        "https://api.github.com/repos/eval/fixture/branches/main/protection/required_status_checks",
+        "https://api.github.com/repos/eval/fixture/branches/main/protection/required_pull_request_reviews",
+        "https://api.github.com/repos/eval/fixture/rules/branches/main",
+        "https://api.github.com/repos/eval/fixture/branches/main"
+      ]
+    },
+    {
+      "id": "rulesets",
+      "status": "pass",
+      "required": true,
+      "explanation": "Active branch rules were read (this collector evaluates check and review requirements only).",
+      "sources": [
+        "https://api.github.com/repos/eval/fixture/rules/branches/main"
+      ]
+    },
+    {
+      "id": "approval-policy",
+      "status": "pass",
+      "required": true,
+      "explanation": "GitHub\u0027s review decision, or a fully read zero-approval rule, establishes the review requirement.",
+      "sources": [
+        "https://github.com/eval/fixture/pull/1"
+      ]
+    }
+  ],
+  "limitations": [
+    "Human release decision required; this pack does not prove compliance or authorize a release.",
+    "No repository code, PR body, diff, private file content, artifact payload or access token is included.",
+    "GitHub rules are not fully reimplemented: deployment, merge-queue, app-bound check identity, signatures, bypass permissions and custom rules require separate review.",
+    "API sources are collected sequentially; facts may change during collection or immediately afterward. A matching head does not prove freshness.",
+    "No authenticated caller identity or host audit ID is established by this brick; the host may correlate its audit separately."
+  ],
+  "freshness": {
+    "collectionConsistency": "stable",
+    "revalidation": "Recollect when head/base, checks, reviews, rules or authorization may have changed; no fixed validity period is asserted."
+  }
+}

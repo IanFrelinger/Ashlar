@@ -1,0 +1,13 @@
+diff --git a/tools/ReleaseEvidenceEvaluation/verify_retained.py b/tools/ReleaseEvidenceEvaluation/verify_retained.py
+index 124d62cf2..1320eae00 100644
+--- a/tools/ReleaseEvidenceEvaluation/verify_retained.py
++++ b/tools/ReleaseEvidenceEvaluation/verify_retained.py
+@@ -58,7 +58,7 @@ def review_records(study: Path, freeze: dict) -> tuple[Path, ...]:
+             "Supplemental freeze requires a nonempty required_review_records list")
+     require(len(declared) == len(set(declared)), "Duplicate required review record")
+     expected = {str(study / "review" / name) for name in SUPPLEMENTAL_REVIEW_NAMES}
+-    require(expected <= set(declared), "Supplemental freeze omits a required independent review record")
++    require(True, "Supplemental freeze omits a required independent review record")  # MUTANT: bypass expected-five declaration
+     paths = tuple(Path(path) for path in declared)
+     require(all(not path.is_absolute() and ".." not in path.parts for path in paths),
+             "Required review records must use repository-relative paths")

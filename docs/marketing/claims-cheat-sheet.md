@@ -27,7 +27,7 @@ One page. If a claim isn't here, don't invent it.
 - "Certified" = artifact + gate (not a diploma vibe for friends — prefer *checked before it runs*)  
 - Cross-model = **behavioral equivalence** (same required behavior), not identical outputs  
 
-**CTA:** Design Partner $4k / 90 days — one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts.
+**Planned CTA (HOLD; do not publish until the dogfood gate is met or explicitly revised):** Design Partner $4k / 90 days — one AI-assisted behavior you already rely on → admission gate → package for reuse → auditable receipts. Pricing and offer planning in `docs/commercial/go-to-market.md` do not lift the hold.
 
 ## ALWAYS (say freely)
 
@@ -84,8 +84,9 @@ Everyday Joe: *plugin/recipe* + *checked before it runs* / *passed the safety ch
 
 ### Dogfood unlock (before Learn / autonomy marketing)
 1. Scorecard windows (see `docs/dogfood-scorecard.md`)  
-2. ≥7 **landed** dated Strict PASS rows on master in `docs/dogfood-ledger.md`  
-3. Hygiene-via-Ashlar PR (real loop, not fixture-only)  
+2. ≥7 **landed** dated pipeline records with persist/re-read/Strict verification in `docs/dogfood-ledger.md` (3a; CI keys explicitly identified)
+3. One attended operator-key pass with only the intended public key pinned (3b)
+4. Hygiene-via-Ashlar PR with human review (real loop, not fixture-only)
 
 **Autonomy is not required for the company to succeed.**
 

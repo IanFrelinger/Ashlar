@@ -13,7 +13,7 @@
 # image. It is now a pair of pure functions, and case 3 below replays that exact log.
 #
 # Run:  bash tests/scripts/dogfood-sweep-verdict.test.sh
-# Pure bash: no network, no dotnet, no container.
+# Bash plus Python 3 standard library: no network, no dotnet, no container.
 
 set -uo pipefail
 
@@ -55,7 +55,7 @@ fi
 
 # A test file that stops early must fail LOUDLY rather than just exit nonzero, for the same reason
 # the sweep must not report a fault as a pass. Bump this when assertions are added.
-EXPECTED_ASSERTIONS=28
+EXPECTED_ASSERTIONS=42
 
 mklog() { local f; f="$(mktemp)"; printf '%s\n' "$1" > "${f}"; printf '%s' "${f}"; }
 
@@ -211,10 +211,17 @@ if ! declare -F classify_sweep_evidence >/dev/null; then
   exit 1
 fi
 
-# Writes one sidecar into a fresh directory and echoes the directory.
+# Writes the cited record and one sidecar into a fresh directory. The JSON fixture uses
+# placeholders so the retained file has a real path and its bytes have a real SHA-256.
 mkevidence() {
-  local d; d="$(mktemp -d)"
-  printf '%s\n' "$2" > "${d}/$1.evidence.json"
+  local d text digest
+  d="$(mktemp -d)"
+  mkdir -p "${d}/records"
+  printf '{}\n' > "${d}/records/rgb-hex-parse.json"
+  digest="$(sha256sum "${d}/records/rgb-hex-parse.json" | cut -d' ' -f1)"
+  text="${2//\/tmp\/campaign/${d}}"
+  text="${text//3f786850e387550fdab836ed7e6dc881de23001b0000000000000000deadbeef/${digest}}"
+  printf '%s\n' "${text}" > "${d}/$1.evidence.json"
   printf '%s' "${d}"
 }
 
@@ -256,6 +263,8 @@ v="$(evidence_of "${D}")"
 [[ "${v}" == "0" ]] && ok "a verified sidecar with a fingerprint and a record path -> 0 (PASS)" \
   || bad "a verified sidecar -> 0" "got ${v} — no row could ever count toward 3a"
 CITE="$(sweep_evidence_citation "${D}")"
+CITE_RECORD="${D}/records/rgb-hex-parse.json"
+CITE_HASH="$(sha256sum "${CITE_RECORD}" | cut -d' ' -f1)"
 rm -rf "${D}"
 
 # 3. A record that did NOT re-verify is a GAP, and the reason must name the verifier's own code.
@@ -317,8 +326,8 @@ v="$(evidence_of "${D}")"
 rm -rf "${D}"
 
 # 8. The citation is what a 3a-counting row carries, so it has to carry all three cited values.
-if grep -q 'record=/tmp/campaign/records/rgb-hex-parse.json' <<<"${CITE}" \
-  && grep -q 'sha256=3f786850e387550fdab836ed7e6dc881de23001b0000000000000000deadbeef' <<<"${CITE}" \
+if grep -qF "record=${CITE_RECORD}" <<<"${CITE}" \
+  && grep -qF "sha256=${CITE_HASH}" <<<"${CITE}" \
   && grep -q 'signer=ed25519:0123456789abcdef' <<<"${CITE}" \
   && grep -q 'pinned=false' <<<"${CITE}" \
   && grep -q 'dev-hmac=true' <<<"${CITE}"; then
@@ -327,6 +336,93 @@ else
   bad "the citation carries the record path, its sha256, the signer, and the pinning/dev-key disclosures" \
       "got '${CITE}'"
 fi
+
+echo "== retained artifact and JSON failures =="
+
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR}")"
+rm "${D}/records/rgb-hex-parse.json"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "a missing cited record -> 3" \
+  || bad "a missing cited record -> 3" "got ${v} — the sidecar outlived its evidence"
+[[ -z "$(sweep_evidence_citation "${D}")" ]] && ok "a missing record emits no success citation" \
+  || bad "missing record emits no citation" "a citation survived deleted evidence"
+rm -rf "${D}"
+
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR}")"
+printf 'changed' >> "${D}/records/rgb-hex-parse.json"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "changed record bytes -> 3" \
+  || bad "changed record bytes -> 3" "got ${v} — the archived hash was not checked"
+why="$(sweep_evidence_reason "${D}")"
+[[ "${why}" == *SHA-256* ]] && ok "changed evidence names the hash disagreement" \
+  || bad "hash disagreement reason" "got '${why}'"
+rm -rf "${D}"
+
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR}")"
+printf 'not JSON' >> "${D}/rgb-hex-parse.evidence.json"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "malformed sidecar -> 3" \
+  || bad "malformed sidecar -> 3" "got ${v} — JSON-looking fragments were accepted"
+rm -rf "${D}"
+
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR/\"verified\": true/\"verified\": true, \"verified\": false}")"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "conflicting duplicate JSON fields -> 3" \
+  || bad "duplicate fields -> 3" "got ${v} — parser disagreement can choose a verdict"
+rm -rf "${D}"
+
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR/\"verified\": true/\"verified\": \"true\"}")"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "a string claiming true -> 3" \
+  || bad "string true -> 3" "got ${v}"
+rm -rf "${D}"
+
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR/\"pinningEnabled\": false/\"pinningEnabled\": null}")"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "missing pinning disclosure -> 3" \
+  || bad "missing pinning disclosure -> 3" "got ${v}"
+rm -rf "${D}"
+
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR/\"recordSha256\":/\"ignoredHash\":}")"
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "missing record hash -> 3" \
+  || bad "missing record hash -> 3" "got ${v}"
+rm -rf "${D}"
+
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR}")"
+# Preserve bytes and hash, but point outside the campaign to a real file. The workflow only
+# retains the campaign, so passing this would create a citation the upload does not contain.
+OUTSIDE="$(mktemp)"
+cp "${D}/records/rgb-hex-parse.json" "${OUTSIDE}"
+python3 - "${D}/rgb-hex-parse.evidence.json" "${OUTSIDE}" <<'CHECK'
+import json, sys
+from pathlib import Path
+path = Path(sys.argv[1])
+data = json.loads(path.read_text())
+data['recordPath'] = sys.argv[2]
+path.write_text(json.dumps(data))
+CHECK
+v="$(evidence_of "${D}")"
+[[ "${v}" == "3" ]] && ok "a cited file outside the retained campaign -> 3" \
+  || bad "outside campaign -> 3" "got ${v}"
+rm -rf "${D}"
+rm "${OUTSIDE}"
+
+D="$(mkevidence rgb-hex-parse "${GOOD_SIDECAR}")"
+rc=0
+PATH=/nonexistent classify_sweep_evidence "${D}" || rc=$?
+[[ "${rc}" == "3" ]] && ok "missing Python -> 3" \
+  || bad "missing Python -> 3" "got ${rc}"
+why="$(PATH=/nonexistent sweep_evidence_reason "${D}")"
+[[ "${why}" == *python3*unavailable* ]] && ok "missing Python has an actionable GAP reason" \
+  || bad "missing Python reason" "got '${why}'"
+rc=0
+ROOT=/nonexistent classify_sweep_evidence "${D}" || rc=$?
+[[ "${rc}" == "3" ]] && ok "missing validation helper -> 3" \
+  || bad "missing validation helper -> 3" "got ${rc}"
+[[ -z "$(ROOT=/nonexistent sweep_evidence_citation "${D}")" ]] && ok "missing helper emits no citation" \
+  || bad "missing helper emits no citation" "a citation survived unavailable validation"
+rm -rf "${D}"
 
 echo "== the sidecar contract this depends on is frozen inside cert-gate =="
 # classify_sweep_evidence parses field names owned by a C# type. If they are renamed, every

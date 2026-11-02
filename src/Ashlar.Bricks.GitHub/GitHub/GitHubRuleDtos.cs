@@ -1,7 +1,37 @@
 namespace Ashlar.Bricks.GitHub;
 
-// Shapes GitHubBlockerReader reads that Octokit has no model for. Octokit's serializer maps PascalCase properties to
-// snake_case JSON keys, so the GraphQL query aliases its fields to snake_case.
+// Narrow shapes GitHubBlockerReader reads where Octokit lacks a suitable model (including nullable timestamps on
+// queued checks). Octokit's serializer maps PascalCase to snake_case, so GraphQL aliases its fields to snake_case.
+
+internal sealed class CheckRunsDto
+{
+    public int? TotalCount { get; set; }
+
+    public IReadOnlyList<CheckRunDto>? CheckRuns { get; set; }
+}
+
+internal sealed class CheckRunDto
+{
+    public long? Id { get; set; }
+
+    public string? HeadSha { get; set; }
+
+    public string? Name { get; set; }
+
+    public string? Status { get; set; }
+
+    public string? Conclusion { get; set; }
+
+    public string? HtmlUrl { get; set; }
+
+    public CheckAppDto? App { get; set; }
+}
+
+internal sealed class CheckAppDto
+{
+    // Keep the JSON primitive type: Octokit's typed numeric conversion otherwise accepts strings/bools.
+    public object? Id { get; set; }
+}
 
 internal sealed class RuleDto
 {
@@ -14,16 +44,43 @@ internal sealed class RuleParametersDto
 {
     public int? RequiredApprovingReviewCount { get; set; }
 
+    public bool? RequireCodeOwnerReviews { get; set; }
+
+    public bool? RequireLastPushApproval { get; set; }
+
+    public bool? DismissStaleReviews { get; set; }
+
     public IReadOnlyList<StatusCheckDto>? RequiredStatusChecks { get; set; }
 }
 
 internal sealed class StatusCheckDto
 {
     public string? Context { get; set; }
+
+    private object? _appId;
+    private object? _integrationId;
+
+    public object? AppId
+    {
+        get => _appId;
+        set { _appId = value; AppIdRead = true; }
+    }
+
+    public object? IntegrationId
+    {
+        get => _integrationId;
+        set { _integrationId = value; IntegrationIdRead = true; }
+    }
+
+    public bool AppIdRead { get; private set; }
+
+    public bool IntegrationIdRead { get; private set; }
 }
 
 internal sealed class BranchDto
 {
+    public bool? Protected { get; set; }
+
     public BranchProtectionDto? Protection { get; set; }
 }
 

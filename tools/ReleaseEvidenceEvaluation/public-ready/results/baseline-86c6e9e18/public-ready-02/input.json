@@ -1,0 +1,1700 @@
+{
+  "id": "public-ready-02",
+  "kind": "public",
+  "category": "public-operational-ready-selected-before-labels",
+  "sourceUrl": "https://github.com/jqlang/jq/pull/3432",
+  "target": "https://github.com/jqlang/jq/pull/3432",
+  "credentialSupplied": false,
+  "identity": {
+    "initial": {
+      "headSha": "65f4b31f9148dced73f782ff21c024539776eae6",
+      "baseSha": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847",
+      "baseRef": "master"
+    },
+    "final": {
+      "headSha": "65f4b31f9148dced73f782ff21c024539776eae6",
+      "baseSha": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847",
+      "baseRef": "master"
+    }
+  },
+  "sanitizedAuthorization": {
+    "requestAuthorizationHeaderSupplied": false,
+    "transport": "inherited HTTP_PROXY/HTTPS_PROXY with inherited CA trust",
+    "upstreamProxyIdentity": "not observable; authenticated proxy injection is possible",
+    "configuredRuntimeCredentials": "none reported by current cloud environment readiness",
+    "managedConnectorUsedForCaseRoutes": false,
+    "scopeLimit": "Evidence establishes only visibility through this proxy during the recorded interval. Token scopes and effective repository permissions are unknown. Credential-not-supplied-to-brick is distinct from upstream anonymous authentication."
+  },
+  "sources": [
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/pulls/3432",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 0
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/pulls/3432/reviews",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 1
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 2
+    },
+    {
+      "uri": "https://api.github.com/repositories/5101141/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs?page=2",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 3
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/statuses/65f4b31f9148dced73f782ff21c024539776eae6?per_page=100",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 4
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/status",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 5
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/branches/master",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 6
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/branches/master/protection/required_status_checks",
+      "method": "GET",
+      "status": 403,
+      "captureFile": "capture.json",
+      "recordIndex": 7
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+      "method": "GET",
+      "status": 403,
+      "captureFile": "capture.json",
+      "recordIndex": 8
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/rules/branches/master?per_page=100",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 9
+    },
+    {
+      "uri": "https://api.github.com/graphql",
+      "method": "POST",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 10
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/branches/master",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 11
+    },
+    {
+      "uri": "https://api.github.com/repos/jqlang/jq/pulls/3432",
+      "method": "GET",
+      "status": 200,
+      "captureFile": "capture.json",
+      "recordIndex": 12
+    }
+  ],
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/repos/jqlang/jq/pulls/3432",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json; charset=utf-8",
+            "date": "Mon, 02 Nov 2026 03:05:46 GMT",
+            "etag": "\"42e2bdf7ce8bcb6738488d1d2113aa700e323a0845d056df98a2f89d0e1ccff6\"",
+            "last-modified": "Fri, 30 Oct 2026 16:44:54 GMT",
+            "x-accepted-oauth-scopes": "repo",
+            "x-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14956",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "D306:2A29F0:4F7E7D:106D8F5:6AE7FE0A"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/jqlang/jq/pulls/3432",
+            "id": 2982439569,
+            "node_id": "PR_kwDOAE3WVc6xxGqR",
+            "html_url": "https://github.com/jqlang/jq/pull/3432",
+            "number": 3432,
+            "state": "open",
+            "locked": false,
+            "title": "Switch to PCRE2 for regular expressions",
+            "created_at": "2025-11-05T23:49:15Z",
+            "updated_at": "2026-10-30T16:44:54Z",
+            "closed_at": null,
+            "merged_at": null,
+            "merge_commit_sha": "72c692614d6ea3235f86730822b493f41bef40ac",
+            "draft": false,
+            "mergeable": true,
+            "mergeable_state": "clean",
+            "merged": false,
+            "rebaseable": false,
+            "author_association": "MEMBER",
+            "head": {
+              "label": "wader:pcre2",
+              "ref": "pcre2",
+              "sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+              "repo": {
+                "id": 340950075,
+                "full_name": "wader/jq",
+                "private": false,
+                "html_url": "https://github.com/wader/jq",
+                "default_branch": "master"
+              }
+            },
+            "base": {
+              "label": "jqlang:master",
+              "ref": "master",
+              "sha": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847",
+              "repo": {
+                "id": 5101141,
+                "full_name": "jqlang/jq",
+                "private": false,
+                "html_url": "https://github.com/jqlang/jq",
+                "default_branch": "master"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json; charset=utf-8",
+            "date": "Mon, 02 Nov 2026 03:05:49 GMT",
+            "etag": "\"42e2bdf7ce8bcb6738488d1d2113aa700e323a0845d056df98a2f89d0e1ccff6\"",
+            "last-modified": "Fri, 30 Oct 2026 16:44:54 GMT",
+            "x-accepted-oauth-scopes": "repo",
+            "x-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14945",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "DA39:1C03B4:62E942:1450308:6AE7FE0D"
+          },
+          "body": {
+            "url": "https://api.github.com/repos/jqlang/jq/pulls/3432",
+            "id": 2982439569,
+            "node_id": "PR_kwDOAE3WVc6xxGqR",
+            "html_url": "https://github.com/jqlang/jq/pull/3432",
+            "number": 3432,
+            "state": "open",
+            "locked": false,
+            "title": "Switch to PCRE2 for regular expressions",
+            "created_at": "2025-11-05T23:49:15Z",
+            "updated_at": "2026-10-30T16:44:54Z",
+            "closed_at": null,
+            "merged_at": null,
+            "merge_commit_sha": "72c692614d6ea3235f86730822b493f41bef40ac",
+            "draft": false,
+            "mergeable": true,
+            "mergeable_state": "clean",
+            "merged": false,
+            "rebaseable": false,
+            "author_association": "MEMBER",
+            "head": {
+              "label": "wader:pcre2",
+              "ref": "pcre2",
+              "sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+              "repo": {
+                "id": 340950075,
+                "full_name": "wader/jq",
+                "private": false,
+                "html_url": "https://github.com/wader/jq",
+                "default_branch": "master"
+              }
+            },
+            "base": {
+              "label": "jqlang:master",
+              "ref": "master",
+              "sha": "ac35c7dcbb991fa0f3c3196dd00ca479211e9847",
+              "repo": {
+                "id": 5101141,
+                "full_name": "jqlang/jq",
+                "private": false,
+                "html_url": "https://github.com/jqlang/jq",
+                "default_branch": "master"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/jqlang/jq/pulls/3432/reviews",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"b525d3e83c803532fd84217bb1978554ab23ab82a9732c9e3d2ed7e85efe160b\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14953",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "A91E:1D0BDD:66BACA:14F5A3F:6AE7FE0A"
+          },
+          "body": [
+            {
+              "id": 3458786816,
+              "node_id": "PRR_kwDOAE3WVc7OKOYA",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-3458786816",
+              "state": "COMMENTED",
+              "commit_id": "312407f9a24ee73fedd682d331719ac84770013a",
+              "submitted_at": "2025-11-13T09:49:44Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 3663937431,
+              "node_id": "PRR_kwDOAE3WVc7aYz-X",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-3663937431",
+              "state": "COMMENTED",
+              "commit_id": "a853fd8409e7d750ee8faf44fbe9733c7376b162",
+              "submitted_at": "2026-01-15T04:41:50Z",
+              "author_association": "CONTRIBUTOR",
+              "user": {
+                "login": "nicowilliams"
+              }
+            },
+            {
+              "id": 3663939769,
+              "node_id": "PRR_kwDOAE3WVc7aY0i5",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-3663939769",
+              "state": "APPROVED",
+              "commit_id": "a853fd8409e7d750ee8faf44fbe9733c7376b162",
+              "submitted_at": "2026-01-15T04:43:28Z",
+              "author_association": "CONTRIBUTOR",
+              "user": {
+                "login": "nicowilliams"
+              }
+            },
+            {
+              "id": 3689264000,
+              "node_id": "PRR_kwDOAE3WVc7b5bOA",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-3689264000",
+              "state": "COMMENTED",
+              "commit_id": "00e54b93bd1b1854cef8f394dac1474d393926c6",
+              "submitted_at": "2026-01-21T20:25:50Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 3689268408,
+              "node_id": "PRR_kwDOAE3WVc7b5cS4",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-3689268408",
+              "state": "COMMENTED",
+              "commit_id": "00e54b93bd1b1854cef8f394dac1474d393926c6",
+              "submitted_at": "2026-01-21T20:26:51Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 4097338043,
+              "node_id": "PRR_kwDOAE3WVc70OGq7",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-4097338043",
+              "state": "COMMENTED",
+              "commit_id": "99a96eaef5df0df84597e6275f03557ea20baebe",
+              "submitted_at": "2026-04-13T08:25:54Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5641176313,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUD2E-Q",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5641176313",
+              "state": "COMMENTED",
+              "commit_id": "44ce9f0fe1df294ddbfceee4431eadb9a77bd053",
+              "submitted_at": "2026-10-25T02:30:11Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "kimjooyoon"
+              }
+            },
+            {
+              "id": 5641237722,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUD502g",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5641237722",
+              "state": "COMMENTED",
+              "commit_id": "44ce9f0fe1df294ddbfceee4431eadb9a77bd053",
+              "submitted_at": "2026-10-25T02:50:22Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "kimjooyoon"
+              }
+            },
+            {
+              "id": 5641330686,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUD_f_g",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5641330686",
+              "state": "COMMENTED",
+              "commit_id": "44ce9f0fe1df294ddbfceee4431eadb9a77bd053",
+              "submitted_at": "2026-10-25T03:23:14Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "kimjooyoon"
+              }
+            },
+            {
+              "id": 5644071880,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUGmzyA",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5644071880",
+              "state": "COMMENTED",
+              "commit_id": "44ce9f0fe1df294ddbfceee4431eadb9a77bd053",
+              "submitted_at": "2026-10-25T16:09:35Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5644140426,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUGq_ig",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5644140426",
+              "state": "COMMENTED",
+              "commit_id": "44ce9f0fe1df294ddbfceee4431eadb9a77bd053",
+              "submitted_at": "2026-10-25T16:31:29Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5644336136,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUG28CA",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5644336136",
+              "state": "COMMENTED",
+              "commit_id": "44ce9f0fe1df294ddbfceee4431eadb9a77bd053",
+              "submitted_at": "2026-10-25T17:24:19Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5644344798,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUG3d3g",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5644344798",
+              "state": "COMMENTED",
+              "commit_id": "59e05a15bf4809fe7ae820b6522f36234c8ed832",
+              "submitted_at": "2026-10-25T17:27:05Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5644444868,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUG9kxA",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5644444868",
+              "state": "COMMENTED",
+              "commit_id": "59e05a15bf4809fe7ae820b6522f36234c8ed832",
+              "submitted_at": "2026-10-25T17:49:14Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5645773487,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUIOqrw",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5645773487",
+              "state": "COMMENTED",
+              "commit_id": "59e05a15bf4809fe7ae820b6522f36234c8ed832",
+              "submitted_at": "2026-10-25T22:55:41Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "kimjooyoon"
+              }
+            },
+            {
+              "id": 5645773580,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUIOrDA",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5645773580",
+              "state": "COMMENTED",
+              "commit_id": "59e05a15bf4809fe7ae820b6522f36234c8ed832",
+              "submitted_at": "2026-10-25T22:55:43Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "kimjooyoon"
+              }
+            },
+            {
+              "id": 5645773665,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUIOrYQ",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5645773665",
+              "state": "COMMENTED",
+              "commit_id": "59e05a15bf4809fe7ae820b6522f36234c8ed832",
+              "submitted_at": "2026-10-25T22:55:45Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "kimjooyoon"
+              }
+            },
+            {
+              "id": 5666477475,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUb-Vow",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5666477475",
+              "state": "COMMENTED",
+              "commit_id": "44ce9f0fe1df294ddbfceee4431eadb9a77bd053",
+              "submitted_at": "2026-10-27T11:41:06Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5666535576,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUcB4mA",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5666535576",
+              "state": "COMMENTED",
+              "commit_id": "59e05a15bf4809fe7ae820b6522f36234c8ed832",
+              "submitted_at": "2026-10-27T11:46:21Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5667219470,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUcroDg",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5667219470",
+              "state": "COMMENTED",
+              "commit_id": "1f9dd13e6c9e2036c162a33e6b9a5622ecf8bbe3",
+              "submitted_at": "2026-10-27T12:44:30Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "kimjooyoon"
+              }
+            },
+            {
+              "id": 5667219910,
+              "node_id": "PRR_kwDOAE3WVc8AAAABUcrpxg",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5667219910",
+              "state": "COMMENTED",
+              "commit_id": "1f9dd13e6c9e2036c162a33e6b9a5622ecf8bbe3",
+              "submitted_at": "2026-10-27T12:44:32Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "kimjooyoon"
+              }
+            },
+            {
+              "id": 5714815387,
+              "node_id": "PRR_kwDOAE3WVc8AAAABVKEpmw",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5714815387",
+              "state": "COMMENTED",
+              "commit_id": "44ce9f0fe1df294ddbfceee4431eadb9a77bd053",
+              "submitted_at": "2026-10-30T15:45:27Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5714892004,
+              "node_id": "PRR_kwDOAE3WVc8AAAABVKJU5A",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5714892004",
+              "state": "COMMENTED",
+              "commit_id": "59e05a15bf4809fe7ae820b6522f36234c8ed832",
+              "submitted_at": "2026-10-30T15:51:25Z",
+              "author_association": "MEMBER",
+              "user": {
+                "login": "wader"
+              }
+            },
+            {
+              "id": 5715583321,
+              "node_id": "PRR_kwDOAE3WVc8AAAABVKzhWQ",
+              "html_url": "https://github.com/jqlang/jq/pull/3432#pullrequestreview-5715583321",
+              "state": "COMMENTED",
+              "commit_id": "65f4b31f9148dced73f782ff21c024539776eae6",
+              "submitted_at": "2026-10-30T16:44:54Z",
+              "author_association": "NONE",
+              "user": {
+                "login": "kimjooyoon"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"867b5baaf9a6f597326eac1e709bb3c29ac0ff34590f5bdc33802ab4f9bd9e09\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "link": "<https://api.github.com/repositories/5101141/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs?page=2>; rel=\"next\", <https://api.github.com/repositories/5101141/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs?page=2>; rel=\"last\"",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14952",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "785D:2F3FEB:50C175:1104523:6AE7FE0A"
+          },
+          "body": {
+            "total_count": 32,
+            "check_runs": [
+              {
+                "id": 124169282461,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6RDjnQ",
+                "name": "release",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124169282461",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124169282461",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124169282461",
+                "status": "completed",
+                "conclusion": "skipped",
+                "started_at": "2026-10-30T16:04:54Z",
+                "completed_at": "2026-10-30T16:04:54Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124165368861,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6NUsHQ",
+                "name": "docker",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124165368861",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124165368861",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124165368861",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:57:35Z",
+                "completed_at": "2026-10-30T15:58:03Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606442,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsFag",
+                "name": "linux (powerpc)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606442",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606442",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606442",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:56:13Z",
+                "completed_at": "2026-10-30T15:57:33Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606349,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsFDQ",
+                "name": "linux (mipsr6el)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606349",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606349",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606349",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:55:21Z",
+                "completed_at": "2026-10-30T15:56:23Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606319,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsE7w",
+                "name": "linux (armhf)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606319",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606319",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606319",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:56:25Z",
+                "completed_at": "2026-10-30T15:57:24Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606318,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsE7g",
+                "name": "linux (mipsel)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606318",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606318",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606318",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:55:40Z",
+                "completed_at": "2026-10-30T15:56:50Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606294,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsE1g",
+                "name": "linux (riscv64)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606294",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606294",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606294",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:56:09Z",
+                "completed_at": "2026-10-30T15:57:22Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606242,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEog",
+                "name": "linux (i386)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606242",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606242",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606242",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:22Z",
+                "completed_at": "2026-10-30T15:53:45Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606237,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEnQ",
+                "name": "linux (ppc64el)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606237",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606237",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606237",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:53:47Z",
+                "completed_at": "2026-10-30T15:55:38Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606208,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEgA",
+                "name": "linux (armel)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606208",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606208",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606208",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:55:20Z",
+                "completed_at": "2026-10-30T15:56:28Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606207,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEfw",
+                "name": "linux (s390x)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606207",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606207",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606207",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:55:31Z",
+                "completed_at": "2026-10-30T15:56:30Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606195,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEcw",
+                "name": "linux (mips64)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606195",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606195",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606195",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:55:39Z",
+                "completed_at": "2026-10-30T15:56:43Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606193,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEcQ",
+                "name": "linux (mips64el)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606193",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606193",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606193",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:55:36Z",
+                "completed_at": "2026-10-30T15:56:46Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606175,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEXw",
+                "name": "linux (amd64)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606175",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606175",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606175",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:54:25Z",
+                "completed_at": "2026-10-30T15:55:35Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606167,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEVw",
+                "name": "linux (mips)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606167",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606167",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606167",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:55:14Z",
+                "completed_at": "2026-10-30T15:56:36Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606160,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEUA",
+                "name": "linux (arm64)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606160",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606160",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606160",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:53:53Z",
+                "completed_at": "2026-10-30T15:55:09Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606158,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsETg",
+                "name": "linux (mips64r6)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606158",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606158",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606158",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:55:11Z",
+                "completed_at": "2026-10-30T15:56:07Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606138,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEOg",
+                "name": "linux (mips64r6el)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606138",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606138",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606138",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:53:31Z",
+                "completed_at": "2026-10-30T15:55:38Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162606106,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsEGg",
+                "name": "dist",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162606106",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606106",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162606106",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:53:30Z",
+                "completed_at": "2026-10-30T15:55:20Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162605993,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsDqQ",
+                "name": "netbsd",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605993",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680034/job/124162605993",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680034/job/124162605993",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:53:48Z",
+                "completed_at": "2026-10-30T15:55:29Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545221
+                }
+              },
+              {
+                "id": 124162605984,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsDoA",
+                "name": "macos (amd64)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605984",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605984",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605984",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:26Z",
+                "completed_at": "2026-10-30T15:59:28Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162605939,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsDcw",
+                "name": "windows (amd64)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605939",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605939",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605939",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:21Z",
+                "completed_at": "2026-10-30T15:56:57Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162605872,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsDMA",
+                "name": "macos (arm64)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605872",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605872",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605872",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:29Z",
+                "completed_at": "2026-10-30T16:00:39Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162605813,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsC9Q",
+                "name": "windows (arm64)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605813",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605813",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605813",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:22Z",
+                "completed_at": "2026-10-30T16:04:54Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162605746,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsCsg",
+                "name": "linux (mipsr6)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605746",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605746",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605746",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:37Z",
+                "completed_at": "2026-10-30T15:53:46Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162605584,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsCEA",
+                "name": "windows (i386)",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605584",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605584",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680000/job/124162605584",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:22Z",
+                "completed_at": "2026-10-30T15:56:34Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545135
+                }
+              },
+              {
+                "id": 124162605404,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsBXA",
+                "name": "freebsd",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605404",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680034/job/124162605404",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680034/job/124162605404",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:31Z",
+                "completed_at": "2026-10-30T15:53:51Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545221
+                }
+              },
+              {
+                "id": 124162605362,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsBMg",
+                "name": "disabled",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605362",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084679954/job/124162605362",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084679954/job/124162605362",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:53:22Z",
+                "completed_at": "2026-10-30T15:57:30Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371544970
+                }
+              },
+              {
+                "id": 124162605160,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsAaA",
+                "name": "disabled",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605160",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084679969/job/124162605160",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084679969/job/124162605160",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:22Z",
+                "completed_at": "2026-10-30T15:53:19Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545014
+                }
+              },
+              {
+                "id": 124162605158,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6KsAZg",
+                "name": "installed",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605158",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084679954/job/124162605158",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084679954/job/124162605158",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:50Z",
+                "completed_at": "2026-10-30T15:56:12Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371544970
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repositories/5101141/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs?page=2",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"0e920c5136b1a61818226b5f5d5c34aca1a73ca84e2b8236f950dccbcd46fdb9\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "link": "<https://api.github.com/repositories/5101141/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs?page=1>; rel=\"prev\", <https://api.github.com/repositories/5101141/commits/65f4b31f9148dced73f782ff21c024539776eae6/check-runs?page=1>; rel=\"first\"",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14949",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "F788:327385:2D7F82:953446:6AE7FE0B"
+          },
+          "body": {
+            "total_count": 32,
+            "check_runs": [
+              {
+                "id": 124162605023,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6Kr_3w",
+                "name": "manpages",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162605023",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084680010/job/124162605023",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084680010/job/124162605023",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:21Z",
+                "completed_at": "2026-10-30T15:52:48Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371545108
+                }
+              },
+              {
+                "id": 124162604892,
+                "node_id": "CR_kwDOAE3WVc8AAAAc6Kr_XA",
+                "name": "linux",
+                "head_sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+                "url": "https://api.github.com/repos/jqlang/jq/check-runs/124162604892",
+                "html_url": "https://github.com/jqlang/jq/actions/runs/41084679959/job/124162604892",
+                "details_url": "https://github.com/jqlang/jq/actions/runs/41084679959/job/124162604892",
+                "status": "completed",
+                "conclusion": "success",
+                "started_at": "2026-10-30T15:52:21Z",
+                "completed_at": "2026-10-30T15:57:19Z",
+                "app": {
+                  "id": 15368,
+                  "slug": "github-actions",
+                  "name": "GitHub Actions"
+                },
+                "check_suite": {
+                  "id": 111371544995
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/jqlang/jq/statuses/65f4b31f9148dced73f782ff21c024539776eae6?per_page=100",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"2af8ea9b7918f6f14fef0ec029acc146bfc3c3aef27bfa7b6c27fc4ec8315f28\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "repo, repo:status",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14954",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "3D27:1D507B:5F9A33:1396FC0:6AE7FE0A"
+          },
+          "body": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/status",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"9e8a88c20f44b1d5bb2e72879d110d0333f645972347e291de8c9932e283dbfe\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "repo, repo:status",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14955",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "9131:26AA6C:63173C:145AB19:6AE7FE0A"
+          },
+          "body": {
+            "state": "pending",
+            "sha": "65f4b31f9148dced73f782ff21c024539776eae6",
+            "total_count": 0,
+            "url": "https://api.github.com/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6/status",
+            "commit_url": "https://api.github.com/repos/jqlang/jq/commits/65f4b31f9148dced73f782ff21c024539776eae6",
+            "statuses": []
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/jqlang/jq/branches/master",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"ca312a3e48362c08eeb4ed7389b67e2f289f59d661596f7c2014c79b43990e50\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14951",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "461B:371C61:58DB15:1241DA3:6AE7FE0B"
+          },
+          "body": {
+            "name": "master",
+            "protected": false,
+            "protection": {
+              "enabled": false,
+              "required_status_checks": {
+                "enforcement_level": "off",
+                "contexts": [],
+                "checks": []
+              }
+            },
+            "protection_url": "https://api.github.com/repos/jqlang/jq/branches/master/protection",
+            "_links": {
+              "self": "https://api.github.com/repos/jqlang/jq/branches/master",
+              "html": "https://github.com/jqlang/jq/tree/master"
+            },
+            "commit": {
+              "sha": "992db9b7e5e3059b764bf430bd97716829e99578",
+              "url": "https://api.github.com/repos/jqlang/jq/commits/992db9b7e5e3059b764bf430bd97716829e99578"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:48 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"ca312a3e48362c08eeb4ed7389b67e2f289f59d661596f7c2014c79b43990e50\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14946",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "3296:371C61:58E2BB:1243666:6AE7FE0C"
+          },
+          "body": {
+            "name": "master",
+            "protected": false,
+            "protection": {
+              "enabled": false,
+              "required_status_checks": {
+                "enforcement_level": "off",
+                "contexts": [],
+                "checks": []
+              }
+            },
+            "protection_url": "https://api.github.com/repos/jqlang/jq/branches/master/protection",
+            "_links": {
+              "self": "https://api.github.com/repos/jqlang/jq/branches/master",
+              "html": "https://github.com/jqlang/jq/tree/master"
+            },
+            "commit": {
+              "sha": "992db9b7e5e3059b764bf430bd97716829e99578",
+              "url": "https://api.github.com/repos/jqlang/jq/commits/992db9b7e5e3059b764bf430bd97716829e99578"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/jqlang/jq/branches/master/protection/required_status_checks",
+      "responses": [
+        {
+          "status": 403,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14950",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "DE2F:36EE11:54D65B:11806D4:6AE7FE0B"
+          },
+          "body": {
+            "message": "Resource not accessible by integration",
+            "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-status-checks-protection",
+            "status": "403"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/jqlang/jq/branches/master/protection/required_pull_request_reviews",
+      "responses": [
+        {
+          "status": 403,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14948",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "A91E:1D0BDD:66BE45:14F6480:6AE7FE0B"
+          },
+          "body": {
+            "message": "Resource not accessible by integration",
+            "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-pull-request-review-protection",
+            "status": "403"
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/repos/jqlang/jq/rules/branches/master?per_page=100",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "date": "Mon, 02 Nov 2026 03:05:47 GMT",
+            "content-type": "application/json; charset=utf-8",
+            "etag": "\"2af8ea9b7918f6f14fef0ec029acc146bfc3c3aef27bfa7b6c27fc4ec8315f28\"",
+            "x-oauth-scopes": "",
+            "x-accepted-oauth-scopes": "repo",
+            "x-ratelimit-limit": "15000",
+            "x-ratelimit-remaining": "14947",
+            "x-ratelimit-reset": "1793592198",
+            "x-ratelimit-resource": "core",
+            "x-github-request-id": "5B58:3EE12C:30C584:9F59DA:6AE7FE0B"
+          },
+          "body": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/graphql",
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            "content-type": "application/json; charset=utf-8",
+            "date": "Mon, 02 Nov 2026 03:05:48 GMT",
+            "x-accepted-oauth-scopes": "repo",
+            "x-oauth-scopes": "",
+            "x-ratelimit-limit": "10000",
+            "x-ratelimit-remaining": "9998",
+            "x-ratelimit-reset": "1793592344",
+            "x-ratelimit-resource": "graphql",
+            "x-github-request-id": "2DEC:227D92:2DE2A7:95F331:6AE7FE0C"
+          },
+          "body": {
+            "data": {
+              "repository": {
+                "pull_request": {
+                  "review_decision": "APPROVED",
+                  "commits": {
+                    "nodes": [
+                      {
+                        "commit": {
+                          "oid": "65f4b31f9148dced73f782ff21c024539776eae6",
+                          "status_check_rollup": {
+                            "contexts": {
+                              "nodes": [
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "freebsd",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "manpages",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (amd64)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "disabled",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "installed",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (arm64)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (armel)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (armhf)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (i386)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (mips)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (mips64)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (mips64el)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (mips64r6)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (mips64r6el)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (mipsel)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (mipsr6)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (mipsr6el)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (powerpc)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (ppc64el)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (riscv64)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "linux (s390x)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "netbsd",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "macos (amd64)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "disabled",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "macos (arm64)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "windows (amd64)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "windows (i386)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "windows (arm64)",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "dist",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "docker",
+                                  "is_required": false
+                                },
+                                {
+                                  "type_name": "CheckRun",
+                                  "name": "release",
+                                  "is_required": false
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "captureNotes": {
+    "source": "Captured real public GitHub API metadata; no synthetic substitutions",
+    "bodyProjection": "See capture.json sanitization. Relevant API field names/shapes and retained values preserved.",
+    "graphql": "Actual query/result retained as source evidence; brick is invoked without a supplied token and may skip this endpoint.",
+    "pagination": "Actual Link headers followed until no rel=next; exact request paths retained. No invented pages or policy.",
+    "initialFinalResponses": "Sequential repeated route responses preserve capture order; final repeats only in offline transport per runner convention."
+  }
+}
