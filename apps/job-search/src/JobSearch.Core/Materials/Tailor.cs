@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using Ashlar.Bricks.ApiAnything.Jobs;
+using Ashlar.WebOperations.Jobs;
 using JobSearch.Profile;
 using JobSearch.Screening;
 

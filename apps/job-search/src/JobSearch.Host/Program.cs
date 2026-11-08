@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
-using Ashlar.Bricks.ApiAnything;
+using Ashlar.WebOperations;
 using Dapper;
 using JobSearch.Accounts;
 using JobSearch.Runs;
@@ -37,7 +37,7 @@ public static class Program
           restore --user E --repo DIR --commit SHA [--apply]
           runs --user E                            run history with what each checked and could not complete
 
-        Environment: API_ANYTHING_URL / API_ANYTHING_TOKEN (or API_ANYTHING_HOME); GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.
+        Environment: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET. Learned and repaired site specs are kept in <data>/specs.
         """;
 
     /// <summary>Main.</summary>
@@ -66,16 +66,17 @@ public static class Program
 
     private static App Build(Args args)
     {
-        ApiAnythingClient? client = null;
+        var dataDir = args.Get("data") ?? Environment.GetEnvironmentVariable("JOBSEARCH_DATA") ?? ".jobsearch";
+        WebOperationClient? client = null;
         if (args.Get("stub-boards") is { } boards)
-            client = new ApiAnythingClient(new ApiAnythingOptions { Token = "stub" }, null, new StubApiAnything(boards));
+            client = new WebOperationClient(new SpecStore(Path.Combine(dataDir, "specs")), null, new StubBoards(boards), new WebOperationsOptions { PerHostInterval = TimeSpan.Zero }, now: () => Clock.Now);
         return new App(new AppOptions
         {
-            DataDir = args.Get("data") ?? Environment.GetEnvironmentVariable("JOBSEARCH_DATA") ?? ".jobsearch",
+            DataDir = dataDir,
             GoogleMode = args.Get("google") ?? "fake",
             GoogleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID"),
             GoogleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET"),
-            ApiAnything = client,
+            Web = client,
         });
     }
 
@@ -146,7 +147,7 @@ public static class Program
                     Materials = args.Get("max-drafts") is { } md ? p.Materials with { MaxNewDraftsPerRun = int.Parse(md, CultureInfo.InvariantCulture) } : p.Materials,
                 };
                 foreach (var board in p.Boards)
-                    if (!Ashlar.Bricks.ApiAnything.Jobs.BoardRef.TryParse(board, out _, out var err))
+                    if (!Ashlar.WebOperations.Jobs.BoardRef.TryParse(board, out _, out var err))
                         throw new ArgumentException($"board '{board}': {err}");
                 app.Accounts.SetPreferences(id, Actor(app, args, id), p);
                 Print(p);

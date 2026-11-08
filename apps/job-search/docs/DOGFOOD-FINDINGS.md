@@ -10,11 +10,10 @@ framework in this change; the app works around each one, and the workaround is n
 | F2 | A `ConditionalNode` computes a flag but does not stop anything downstream | High |
 | F3 | Brick nodes get runtime values only through ports: `BrickNode.Parameters` and `WorkflowInput.Parameters` do not reach them | Medium |
 | F4 | The brick registry silently drops a brick it cannot construct | Medium |
-| F5 | Egress through a local sidecar is classed as inside the host | Medium (security) |
-| F6 | `apps/` is outside the egress scan roots | Medium |
-| F7 | No deterministic, per-tenant scheduling; cron has no time zone | Medium |
-| F8 | No durable state, idempotency or resume for workflow runs; no general audit sink | Medium |
-| F9 | `BrickOutput.Summary` is dropped from workflow results | Low |
+| F5 | `apps/` is outside the egress scan roots | Medium |
+| F6 | No deterministic, per-tenant scheduling; cron has no time zone | Medium |
+| F7 | No durable state, idempotency or resume for workflow runs; no general audit sink | Medium |
+| F8 | `BrickOutput.Summary` is dropped from workflow results | Low |
 
 ## F1: an undeclared implementation makes a brick unrunnable in a workflow
 
@@ -30,7 +29,7 @@ The documented way to write a brick doesn't declare one. Neither does the minima
 (Observed here for this app's six bricks; for the others it follows from the code.)
 
 - **Cost here:** every run failed with that message; finding the cause took reading the resolver.
-- **Workaround:** every app brick and `ApiAnythingBrickBase` declare `Implementations.Deterministic`, with a test
+- **Workaround:** every app brick and `WebOperationBrick` (the web-operations base) declare `Implementations.Deterministic`, with a test
   (`CompositionDiagnostics`, `Every_brick_declares_its_deterministic_implementation_so_a_workflow_can_run_it`).
 - **Fix:** treat a code brick with no declared implementations as deterministic, or make the analyzer (ASHLAR0001/2)
   flag it; and name the brick and "no declared implementation matches" in the error.
@@ -68,19 +67,7 @@ path applies (the README says host-registered bricks are "not checked").
 - **Fix:** log (or fail in strict mode) when a registered brick cannot be constructed; document which registry
   `AddAshlar()` exposes and when certification applies to SDK-registered bricks.
 
-## F5: egress through a local sidecar is "inside the host"
-
-`api-anything serve` listens on loopback, so a request to it is classed as inside the host boundary. The server then
-reaches the website from its own process, outside the guard. Under an air-gapped profile, a plain loopback client would
-let a call through to the public internet.
-
-- **Workaround:** `ApiAnythingClient` evaluates `https://<website host>/` under its own site id (EG-HTTP-09) before
-  every call and refuses unsent when the website cannot be determined. A test proves the server receives nothing when
-  the guard refuses.
-- **Fix:** a documented pattern (or an `EgressRequest` for "effective destination via a local proxy"), so other sidecar
-  integrations (MCP servers, local gateways) get it right by default.
-
-## F6: `apps/` is not scanned for egress
+## F5: `apps/` is not scanned for egress
 
 `EgressGuardConventionTests` scans `src`, `application`, `applications`, `commercial`, `products`, `tools` and
 `consumer-template` (`EgressGuardConventionTests.Scanner.cs:13`). `apps/` is neither a production root nor a listed
@@ -88,7 +75,7 @@ unshipped root. This app's Google client uses `EgressHttp`, but nothing pins it 
 
 - **Fix:** add `apps` to the production roots (then pin `jobsearch.google`), or list it as unshipped with the reason.
 
-## F7: scheduling
+## F6: scheduling
 
 Background agents (`src/Ashlar.BackgroundAgents`) are LLM tool-calling agents. Each has one static schedule from JSON
 configuration, and cron runs through NCrontab with no time zone (`Scheduling/ScheduleExecutor.cs:95`). A
@@ -98,7 +85,7 @@ facts.
 - **Workaround:** `Runs/Dispatcher.cs` computes who is due in their own time zone and runs them in parallel.
 - **Fix:** a deterministic scheduled-workflow host (workflow id + schedule + time zone + tenant key).
 
-## F8: no durable runs, idempotency or general audit
+## F7: no durable runs, idempotency or general audit
 
 `WorkflowExecutor` runs in memory: no persisted run state, no idempotency key, no resume after a crash, no lease. The
 audit interfaces are purpose-specific (`IBarrierAuditLog` for barriers, `IDataDecisionAuditLog`,
@@ -109,7 +96,7 @@ audit interfaces are purpose-specific (`IBarrierAuditLog` for barriers, `IDataDe
 - **Fix:** an optional run store for `WorkflowExecutor` (run id, idempotency key, node checkpoints) and a general
   workflow audit sink fed by its events.
 
-## F9: `BrickOutput.Summary` is lost
+## F8: `BrickOutput.Summary` is lost
 
 A brick node's result is `ToMutableDictionary(result.ToDictionary())` (`WorkflowExecutor.cs:333`), the data only. The
 human-readable summary every brick is asked to set (`docs/AuthoringBricks.md`) is not in `NodeResult` or

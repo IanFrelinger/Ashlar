@@ -1,5 +1,6 @@
 using Ashlar.Abstractions.Security.Egress;
-using Ashlar.Bricks.ApiAnything;
+using Ashlar.WebOperations;
+using JobSearch.Store;
 using JobSearch.Accounts;
 using JobSearch.Host;
 using JobSearch.Workspace;
@@ -12,16 +13,17 @@ public sealed class Harness : IDisposable
     public static readonly string Fixtures = Path.Combine(AppContext.BaseDirectory, "fixtures");
     public string Dir { get; } = Path.Combine(Path.GetTempPath(), "jobsearch-tests-" + Guid.NewGuid().ToString("N"));
     public FakeGoogle Google { get; } = new();
-    public StubApiAnything Boards { get; } = new(Path.Combine(Fixtures, "boards.json"));
+    public StubBoards Boards { get; } = new(Path.Combine(Fixtures, "boards.json"));
     public App App { get; }
     public List<TimeSpan> Waits { get; } = [];
 
     public Harness(IEgressGuard? apiGuard = null)
     {
-        var client = new ApiAnythingClient(new ApiAnythingOptions { Token = "stub", MaxAge = null }, apiGuard ?? new EgressGuard("full", "report"), Boards, (_, _) => Task.CompletedTask);
+        var client = new WebOperationClient(new SpecStore(Path.Combine(Dir, "specs")), apiGuard ?? new EgressGuard("full", "report"), Boards,
+            new WebOperationsOptions { PerHostInterval = TimeSpan.Zero }, now: () => Clock.Now);
         App = new App(new AppOptions
         {
-            DataDir = Dir, GoogleMode = "fake", Fake = Google, ApiAnything = client,
+            DataDir = Dir, GoogleMode = "fake", Fake = Google, Web = client,
             Delay = (d, _) => { lock (Waits) Waits.Add(d); return Task.CompletedTask; },
         });
     }

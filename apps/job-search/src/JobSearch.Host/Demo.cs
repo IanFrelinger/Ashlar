@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Ashlar.Abstractions.Security.Egress;
-using Ashlar.Bricks.ApiAnything;
+using Ashlar.WebOperations;
 using JobSearch.Store;
 using JobSearch.Workspace;
 
@@ -11,7 +11,7 @@ namespace JobSearch.Host;
 
 /// <summary>
 /// End to end with no network and no credentials: two synthetic users, simulated Google accounts, synthetic boards
-/// served through the real api-anything client and the egress check, real Ashlar workflows, real PDFs.
+/// answered at their public API endpoints through the real web-operations client, specs and egress check, real Ashlar workflows, real PDFs.
 /// </summary>
 public static class Demo
 {
@@ -22,9 +22,10 @@ public static class Demo
         var data = Path.Combine(Path.GetTempPath(), "jobsearch-demo-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(outDir);
         var google = new FakeGoogle();
-        var boards = new StubApiAnything(Path.Combine(fixtures, "boards.json"));
-        var client = new ApiAnythingClient(new ApiAnythingOptions { Token = "stub", MaxAge = null }, new EgressGuard("full", "report"), boards);
-        using var app = new App(new AppOptions { DataDir = data, GoogleMode = "fake", Fake = google, ApiAnything = client });
+        var boards = new StubBoards(Path.Combine(fixtures, "boards.json"));
+        var client = new WebOperationClient(new SpecStore(Path.Combine(data, "specs")), new EgressGuard("full", "report"), boards,
+            new WebOperationsOptions { PerHostInterval = TimeSpan.Zero }, now: () => Clock.Now);
+        using var app = new App(new AppOptions { DataDir = data, GoogleMode = "fake", Fake = google, Web = client });
 
         Console.WriteLine("== 1. Two accounts, each with their own résumé, goals and Google connection");
         var jordan = app.Accounts.CreateUser("jordan.rivera@example.com", "Jordan Rivera", "America/Denver");

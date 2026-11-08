@@ -1,4 +1,4 @@
-using Ashlar.Bricks.ApiAnything;
+using Ashlar.WebOperations;
 using FluentAssertions;
 using JobSearch.Host;
 using Xunit;
@@ -10,7 +10,7 @@ public sealed class CompositionTests
     [Fact]
     public void Ashlar_composition_root_holds_every_app_brick()
     {
-        using var runtime = new AshlarRuntime(new ApiAnythingClient(new ApiAnythingOptions { Token = "t" }));
+        using var runtime = new AshlarRuntime(new WebOperationClient(new SpecStore()));
         using var scope = runtime.CreateScope();
         foreach (var id in AshlarRuntime.RequiredBricks)
             scope.Bricks.GetBrick(id).Should().NotBeNull(id);
@@ -23,7 +23,7 @@ public sealed class CompositionDiagnostics
     [Fact]
     public void Every_app_brick_resolves_a_runnable_chain_inside_Ashlar()
     {
-        using var runtime = new AshlarRuntime(new ApiAnythingClient(new ApiAnythingOptions { Token = "t" }));
+        using var runtime = new AshlarRuntime(new WebOperationClient(new SpecStore()));
         using var scope = runtime.CreateScope();
         var ctx = new JobSearch.Runs.RunContext("u", "r");
         foreach (var id in AshlarRuntime.RequiredBricks)

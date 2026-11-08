@@ -5,10 +5,9 @@
         <LangVersion>12.0</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <!-- Not packed yet: the integration has been exercised only against a stand-in server here
-             (README, "What is verified"). Packing it is a release decision. -->
+        <!-- Not packed yet: the bundled job specs have been exercised only against recorded response shapes here. -->
         <IsPackable>false</IsPackable>
-        <Description>API Anything bricks for Ashlar: call operations that `api-anything serve` learned from a website's own requests, and read employer job boards (Greenhouse, Lever, Ashby, Workable, Workday) with an open/closed/unverified verdict and its evidence, behind the Ashlar egress guard.</Description>
+        <Description>Web operations for Ashlar: a website's own data requests as declared, versioned operations that bricks call over plain HTTP behind the egress guard, with classified results, learning from captured requests, self-repair when a response moves, and guarded writes. Bundles employer job-board operations.</Description>
     </PropertyGroup>
 
     <ItemGroup>
@@ -17,10 +16,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <EmbeddedResource Include="Specs\Bundled\*.json" LogicalName="Ashlar.WebOperations.Specs.%(Filename).json" />
+    </ItemGroup>
+
+    <ItemGroup>
         <InternalsVisibleTo Include="Ashlar.Tests.Infrastructure" />
     </ItemGroup>
 
-    <!-- Brick contract drift rule (ASHLAR0001/ASHLAR0002), as in Ashlar.Bricks.GitHub. -->
     <ItemGroup>
         <ProjectReference Include="..\Ashlar.Analyzers\Ashlar.Analyzers.csproj"
                           OutputItemType="Analyzer"

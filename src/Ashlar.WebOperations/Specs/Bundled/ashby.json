@@ -1,0 +1,37 @@
+{
+  "site": "ashby",
+  "title": "Ashby job boards",
+  "version": 1,
+  "hosts": ["api.ashbyhq.com"],
+  "source": "Ashby public Job Posting API, documented endpoint",
+  "notes": "Written from Ashby's public job posting API documentation; not yet called live from the repository. 'company' is the job board name in jobs.ashbyhq.com/<company>. The API has no single-posting endpoint, so getJob reads the board and keeps the posting with this id; a posting that is no longer listed answers input.",
+  "operations": {
+    "listJobs": {
+      "kind": "read",
+      "description": "Every listed posting on a board, with compensation where published.",
+      "params": { "company": { "pattern": "[A-Za-z0-9._-]+" } },
+      "request": { "method": "GET", "url": "https://api.ashbyhq.com/posting-api/job-board/{company}?includeCompensation=true", "headers": { "Accept": "application/json" } },
+      "response": {
+        "format": "json", "extract": "jobs", "list": true, "shape": ["id", "title"],
+        "fields": {
+          "id": "id", "title": "title", "location": "location", "team": "team", "employmentType": "employmentType", "isRemote": "isRemote",
+          "workplaceType": "workplaceType", "postedAt": { "path": "publishedAt", "as": "date" }, "url": "jobUrl", "payText": "compensation.compensationTierSummary"
+        }
+      }
+    },
+    "getJob": {
+      "kind": "read",
+      "description": "One posting by id, read from the board.",
+      "params": { "company": { "pattern": "[A-Za-z0-9._-]+" }, "jobId": { "pattern": "[0-9a-fA-F-]{36}" } },
+      "request": { "method": "GET", "url": "https://api.ashbyhq.com/posting-api/job-board/{company}?includeCompensation=true", "headers": { "Accept": "application/json" } },
+      "response": {
+        "format": "json", "extract": "jobs", "where": { "id": "{jobId}" }, "emptyIsInput": true, "shape": ["id", "title"],
+        "fields": {
+          "id": "id", "title": "title", "location": "location", "team": "team", "employmentType": "employmentType", "isRemote": "isRemote",
+          "workplaceType": "workplaceType", "postedAt": { "path": "publishedAt", "as": "date" }, "url": "jobUrl",
+          "payText": "compensation.compensationTierSummary", "description": "descriptionPlain"
+        }
+      }
+    }
+  }
+}

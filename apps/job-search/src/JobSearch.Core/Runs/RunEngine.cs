@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Ashlar.Bricks.ApiAnything;
-using Ashlar.Bricks.ApiAnything.Jobs;
+using Ashlar.WebOperations.Jobs;
 using Ashlar.Core.Application.Workflows;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
@@ -277,10 +276,10 @@ public sealed class RunEngine(
         }
         foreach (var link in prefs.JobLinks)
         {
-            if (JobSources.FromUrl(link) is { } parsed)
-                discovered.Add(new Candidate(parsed.Ref.Key(), parsed.Employer, null, null));
+            if (JobPostings.FromUrl(link) is { } parsed)
+                discovered.Add(new Candidate(parsed.Ref.Key(), parsed.Employer ?? "", null, null));
             else
-                s.CouldNotComplete.Add($"job link not supported (greenhouse, lever, ashby, workable, Workday's own tenant): {link}");
+                s.CouldNotComplete.Add($"job link is not an https URL: {link}");
         }
 
         // Known jobs, and which discovered ones are new.
@@ -311,7 +310,7 @@ public sealed class RunEngine(
         foreach (var cand in queue)
         {
             ct.ThrowIfCancellationRequested();
-            var site = cand.Key[..cand.Key.IndexOf(':', StringComparison.Ordinal)];
+            var site = PostingRef.TryParse(cand.Key)?.Site ?? "unknown";
             if (rateLimitedSites.Contains(site))
                 continue;
             var allowDraft = draftBudget > 0 && (cand.JobId is null || !HasCurrentDrafts(userId, cand.JobId, profile.ResumeSha));
@@ -324,7 +323,7 @@ public sealed class RunEngine(
             var outcome = await PostingWorkflow.RunAsync(scope.Executor, cand.Key, cand.Employer, ctx, ct).ConfigureAwait(false);
             s.PostingsRead++;
             lock (s.WorkflowLog) s.WorkflowLog.AddRange(outcome.NodeLog.Select(l => $"{cand.Key} {l}"));
-            if (outcome.Signal == "error" && outcome.Detail.Contains(" answered rate", StringComparison.Ordinal))
+            if (outcome.Signal == "rate")
             {
                 rateLimitedSites.Add(site);
                 s.CouldNotComplete.Add($"{site}: rate limited by the source; remaining {site} reads wait for the next run ({outcome.Detail})");
@@ -417,13 +416,13 @@ public sealed class RunEngine(
             var previousCheck = c.QuerySingleOrDefault<string>("SELECT result FROM job_checks WHERE job_id=@id ORDER BY id DESC LIMIT 1", new { id }, tx);
             var result = o.Signal switch { "found" => "found", "gone" => "gone", _ => "error" };
             c.Execute("INSERT INTO job_checks (user_id, job_id, run_id, checked_at, source, result, detail) VALUES (@userId,@id,@runId,@now,@src,@result,@detail)",
-                new { userId, id, runId, now, src = $"api-anything:{cand.Key}", result, detail = o.Detail }, tx);
+                new { userId, id, runId, now, src = $"web-operations:{cand.Key}", result, detail = o.Detail }, tx);
 
             var current = c.QuerySingle<(string Status, string? Verified)>("SELECT listing_status, last_verified_open_at FROM jobs WHERE id=@id", new { id }, tx);
             string status = current.Status, detail;
             string? verified = current.Verified;
-            var amp = cand.Key.IndexOf('&', StringComparison.Ordinal);
-            var board = (amp > 0 ? cand.Key[..amp] : cand.Key).Replace("company=", "", StringComparison.Ordinal); // e.g. greenhouse:acme
+            var read = PostingRef.TryParse(cand.Key);
+            var board = read is not null && read.Args.TryGetValue("company", out var slug) ? $"{read.Site}:{slug}" : ""; // e.g. greenhouse:acme
             switch (o.Signal)
             {
                 case "found" when o.ProvesOpen:
@@ -536,7 +535,7 @@ public sealed class RunEngine(
         var docs = db.Read(c => c.Query<DocRef>("SELECT id, job_id, kind, format, drive_file_id, content_sha, source_doc_id, source_content_sha, status, resume_sha FROM documents WHERE user_id=@userId AND job_id=@jobId AND status IN ('draft','stale')", new { userId, jobId }).AsList());
         var assessment = Json.Read<Screening.Assessment>(db.Read(c => c.QuerySingleOrDefault<string>("SELECT assessment_json FROM assessments WHERE job_id=@jobId AND user_id=@userId", new { jobId, userId }))) ?? new Screening.Assessment();
         var job = db.Read(c => c.QuerySingle<(string Employer, string Title, string? Description)>("SELECT employer, title, description FROM jobs WHERE id=@jobId AND user_id=@userId", new { jobId, userId }));
-        var posting = new JobPosting(job.Employer, job.Title, null, null, null, null, null, null, null, job.Description ?? "", new PostingRef("user", new Dictionary<string, string>()), false);
+        var posting = new JobPosting(job.Employer, job.Title, null, null, null, null, null, null, null, null, job.Description ?? "", null, new PostingRef("user", "draft", new Dictionary<string, string>()), false);
         var refreshed = 0;
         foreach (var pdf in docs.Where(d => d.Format == "pdf" && d.Status == "stale"))
         {

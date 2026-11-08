@@ -1,63 +1,66 @@
 {
-  "_comment": "Synthetic postings for the demo and tests, in the field shapes api-anything's bundled sites return. Not real jobs.",
+  "_comment": "Synthetic postings for the demo and tests, in the shapes of each board's public API (Greenhouse Job Board API, Lever Postings API, Ashby job posting API). Not real jobs.",
   "greenhouse": {
     "acme-analytics": [
       {
-        "jobId": "4001001", "title": "Senior Data Engineer", "department": "Data", "location": "Denver, CO (Hybrid)",
-        "url": "https://job-boards.greenhouse.io/acme-analytics/jobs/4001001", "updatedAt": "2026-11-02T15:00:00Z",
-        "description": "Acme Analytics is hiring a Senior Data Engineer to join our hybrid Denver team.\nRequirements\n- 5+ years of experience building data pipelines\n- Strong Python and SQL\n- Airflow and AWS in production\n- Bachelor's degree in Computer Science or equivalent experience\nNice to have\n- Kafka and dbt\nCompensation: $150,000 - $180,000 per year.\nReq ID: AA-2210"
+        "id": 4001001, "title": "Senior Data Engineer", "updated_at": "2026-11-02T10:00:00-05:00",
+        "location": { "name": "Denver, CO (Hybrid)" }, "absolute_url": "https://job-boards.greenhouse.io/acme-analytics/jobs/4001001",
+        "requisition_id": "AA-2210",
+        "content": "&lt;p&gt;Acme Analytics is hiring a Senior Data Engineer to join our hybrid Denver team.&lt;/p&gt;&lt;p&gt;Requirements&lt;/p&gt;&lt;ul&gt;&lt;li&gt;5+ years of experience building data pipelines&lt;/li&gt;&lt;li&gt;Strong Python and SQL&lt;/li&gt;&lt;li&gt;Airflow and AWS in production&lt;/li&gt;&lt;li&gt;Bachelor's degree in Computer Science or equivalent experience&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Nice to have&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Kafka and dbt&lt;/li&gt;&lt;/ul&gt;",
+        "pay_input_ranges": [ { "min_cents": 15000000, "max_cents": 18000000, "currency_type": "USD", "title": "Denver" } ]
       },
       {
-        "jobId": "4001002", "title": "Data Engineer, Platform", "department": "Platform", "location": "Remote (US)",
-        "url": "https://job-boards.greenhouse.io/acme-analytics/jobs/4001002", "updatedAt": "2026-10-28T09:00:00Z",
-        "description": "This role is remote (US). Candidates must reside in Colorado, Utah or Texas.\nRequirements\n- 3+ years of experience\n- Python, Spark, Kubernetes, Terraform and Golang\nWe are unable to sponsor visas for this position.\nReq ID: AA-2231"
+        "id": 4001002, "title": "Data Engineer, Platform", "updated_at": "2026-10-28T09:00:00-05:00",
+        "location": { "name": "Remote (US)" }, "absolute_url": "https://job-boards.greenhouse.io/acme-analytics/jobs/4001002",
+        "requisition_id": "AA-2231",
+        "content": "&lt;p&gt;This role is remote (US). Candidates must reside in Colorado, Utah or Texas.&lt;/p&gt;&lt;p&gt;Requirements&lt;/p&gt;&lt;ul&gt;&lt;li&gt;3+ years of experience&lt;/li&gt;&lt;li&gt;Python, Spark, Kubernetes, Terraform and Golang&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;We are unable to sponsor visas for this position.&lt;/p&gt;",
+        "pay_input_ranges": []
       },
       {
-        "jobId": "4001003", "title": "Marketing Manager", "department": "Marketing", "location": "Denver, CO",
-        "url": "https://job-boards.greenhouse.io/acme-analytics/jobs/4001003", "updatedAt": "2026-10-30T09:00:00Z",
-        "description": "Own campaigns. Requirements: 4+ years of experience in marketing."
+        "id": 4001003, "title": "Marketing Manager", "updated_at": "2026-10-30T09:00:00-05:00",
+        "location": { "name": "Denver, CO" }, "absolute_url": "https://job-boards.greenhouse.io/acme-analytics/jobs/4001003",
+        "content": "&lt;p&gt;Own campaigns. Requirements: 4+ years of experience in marketing.&lt;/p&gt;", "pay_input_ranges": []
       }
     ]
   },
   "lever": {
     "northwind": [
       {
-        "postingId": "8f14e45f-ceea-467a-9e3a-7c2c1f0a0001", "title": "Clinical Informatics Nurse", "team": "Clinical Systems",
-        "department": "Nursing", "location": "Columbus, OH", "workplaceType": "onsite", "commitment": "Full-time", "country": "US",
-        "createdAt": 1793577600000, "url": "https://jobs.lever.co/northwind/8f14e45f-ceea-467a-9e3a-7c2c1f0a0001",
-        "description": "Northwind Health is looking for a Clinical Informatics Nurse to support Epic optimization.",
-        "sections": [
+        "id": "8f14e45f-ceea-467a-9e3a-7c2c1f0a0001", "text": "Clinical Informatics Nurse", "workplaceType": "onsite", "createdAt": 1793577600000,
+        "categories": { "team": "Clinical Systems", "department": "Nursing", "location": "Columbus, OH", "commitment": "Full-time" },
+        "hostedUrl": "https://jobs.lever.co/northwind/8f14e45f-ceea-467a-9e3a-7c2c1f0a0001",
+        "descriptionPlain": "Northwind Health is looking for a Clinical Informatics Nurse to support Epic optimization.",
+        "lists": [
           { "text": "Requirements", "content": "<li>Active RN license</li><li>3+ years of nursing experience including patient care</li><li>Epic EHR experience</li><li>Working knowledge of HIPAA</li><li>BLS certification</li>" },
           { "text": "Details", "content": "<li>Up to 10% travel between Columbus campuses</li>" }
         ],
-        "additional": "",
+        "additionalPlain": "",
         "salaryRange": { "min": 85000, "max": 105000, "currency": "USD", "interval": "per-year-salary" }
       },
       {
-        "postingId": "8f14e45f-ceea-467a-9e3a-7c2c1f0a0002", "title": "Analytics Engineer", "team": "Data", "department": "Analytics",
-        "location": "Remote", "workplaceType": "remote", "commitment": "Full-time", "country": "US", "createdAt": 1793232000000,
-        "url": "https://jobs.lever.co/northwind/8f14e45f-ceea-467a-9e3a-7c2c1f0a0002",
-        "description": "Build the analytics layer for Northwind Health.",
-        "sections": [
-          { "text": "Requirements", "content": "<li>4+ years of experience with SQL and Python</li><li>dbt and Looker</li><li>Data modeling</li>" }
-        ],
-        "additional": ""
+        "id": "8f14e45f-ceea-467a-9e3a-7c2c1f0a0002", "text": "Analytics Engineer", "workplaceType": "remote", "createdAt": 1793232000000,
+        "categories": { "team": "Data", "department": "Analytics", "location": "Remote", "commitment": "Full-time" },
+        "hostedUrl": "https://jobs.lever.co/northwind/8f14e45f-ceea-467a-9e3a-7c2c1f0a0002",
+        "descriptionPlain": "Build the analytics layer for Northwind Health.",
+        "lists": [ { "text": "Requirements", "content": "<li>4+ years of experience with SQL and Python</li><li>dbt and Looker</li><li>Data modeling</li>" } ],
+        "additionalPlain": ""
       }
     ]
   },
   "ashby": {
     "civic-ledger": [
       {
-        "jobId": "0b6b2a4c-1d2e-4f00-8a00-00000000c001", "title": "Data Engineer (Cleared)", "teamId": "t1", "location": "Arlington, VA",
-        "workplaceType": "OnSite", "employmentType": "FullTime", "secondaryLocations": [], "compensation": null,
-        "departmentName": "Federal", "teamNames": ["Federal Data"], "secondaryLocationNames": [], "compensationTiers": [],
-        "descriptionHtml": "<p>Support a federal analytics program.</p><p><b>Requirements</b></p><ul><li>Active Secret clearance required</li><li>U.S. citizenship required</li><li>Python and SQL</li><li>2+ years of experience</li></ul>"
+        "id": "0b6b2a4c-1d2e-4f00-8a00-00000000c001", "title": "Data Engineer (Cleared)", "department": "Federal", "team": "Federal Data",
+        "employmentType": "FullTime", "location": "Arlington, VA", "isRemote": false, "workplaceType": "OnSite", "publishedAt": "2026-10-25T12:00:00Z",
+        "jobUrl": "https://jobs.ashbyhq.com/civic-ledger/0b6b2a4c-1d2e-4f00-8a00-00000000c001",
+        "descriptionPlain": "Support a federal analytics program.\nRequirements\n- Active Secret clearance required\n- U.S. citizenship required\n- Python and SQL\n- 2+ years of experience"
       },
       {
-        "jobId": "0b6b2a4c-1d2e-4f00-8a00-00000000c002", "title": "Nurse Case Manager", "teamId": "t2", "location": "Remote",
-        "workplaceType": "Remote", "employmentType": "FullTime", "secondaryLocations": [], "compensation": "$78K – $92K",
-        "departmentName": "Health", "teamNames": ["Care"], "secondaryLocationNames": [], "compensationTiers": [],
-        "descriptionHtml": "<p>Case management for a federal health benefits program.</p><p><b>Requirements</b></p><ul><li>Registered nurse with patient care experience</li><li>Ability to obtain a Public Trust clearance</li><li>Epic or other EHR experience</li></ul><p>Applications close December 1, 2026.</p>"
+        "id": "0b6b2a4c-1d2e-4f00-8a00-00000000c002", "title": "Nurse Case Manager", "department": "Health", "team": "Care",
+        "employmentType": "FullTime", "location": "Remote", "isRemote": true, "workplaceType": "Remote", "publishedAt": "2026-10-20T12:00:00Z",
+        "jobUrl": "https://jobs.ashbyhq.com/civic-ledger/0b6b2a4c-1d2e-4f00-8a00-00000000c002",
+        "compensation": { "compensationTierSummary": "$78K – $92K" },
+        "descriptionPlain": "Case management for a federal health benefits program.\nRequirements\n- Registered nurse with patient care experience\n- Ability to obtain a Public Trust clearance\n- Epic or other EHR experience\nApplications close December 1, 2026."
       }
     ]
   }

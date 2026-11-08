@@ -59,7 +59,7 @@ The CLI project also references spine-adjacent packs: **`Ashlar.Bricks.Owasp`**,
 |---------|------|
 | `src/Ashlar.Authoring/Ashlar.Authoring.csproj` | Minimal package for code-authored bricks: `Brick` base types, execution contracts, host registration helpers (see [`AuthoringBricks.md`](AuthoringBricks.md)) |
 | `src/Ashlar.Certification.State/Ashlar.Certification.State.csproj` | Attested state log binding: schema-bound mutable state with certified transition provenance |
-| `src/Ashlar.Bricks.ApiAnything/Ashlar.Bricks.ApiAnything.csproj` | API Anything brick pack: `api-anything.call` and the employer job-board bricks `jobs.list-board` / `jobs.get-posting`, over a loopback `api-anything serve` behind the egress guard (EG-HTTP-09); not packed yet (exercised by `Ashlar.Tests.Infrastructure`, used by `apps/job-search`) |
+| `src/Ashlar.WebOperations/Ashlar.WebOperations.csproj` | Web operations: websites' own data requests as declared, versioned operations run over plain HTTP behind the egress guard (EG-HTTP-09), with classified results, learning from captured requests, repair, guarded writes; bricks `web.call`, `web.learn`, `jobs.list-board`, `jobs.get-posting`; not packed yet (exercised by `Ashlar.Tests.Infrastructure`, used by `apps/job-search`) |
 | `src/Ashlar.Bricks.GitHub/Ashlar.Bricks.GitHub.csproj` | GitHub operations brick pack (PR status, CI status); packed by the release (`Ashlar.Bricks.GitHub` on nuget.org from the release after 0.3.0) |
 | `src/Ashlar.Bricks.Owasp/Ashlar.Bricks.Owasp.csproj` | OWASP brick pack (referenced by the CLI) |
 | `src/Ashlar.Bricks.SqlProfile/Ashlar.Bricks.SqlProfile.csproj` | SQL-profile brick pack built on `Ashlar.Authoring` (exercised by `Ashlar.Tests.Application`) |

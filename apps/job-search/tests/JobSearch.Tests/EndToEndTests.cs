@@ -281,8 +281,8 @@ public sealed class EndToEndTests
 
         // An ACTIVE requirement does: Jordan states no clearance, so the cleared role is not currently eligible.
         h.App.Profiles.SetField(jordan, jordan, "clearance_status", "none");
-        var posting = new Ashlar.Bricks.ApiAnything.Jobs.JobPosting("Civic Ledger", "Data Engineer (Cleared)", "Arlington, VA", null, null, "onsite", null, null, null,
-            "Requirements\n- Active Secret clearance required\n- Python and SQL", new("ashby", new Dictionary<string, string>()), true);
+        var posting = new Ashlar.WebOperations.Jobs.JobPosting("Civic Ledger", "Data Engineer (Cleared)", "Arlington, VA", null, null, "onsite", null, null, null, null,
+            "Requirements\n- Active Secret clearance required\n- Python and SQL", null, new("ashby", "getJob", new Dictionary<string, string>()), true);
         var blocked = Screening.Screener.Assess(posting, h.App.Profiles.Load(jordan)!, h.App.Accounts.GetPreferences(jordan), DateOnly.FromDateTime(DateTime.UtcNow));
         blocked.Recommendation.Should().Be("not_currently_eligible");
         blocked.Blockers.Should().ContainSingle(b => b.Detail.Contains("none"));
@@ -369,8 +369,14 @@ public sealed class EndToEndTests
     {
         using var h = new Harness();
         var (jordan, _) = h.Jordan();
-        h.App.Accounts.SetPreferences(jordan, jordan, h.App.Accounts.GetPreferences(jordan) with { Boards = [], JobLinks = ["https://apply.workable.com/nobody/j/ABC123/"] });
-        h.Boards.Force("workable", "getJob", """{"ok":true,"class":"ok","tier":1,"data":{"shortcode":"ABC123","title":"Data Engineer","description":"<p>Python and SQL.</p>","location":{"city":"Denver","region":"Colorado","country":"United States"}}}""");
+        // A pasted career-page link with no board behind it: read through the page's schema.org JobPosting.
+        h.App.Accounts.SetPreferences(jordan, jordan, h.App.Accounts.GetPreferences(jordan) with { Boards = [], JobLinks = ["https://careers.nobody.test/jobs/1"] });
+        static bool Page(HttpRequestMessage r) => r.RequestUri!.Host == "careers.nobody.test";
+        h.Boards.Force(Page, System.Net.HttpStatusCode.OK, """
+            <html><head><script type="application/ld+json">{"@context":"https://schema.org","@type":"JobPosting","title":"Data Engineer",
+            "hiringOrganization":{"@type":"Organization","name":"Nobody Inc"},"description":"<p>Python and SQL.</p>",
+            "jobLocation":{"@type":"Place","address":{"addressLocality":"Denver","addressRegion":"CO","addressCountry":"US"}}}</script></head></html>
+            """, "text/html");
         await h.App.Engine.RunAsync(jordan, jordan, "d1");
         var job = JobId(h, jordan, "Data Engineer");
         Query<string>(h, "SELECT listing_status FROM jobs WHERE id=@job", new { job }).Single().Should().Be("open");
@@ -383,7 +389,7 @@ public sealed class EndToEndTests
         // Reads failing for 8 days: never re-verified, so it goes stale (not closed).
         for (var day = 2; day <= 9; day++)
         {
-            h.Boards.Force("workable", "getJob", """{"ok":false,"class":"drift","reason":"page changed"}""");
+            h.Boards.Force(Page, System.Net.HttpStatusCode.InternalServerError, "upstream down", "text/plain");
             using (Clock.Pin(() => DateTimeOffset.UtcNow.AddDays(day)))
                 await h.App.Engine.RunAsync(jordan, jordan, $"d{day + 1}");
         }
@@ -415,7 +421,7 @@ public sealed class EndToEndTests
         using var h = new Harness();
         var (jordan, _) = h.Jordan();
         h.Google.InjectFailure(new RateLimitedException("google", TimeSpan.FromSeconds(3)), Harness.JordanEmail);
-        h.Boards.Force("lever", "getJob", """{"ok":false,"class":"rate","reason":"too many requests","retry":"after_wait","retryAfterMs":60000}""");
+        h.Boards.Force(r => r.RequestUri!.AbsolutePath.StartsWith("/v0/postings/northwind/", StringComparison.Ordinal), System.Net.HttpStatusCode.TooManyRequests, "{}");
 
         var run = await h.App.Engine.RunAsync(jordan, jordan, "d1");
 
@@ -434,7 +440,7 @@ public sealed class EndToEndTests
 
         run.Boards.Values.Should().OnlyContain(v => v.StartsWith("refused"));
         run.CouldNotComplete.Should().Contain(c => c.Contains("egress guard"));
-        h.Boards.Calls.Should().BeEmpty("nothing reached the api-anything server");
+        h.Boards.Requests.Should().BeEmpty("nothing left the process");
         Count(h, "SELECT COUNT(*) FROM jobs").Should().Be(0);
     }
 

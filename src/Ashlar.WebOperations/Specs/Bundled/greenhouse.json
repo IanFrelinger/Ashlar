@@ -1,0 +1,38 @@
+{
+  "site": "greenhouse",
+  "title": "Greenhouse job boards",
+  "version": 1,
+  "hosts": ["boards-api.greenhouse.io"],
+  "source": "Greenhouse Job Board API (public, no key), documented endpoints",
+  "notes": "Written from Greenhouse's public Job Board API documentation; not yet called live from the repository. 'company' is the board token in job-boards.greenhouse.io/<token>. A closed or unknown job answers 404. 'content' is HTML that the API returns entity-escaped. updatedAt is when the post was last updated, not first posted.",
+  "operations": {
+    "listJobs": {
+      "kind": "read",
+      "description": "Every open job on a board, with its description.",
+      "params": { "company": { "pattern": "[A-Za-z0-9_-]+", "description": "Board token" } },
+      "request": { "method": "GET", "url": "https://boards-api.greenhouse.io/v1/boards/{company}/jobs?content=true", "headers": { "Accept": "application/json" } },
+      "response": {
+        "format": "json", "extract": "jobs", "list": true, "shape": ["id", "title"],
+        "fields": {
+          "id": "id", "title": "title", "location": "location.name", "url": "absolute_url",
+          "updatedAt": { "path": "updated_at", "as": "date" }, "description": { "path": "content", "as": "html-text" }
+        }
+      }
+    },
+    "getJob": {
+      "kind": "read",
+      "description": "One job with its description and, where the employer publishes it, its pay range.",
+      "params": { "company": { "pattern": "[A-Za-z0-9_-]+" }, "jobId": { "pattern": "[0-9]+" } },
+      "request": { "method": "GET", "url": "https://boards-api.greenhouse.io/v1/boards/{company}/jobs/{jobId}?pay_transparency=true", "headers": { "Accept": "application/json" } },
+      "response": {
+        "format": "json", "extract": "$", "shape": ["id", "title"],
+        "fields": {
+          "id": "id", "title": "title", "location": "location.name", "url": "absolute_url", "requisitionId": "requisition_id",
+          "updatedAt": { "path": "updated_at", "as": "date" }, "description": { "path": "content", "as": "html-text" },
+          "payMin": { "path": "pay_input_ranges[0].min_cents", "as": "cents" }, "payMax": { "path": "pay_input_ranges[0].max_cents", "as": "cents" },
+          "payCurrency": "pay_input_ranges[0].currency_type"
+        }
+      }
+    }
+  }
+}

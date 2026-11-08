@@ -16,15 +16,15 @@
                           │   ├─► staleness, cleanup (move to Archive), freeze Submitted                        │ │
                           │   └─► SQLite system of record (every row has user_id)                               │ │
                           └───────────────│───────────────────────────────────────────────────────────────────┘ │
-                                          ▼ EG-HTTP-09 (loopback, website host evaluated first)                   │
-                                   api-anything serve ──► employer ATS (Greenhouse, Lever, Ashby, Workable, Workday)
+                                          ▼ EG-HTTP-09 (Ashlar.WebOperations: declared specs, request host evaluated) │
+                                   employer APIs (Greenhouse, Lever, Ashby) and career pages (schema.org JobPosting)
 ```
 
 Everything the brief calls an automation runs on Ashlar:
 
-- **Bricks.** `api-anything.call`, `jobs.list-board` and `jobs.get-posting` live in `src/Ashlar.Bricks.ApiAnything`, the native integration. `jobsearch.screen`, `jobsearch.tailor` and `jobsearch.validate-materials` live in the app. All six are registered through `AddAshlarSdk(...RegisterBrick<T>())` into the real `AddAshlar()` host, and the host refuses to start if any is missing.
+- **Bricks.** `web.call`, `web.learn`, `jobs.list-board` and `jobs.get-posting` live in `src/Ashlar.WebOperations`, Ashlar's native web-operations capability (declared, versioned site specs run over plain HTTP, with learning and repair). `jobsearch.screen`, `jobsearch.tailor` and `jobsearch.validate-materials` live in the app. All seven are registered through `AddAshlarSdk(...RegisterBrick<T>())` into the real `AddAshlar()` host, and the host refuses to start if any is missing.
 - **Workflow.** Each posting is a `WorkflowDefinition` executed by Ashlar's `WorkflowExecutor` in a per-run DI scope (`Runs/PostingWorkflow.cs`). The executor's node events are written into the run summary and the user's activity log.
-- **Egress.** api-anything calls go through `EgressHttp` with an explicit evaluation of the website host. The Google client is an `EgressHttp` client too.
+- **Egress.** Web operations go through `EgressHttp`, and each request's own host is evaluated before it is sent (EG-HTTP-09). The Google client is an `EgressHttp` client too.
 
 The app supplies what Ashlar's workflow engine does not (see DOGFOOD-FINDINGS): durable per-user state, leases, idempotency, retries, the per-user schedule, and Drive/Sheets I/O.
 

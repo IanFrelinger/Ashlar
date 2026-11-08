@@ -1,0 +1,28 @@
+{
+  "site": "schema-org",
+  "title": "Career pages with schema.org JobPosting data",
+  "version": 1,
+  "hosts": ["*"],
+  "source": "schema.org JobPosting (the structured data job search engines read)",
+  "notes": "Reads the JobPosting JSON-LD a career page embeds, from any https page the egress guard allows. Only what the page declares is returned; a page without it answers input. validThrough is the employer's own expiry date.",
+  "operations": {
+    "getJobPosting": {
+      "kind": "read",
+      "description": "The JobPosting a career page declares.",
+      "params": { "url": { "pattern": "https://[^\\s]+", "description": "The posting page" } },
+      "request": { "method": "GET", "url": "{url}", "headers": { "Accept": "text/html,application/xhtml+xml" } },
+      "response": {
+        "format": "json-ld", "ldType": "JobPosting", "extract": "$[0]", "shape": ["title"],
+        "fields": {
+          "title": "title", "employer": "hiringOrganization.name", "description": { "path": "description", "as": "html-text" },
+          "postedAt": { "path": "datePosted", "as": "date" }, "deadline": { "path": "validThrough", "as": "date" },
+          "employmentType": "employmentType", "workplaceType": "jobLocationType",
+          "city": "jobLocation.address.addressLocality", "region": "jobLocation.address.addressRegion", "country": "jobLocation.address.addressCountry",
+          "remoteEligibility": { "path": "applicantLocationRequirements.name", "as": "text" },
+          "requisitionId": { "path": "identifier.value", "as": "text" }, "url": "url",
+          "payMin": "baseSalary.value.minValue", "payMax": "baseSalary.value.maxValue", "payCurrency": "baseSalary.currency", "payInterval": "baseSalary.value.unitText"
+        }
+      }
+    }
+  }
+}

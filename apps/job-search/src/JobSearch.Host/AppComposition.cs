@@ -1,5 +1,6 @@
 using Ashlar.Abstractions.Security.Egress;
-using Ashlar.Bricks.ApiAnything;
+using Ashlar.WebOperations;
+using Ashlar.WebOperations.Bricks;
 using Ashlar.Core.Application.Workflows;
 using Ashlar.Core.Domain.Execution;
 using Ashlar.Hosting;
@@ -12,11 +13,11 @@ using JobSearch.Store;
 using JobSearch.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 
-#pragma warning disable ASHLAREXP002 // IEgressGuard is the experimental egress surface; the app passes a guard to its Google client by design.
+#pragma warning disable ASHLAREXP002 // IEgressGuard is the experimental egress surface; the app passes a guard to its Google and web-operations clients by design.
 
 namespace JobSearch.Host;
 
-/// <summary>How the app reaches Google and API Anything.</summary>
+/// <summary>How the app reaches Google and employer job sites.</summary>
 public sealed record AppOptions
 {
     /// <summary>Where the database, secrets and (fake mode) the simulated Drive live.</summary>
@@ -27,8 +28,8 @@ public sealed record AppOptions
     public string? GoogleClientId { get; init; }
     /// <summary>OAuth client secret (google mode).</summary>
     public string? GoogleClientSecret { get; init; }
-    /// <summary>The api-anything client; null builds one from the environment.</summary>
-    public ApiAnythingClient? ApiAnything { get; init; }
+    /// <summary>The web-operations client (employer job sites); null builds one over the bundled specs plus DataDir/specs.</summary>
+    public WebOperationClient? Web { get; init; }
     /// <summary>Simulated Google accounts to use in fake mode; null loads them from DataDir.</summary>
     public FakeGoogle? Fake { get; init; }
     /// <summary>The egress guard for the Google client; null for the process default.</summary>
@@ -42,18 +43,19 @@ public sealed class AshlarRuntime : IAshlarRuntime, IDisposable
 {
     /// <summary>The bricks the app registers and requires.</summary>
     public static readonly string[] RequiredBricks =
-        ["api-anything.call", "jobs.list-board", "jobs.get-posting", "jobsearch.screen", "jobsearch.tailor", "jobsearch.validate-materials"];
+        ["web.call", "web.learn", "jobs.list-board", "jobs.get-posting", "jobsearch.screen", "jobsearch.tailor", "jobsearch.validate-materials"];
 
     private readonly ServiceProvider _provider;
 
     /// <summary>Builds the Ashlar host.</summary>
-    public AshlarRuntime(ApiAnythingClient apiAnything)
+    public AshlarRuntime(WebOperationClient web)
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddSingleton(apiAnything); // the ApiAnything bricks take it through their constructor
+        services.AddSingleton(web); // the web-operation bricks take it through their constructor
         services.AddAshlarSdk(sdk => sdk
-            .RegisterBrick<ApiAnythingCallBrick>()
+            .RegisterBrick<WebCallBrick>()
+            .RegisterBrick<WebLearnBrick>()
             .RegisterBrick<JobBoardBrick>()
             .RegisterBrick<JobPostingBrick>()
             .RegisterBrick<ScreenBrick>()
@@ -126,7 +128,7 @@ public sealed class App : IDisposable
             : conn => new GoogleRestWorkspace(Secrets, conn.TokenRef,
                 o.GoogleClientId ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID is not set"),
                 o.GoogleClientSecret ?? throw new InvalidOperationException("GOOGLE_CLIENT_SECRET is not set"), o.Guard);
-        Ashlar = new AshlarRuntime(o.ApiAnything ?? new ApiAnythingClient(ApiAnythingOptions.FromEnvironment()));
+        Ashlar = new AshlarRuntime(o.Web ?? new WebOperationClient(new SpecStore(Path.Combine(o.DataDir, "specs")), o.Guard, now: () => Clock.Now));
         Engine = new RunEngine(Db, Accounts, Profiles, Tracker, new WorkspaceFactory(Accounts, build), Ashlar, o.Delay);
         Dispatcher = new Dispatcher(Db, Accounts, Engine);
         Snapshots = new Snapshots(Db, Applications);

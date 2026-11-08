@@ -21,7 +21,7 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 842,
-    "declared_facts": 5577,
+    "declared_facts": 5582,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -219,22 +219,6 @@
         "netstandard2.0"
       ],
       "references": []
-    },
-    {
-      "name": "Ashlar.Bricks.ApiAnything",
-      "path": "src/Ashlar.Bricks.ApiAnything/Ashlar.Bricks.ApiAnything.csproj",
-      "layer": "src",
-      "is_packable_explicit": false,
-      "ships_to_nuget": false,
-      "target_frameworks": [
-        "net10.0",
-        "net8.0"
-      ],
-      "references": [
-        "Ashlar.Abstractions",
-        "Ashlar.Analyzers",
-        "Ashlar.Core.Domain"
-      ]
     },
     {
       "name": "Ashlar.Bricks.GitHub",
@@ -844,7 +828,6 @@
         "Ashlar.Agents.TestKit",
         "Ashlar.BackgroundAgents",
         "Ashlar.BackgroundAgents.HostRunners",
-        "Ashlar.Bricks.ApiAnything",
         "Ashlar.Bricks.GitHub",
         "Ashlar.Bricks.Owasp",
         "Ashlar.Certification.Contracts",
@@ -862,6 +845,7 @@
         "Ashlar.Tests.Application",
         "Ashlar.Tests.Contracts",
         "Ashlar.Tools.Dev",
+        "Ashlar.WebOperations",
         "VerifiedBrickConsumer"
       ]
     },
@@ -1043,6 +1027,22 @@
       "references": [
         "Ashlar.Hosting",
         "Ashlar.Transport.Grpc.Server"
+      ]
+    },
+    {
+      "name": "Ashlar.WebOperations",
+      "path": "src/Ashlar.WebOperations/Ashlar.WebOperations.csproj",
+      "layer": "src",
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
+      "target_frameworks": [
+        "net10.0",
+        "net8.0"
+      ],
+      "references": [
+        "Ashlar.Abstractions",
+        "Ashlar.Analyzers",
+        "Ashlar.Core.Domain"
       ]
     },
     {
@@ -4920,13 +4920,6 @@
       "in_cert_gate_filter": false
     },
     {
-      "file": "src/Ashlar.Tests.Infrastructure/Tests/Bricks/ApiAnythingBricksTests.cs",
-      "project": "Ashlar.Tests.Infrastructure",
-      "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
-      "declared_facts": 18,
-      "in_cert_gate_filter": false
-    },
-    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Bricks/GitHubBlockersBrickTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
@@ -4973,6 +4966,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Bricks/WebOperationsTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
+      "declared_facts": 23,
       "in_cert_gate_filter": false
     },
     {
