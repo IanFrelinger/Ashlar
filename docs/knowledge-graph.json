@@ -22,7 +22,7 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 842,
-    "declared_facts": 5583,
+    "declared_facts": 5584,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -4973,7 +4973,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Bricks/WebOperationsTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
-      "declared_facts": 23,
+      "declared_facts": 24,
       "in_cert_gate_filter": false
     },
     {
