@@ -9,6 +9,7 @@
     "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubProviderAssuranceRegressionTests",
     "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubReadAccessTests",
     "Ashlar.Tests.Infrastructure.Tests.Bricks.GitHubRecollectionTests",
+    "Ashlar.Tests.Infrastructure.Tests.Bricks.WebOperationsTests",
     "Ashlar.Tests.Infrastructure.Tests.Certification",
     "AstMutationEngineTests"
   ],
@@ -21,7 +22,7 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 842,
-    "declared_facts": 5582,
+    "declared_facts": 5583,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -5161,7 +5162,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/CertGateFilterCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 3,
+      "declared_facts": 4,
       "in_cert_gate_filter": true
     },
     {

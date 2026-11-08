@@ -98,6 +98,14 @@ public sealed class CertGateFilterCoverageTests
                 "the deterministic {0} suite protects release-evidence safety and must not become advisory", suite.Name);
     }
 
+    [Fact]
+    public void Web_operation_safety_regressions_are_selected_by_the_required_gate()
+    {
+        var selectors = ReadFilterSelectors();
+        selectors.Should().Contain(s => typeof(Bricks.WebOperationsTests).FullName!.Contains(s, StringComparison.Ordinal),
+            "WebOperationsTests proves refused requests are never sent, credentials never enter specs and writes are never repeated; it must not become advisory");
+    }
+
     /// <summary>
     /// Parses the <c>FullyQualifiedName~...</c> substrings out of CERT_GATE_FILTER. Reading the
     /// script keeps this test and the gate from drifting; restating the filter here would let them.
