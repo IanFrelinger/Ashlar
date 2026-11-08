@@ -237,6 +237,32 @@ public sealed class ForgeTests
     }
 
     [Fact]
+    public async Task A_step_whose_written_code_names_the_user_is_certified_but_kept_private()
+    {
+        // The design passed the PII gate; the code that comes back names the user anyway. The last check before
+        // publishing keeps the step private rather than sharing it with everyone.
+        var reply = JsonNode.Parse(SyntheticCode())!.AsObject();
+        reply["code"] = reply["code"]!.GetValue<string>() + "\n// tuned on the searches of Jordan Rivera\n";
+        var writer = new ScriptedWriter(_ => reply.ToJsonString());
+        var model = new ScriptedModel(_ => Proposal("new", "", ["intern", "", ""]));
+        using var h = new Harness(model: model, writer: writer);
+        await h.SeedAsync();
+        var (jordan, _) = h.Jordan();
+        var (sam, _) = h.Sam();
+
+        var id = h.App.Forge.Submit(jordan, jordan, "flag intern titles", makePrivate: false);
+        await h.App.Forge.RunNextAsync(default);
+        var job = h.App.Forge.Get(jordan, id)!;
+        job.Status.Should().Be("done", job.Error + " | " + string.Join(" / ", job.Log));
+        writer.Prompts.Should().ContainSingle("the writer was asked, from the generic design");
+        job.Private.Should().BeTrue();
+        job.Log.Should().Contain(l => l.Contains("stays private to you", StringComparison.Ordinal));
+        var entry = h.App.Library.Get(job.StepId!)!;
+        entry.Visibility.Should().Be("private");
+        h.App.Library.Visible(sam).Should().NotContain(e => e.Id == entry.Id);
+    }
+
+    [Fact]
     public async Task A_refused_certification_goes_back_to_the_writer_with_the_gates_reasons()
     {
         var full = JsonNode.Parse(SyntheticCode())!.AsObject();

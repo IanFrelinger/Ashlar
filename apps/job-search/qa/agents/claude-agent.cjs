@@ -61,7 +61,7 @@ function systemPrompt(charter, meta) {
 async function runClaudeAgent({ client, screen, charter, meta, maxSteps = 40, log = () => {} }) {
   const findings = [];
   const notes = [];
-  const usage = { input: 0, output: 0 };
+  const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
   let outcome = null;
   const first = await screen.run("screenshot");
   const messages = [{ role: "user", content: [{ type: "text", text: "Here is your screen. Begin." }, ...first] }];
@@ -71,18 +71,22 @@ async function runClaudeAgent({ client, screen, charter, meta, maxSteps = 40, lo
       max_tokens: 16000,
       // A refusal is re-served by Anthropic's recommended fallback; progress notes come back as short thinking
       // summaries for the report; old screenshots are cleared server-side (never pruned here, which would
-      // invalidate later thinking blocks).
+      // invalidate later thinking blocks). Every turn re-reads the conversation so far, so it is cached: an explicit
+      // breakpoint on the system prompt, and automatic caching of the growing tail (cache reads cost 0.05x input).
       betas: ["server-side-fallback-2026-07-01", "thinking-display-updates-2026-08-18", "context-management-2025-06-27"],
+      cache_control: { type: "ephemeral" },
       fallbacks: "default",
       thinking: { type: "adaptive", display: "updates" },
       output_config: { effort: EFFORT },
       context_management: { edits: [{ type: "clear_tool_uses_20250919" }] },
-      system: systemPrompt(charter, meta),
+      system: [{ type: "text", text: systemPrompt(charter, meta), cache_control: { type: "ephemeral" } }],
       tools: TOOLS,
       messages,
     });
     usage.input += response.usage?.input_tokens ?? 0;
     usage.output += response.usage?.output_tokens ?? 0;
+    usage.cacheRead += response.usage?.cache_read_input_tokens ?? 0;
+    usage.cacheWrite += response.usage?.cache_creation_input_tokens ?? 0;
     if (response.stop_reason === "refusal") {
       notes.push("The model declined to continue.");
       outcome = outcome || { outcome: "blocked", summary: "model declined" };

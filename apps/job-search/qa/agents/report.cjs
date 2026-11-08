@@ -23,7 +23,7 @@ function write(out, report) {
     <section class="agent">
       <h2>${esc(a.charter)} <small>${esc(a.persona)} · ${esc(a.mode)}</small> <span class="o ${esc(a.outcome)}">${esc(a.outcome)}</span></h2>
       <p>${esc(a.summary)}</p>
-      <p class="meta">${a.steps} steps · ${a.usage.input + a.usage.output} tokens · ${(a.ms / 1000).toFixed(0)} s ${a.video ? `· <a href="${esc(a.video)}">video</a>` : ""}</p>
+      <p class="meta">${a.steps} steps · tokens: ${a.usage.input} in, ${a.usage.cacheRead ?? 0} read from cache, ${a.usage.cacheWrite ?? 0} written to cache, ${a.usage.output} out · ${(a.ms / 1000).toFixed(0)} s ${a.video ? `· <a href="${esc(a.video)}">video</a>` : ""}</p>
       ${a.findings.length === 0 ? "<p>No findings.</p>" : `<table><tr><th>Severity</th><th>Finding</th><th>Steps</th><th>Expected</th><th>Actual</th></tr>
         ${[...a.findings].sort((x, y) => RANK[x.severity] - RANK[y.severity]).map((f) => `<tr><td class="s ${esc(f.severity)}">${esc(f.severity)}</td><td>${esc(f.title)}</td><td><pre>${esc(f.steps)}</pre></td><td>${esc(f.expected)}</td><td>${esc(f.actual)}</td></tr>`).join("")}</table>`}
       ${a.screens.length ? `<details><summary>Screens (${a.screens.length})</summary><div class="shots">${a.screens.map((s) => `<a href="${esc(s)}"><img src="${esc(s)}" alt="screen" loading="lazy"></a>`).join("")}</div></details>` : ""}

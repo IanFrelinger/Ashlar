@@ -61,11 +61,38 @@ push to the studio's repository and run the rollout document, and nothing else.
 
 ## Cost of the QA agents
 
-Each Claude agent works for at most `maxSteps` turns (30 to 40 per charter, six charters). Each turn sends a
-screenshot. Old screenshots are cleared server-side, so a turn does not resend the whole history. Expect a full fleet
-run to cost a few dollars at `claude-opus-5-5` with effort `high`. `QA_EFFORT=medium` lowers it.
+An estimate to check against a measured run, not a quote. Prices are for `claude-opus-5-5`, per million tokens:
 
-Measure a run before turning nightly on: `report.json` records the input and output tokens of every agent.
+| | Price |
+|---|---|
+| Input | $4 |
+| Output | $20 |
+| Cache read | $0.20 |
+| Five-minute cache write | $5 |
+
+How the agents spend tokens:
+
+- Each agent works for at most its charter's `maxSteps` turns: 30 to 40, across six charters.
+- Every turn re-reads the conversation so far, including the screenshots the agent asked for, about 1.5k tokens each.
+- By the last turn the context is tens of thousands of tokens. Context management clears old screenshots
+  server-side.
+- The agents cache that growing prefix, so most input is billed as cache reads:
+  - an explicit breakpoint on the system prompt;
+  - automatic caching of the conversation tail.
+- Thinking at effort `high` is billed as output.
+
+On those assumptions, an agent costs about $2 and a six-agent fleet run about $10–15. Without caching it would be
+about $40.
+
+That makes the lanes cost roughly:
+
+- every tag: one run;
+- a nightly run once `STUDIO_QA_AGENTS` is on: about $300–450 a month.
+
+`QA_EFFORT=medium` lowers the output share.
+
+Measure one run before turning nightly on. `report.json` and the report record each agent's input, cache-read,
+cache-write and output tokens.
 
 ## When a finding blocks a release
 

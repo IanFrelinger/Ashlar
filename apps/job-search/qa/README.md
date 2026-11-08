@@ -30,7 +30,7 @@ export STUDIO_URL=http://127.0.0.1:8080
 npm run selftest                                    # the harness itself: no studio, no tokens
 npm run ui                                          # the UI suite
 npm run agents:scripted                             # every charter, scripted (no tokens)
-ANTHROPIC_API_KEY=... npm run agents                # every charter, driven by Claude (spends tokens)
+ANTHROPIC_API_KEY=... npm run agents                # every charter, driven by Claude (spends tokens: RELEASE.md, "Cost")
 node agents/run.cjs --charters forge-new-step,privacy-rights --parallel 2 --max-steps 30
 ```
 

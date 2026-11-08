@@ -69,7 +69,7 @@ test("the Claude loop runs computer calls, records findings, answers every call,
       { type: "tool_use", id: "t1", name: "left_click", toolset_name: "computer", input: { coordinate: [160, 120] } },
       { type: "tool_use", id: "t2", name: "screenshot", toolset_name: "computer", input: {} },
     ] },
-    { stop_reason: "tool_use", usage: { input_tokens: 200, output_tokens: 20 }, content: [
+    { stop_reason: "tool_use", usage: { input_tokens: 200, output_tokens: 20, cache_read_input_tokens: 150, cache_creation_input_tokens: 40 }, content: [
       { type: "tool_use", id: "t3", name: "report_finding", input: { severity: "minor", title: "Button label changes", steps: "click", expected: "x", actual: "y" } },
       { type: "tool_use", id: "t4", name: "finish", input: { outcome: "passed", summary: "done" } },
     ] },
@@ -80,13 +80,17 @@ test("the Claude loop runs computer calls, records findings, answers every call,
   assert.equal(result.outcome, "passed");
   assert.equal(result.findings.length, 1);
   assert.equal(result.findings[0].severity, "minor");
-  assert.deepEqual(result.usage, { input: 300, output: 30 });
+  assert.deepEqual(result.usage, { input: 300, output: 30, cacheRead: 150, cacheWrite: 40 });
   assert.ok(result.notes.includes("Clicking the button to see what happens."));
   // The request carries the toolset, the fallback and the clearing of old screenshots.
   assert.equal(requests[0].model, "claude-opus-5-5");
   assert.deepEqual(requests[0].tools[0], { type: "computer_toolset_20260801" });
   assert.equal(requests[0].fallbacks, "default");
   assert.ok(requests[0].betas.includes("server-side-fallback-2026-07-01"));
+  // Each turn re-reads the conversation: the system prompt carries a breakpoint and the tail is cached automatically.
+  assert.deepEqual(requests[0].cache_control, { type: "ephemeral" });
+  assert.deepEqual(requests[0].system[0].cache_control, { type: "ephemeral" });
+  assert.match(requests[0].system[0].text, /You are signed in as Test/);
   // The second request answers both computer calls, in order, echoing toolset_name, after the unchanged assistant turn.
   const answer = requests[1].messages.at(-1);
   assert.equal(requests[1].messages.at(-2).role, "assistant");

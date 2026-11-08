@@ -121,12 +121,12 @@ unset ASHLAR_CERT_ED25519_KEY
 Verified in this repository (container, .NET 10), by tests that fail when the behaviour breaks
 (see the mutation checks in the PR):
 
-- The studio's 29 tests (69 in `JobSearch.Tests` in all), with the browser suites besides:
+- The studio's 30 tests (70 in `JobSearch.Tests` in all), with the browser suites besides:
   - workflow documents and their compilation;
   - the shared library and its isolated step host: a step that loops forever is stopped and quarantined;
   - both model tiers behind the enforcing egress guard: Claude is refused from a frame that read personal data, and
     the private model is reachable only on loopback;
-  - the PII gate keeping a step private;
+  - the PII gate keeping a step private, including when written code names the user;
   - in the web host: the consent gate, the CSRF header, isolation between users, and export and erasure;
   - backups without keys, with erasures re-applied after a restore;
   - the operator's export and erase commands;
