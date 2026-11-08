@@ -174,6 +174,9 @@ test("Sam downloads everything, then deletes the account, and is gone", (t) => s
   await page.fill('[data-test="delete-confirm"]', "nope");
   await page.click('[data-test="delete-account"]');
   assert.match(await toast(page, /DELETE/), /DELETE/);
+  // Slow the studio's metadata down, so a sign-in page drawn from stale state (still offering Sam) is always seen
+  // rather than caught only when the timing happens to line up.
+  await page.route("**/api/meta", async (route) => { await new Promise((r) => setTimeout(r, 400)); await route.continue(); });
   await page.fill('[data-test="delete-confirm"]', "DELETE");
   await page.click('[data-test="delete-account"]');
   await page.waitForSelector('[data-test^="persona-"]');

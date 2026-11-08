@@ -603,7 +603,10 @@ async function privacy(main) {
       h("p", {}, "This erases your account and everything the studio holds about you, now. Files the studio created in your Google Drive are yours and stay there. Steps you shared stay in the library with no link to you."),
       h("div", { class: "row" }, confirm, h("button", { class: "btn danger", "data-test": "delete-account", onclick: () => guard(async () => {
         await api.post("/api/me/delete", { confirm: confirm.value });
-        state.me = null; location.hash = ""; toast("Your account has been deleted."); await boot();
+        // Fresh server state before leaving the page: changing the hash re-renders at once, and a sign-in page drawn
+        // from the old metadata would still offer the deleted account.
+        state.me = null; state.meta = await api.get("/api/meta");
+        location.hash = ""; toast("Your account has been deleted."); await boot();
       }) }, "Delete my account")))));
 }
 
