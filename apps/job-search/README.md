@@ -99,7 +99,9 @@ Verified in this repository (container, .NET 10), by tests that fail when the be
 - **GitHub snapshot push.** `Push` runs `git push`; nothing confirms privacy for you. The caller must check it with the
   GitHub API under the user's own authorization.
 - **Nothing is deployed or scheduled.** `dispatch` is a foreground loop; no service unit, container or cron exists.
-- **Not in CI.** `apps/` is outside the solution and outside Ashlar's egress-scan roots; no workflow runs these tests yet.
+- **Not yet observed in CI.** `apps/job-search/**` is in both readiness path lists, and the readiness lane's
+  `native ci verify` discovers `JobSearch.Tests` (`ci/test-ownership.tsv`), but no CI run of it has been seen yet.
+  `apps/` is outside Ashlar's egress-scan roots (DOGFOOD-FINDINGS F6).
 
 ## Remaining steps to go live
 
@@ -108,8 +110,8 @@ Verified in this repository (container, .NET 10), by tests that fail when the be
 2. Create the Google OAuth client (Drive + Sheets APIs, scope `drive.file`), connect one test user, and run once to
    confirm workspace creation, Doc conversion, the `appProperties` lookup and Sheets writes.
 3. Decide where it runs (one host with `dispatch` under a service manager), and where `secrets.json` lives.
-4. Add a CI workflow for `apps/job-search` (and decide whether `apps/` joins the egress-scan roots;
-   see DOGFOOD-FINDINGS F6).
+4. Confirm the readiness lane runs `JobSearch.Tests` on the first PR, and decide whether `apps/` joins the
+   egress-scan roots (DOGFOOD-FINDINGS F6).
 5. For GitHub snapshots: a private repository per user, created and authorized by that user; the remote's privacy is
    checked with the GitHub API before each push.
 

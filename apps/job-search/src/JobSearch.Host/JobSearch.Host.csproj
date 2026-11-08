@@ -6,7 +6,6 @@
     <IsPackable>false</IsPackable>
     <AssemblyName>jobsearch</AssemblyName>
     <RootNamespace>JobSearch.Host</RootNamespace>
-    <NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

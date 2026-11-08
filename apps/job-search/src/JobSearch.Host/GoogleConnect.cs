@@ -2,6 +2,8 @@ using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using Ashlar.Abstractions.Security.Egress;
 
+#pragma warning disable ASHLAREXP002 // EgressHttp and EgressFamilies are the experimental egress surface; the token exchange goes through the guard by design.
+
 namespace JobSearch.Host;
 
 /// <summary>

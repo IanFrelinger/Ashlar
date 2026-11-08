@@ -12,6 +12,8 @@ using JobSearch.Store;
 using JobSearch.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 
+#pragma warning disable ASHLAREXP002 // IEgressGuard is the experimental egress surface; the app passes a guard to its Google client by design.
+
 namespace JobSearch.Host;
 
 /// <summary>How the app reaches Google and API Anything.</summary>

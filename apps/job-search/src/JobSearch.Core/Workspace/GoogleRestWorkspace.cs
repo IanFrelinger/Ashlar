@@ -6,6 +6,8 @@ using System.Text.Json.Nodes;
 using Ashlar.Abstractions.Security.Egress;
 using JobSearch.Store;
 
+#pragma warning disable ASHLAREXP002 // IEgressGuard, EgressHttp and EgressFamilies are the experimental egress surface; every Google call goes through the guard by design.
+
 namespace JobSearch.Workspace;
 
 /// <summary>

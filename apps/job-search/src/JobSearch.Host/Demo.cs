@@ -5,6 +5,8 @@ using Ashlar.Bricks.ApiAnything;
 using JobSearch.Store;
 using JobSearch.Workspace;
 
+#pragma warning disable ASHLAREXP002 // EgressGuard is the experimental egress surface; the demo constructs a report-mode guard so the real egress check runs.
+
 namespace JobSearch.Host;
 
 /// <summary>

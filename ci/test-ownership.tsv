@@ -39,6 +39,7 @@
 #
 project	runner	expires	note
 application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj	security-gate-tier-c	-	CLI surface; also in Ashlar.PrimeTime.slnf
+apps/job-search/tests/JobSearch.Tests/JobSearch.Tests.csproj	full-platform-readiness-gate	-	native ci verify -> validate discovers it (ReadinessClosureConventionTests names it a discovered suite); apps/job-search/** is in BOTH readiness path lists. Added 2026-11-08 with the app; a CI run of it has not been observed yet
 commercial/tests/Ashlar.Commercial.Tests.Fleet.Host/Ashlar.Commercial.Tests.Fleet.Host.csproj	full-platform-readiness-gate	-	native ci verify -> validate (net10.0 Debug); receipts and graph checked; see docs/CommercialCiCoverage.md
 commercial/tests/Ashlar.Commercial.Tests.Fleet/Ashlar.Commercial.Tests.Fleet.csproj	full-platform-readiness-gate	-	native ci verify -> validate (net8.0 Debug); receipts and graph checked; see docs/CommercialCiCoverage.md
 commercial/tests/Ashlar.Commercial.Tests.MeshDirector/Ashlar.Commercial.Tests.MeshDirector.csproj	full-platform-readiness-gate	-	native ci verify -> validate (net8.0 Debug); receipts and graph checked; see docs/CommercialCiCoverage.md

@@ -4,9 +4,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <RootNamespace>JobSearch</RootNamespace>
-    <!-- IEgressGuard, EgressHttp, EgressFamilies (ASHLAREXP002) are the experimental egress surface; the Google
-         client routes through them by design, like every outbound path in Ashlar. -->
-    <NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
