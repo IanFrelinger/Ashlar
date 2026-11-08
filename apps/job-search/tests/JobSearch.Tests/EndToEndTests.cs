@@ -32,7 +32,10 @@ public sealed class EndToEndTests
         var (jordan, jordanToken) = h.Jordan();
         var (sam, _) = h.Sam();
 
-        var runs = await Task.WhenAll(h.App.Engine.RunAsync(jordan, jordan, "k1"), h.App.Engine.RunAsync(sam, sam, "k1"));
+        // RunAsync can complete synchronously against the fakes, so run each on the thread pool for real overlap.
+        var runs = await Task.WhenAll(Task.Run(() => h.App.Engine.RunAsync(jordan, jordan, "k1")), Task.Run(() => h.App.Engine.RunAsync(sam, sam, "k1")));
+        // And once more for Jordan after Sam's jobs certainly exist, so a missing user filter cannot hide behind timing.
+        (await h.App.Engine.RunAsync(jordan, jordan, "k2")).Status.Should().Be("succeeded");
 
         runs.Select(r => r.Status).Should().AllBe("succeeded", string.Join(" | ", runs.Select(r => r.Reason).Concat(runs.SelectMany(r => r.CouldNotComplete))));
         // Both watch the Northwind board; each gets their own rows, filtered by their own targets.
@@ -63,7 +66,7 @@ public sealed class EndToEndTests
         var (jordan, _) = h.Jordan();
         h.App.Accounts.SetPreferences(jordan, jordan, h.App.Accounts.GetPreferences(jordan) with { Materials = new MaterialRules { MaxNewDraftsPerRun = 10 } });
 
-        var both = await Task.WhenAll(h.App.Engine.RunAsync(jordan, jordan, "day1"), h.App.Engine.RunAsync(jordan, jordan, "day1"));
+        var both = await Task.WhenAll(Task.Run(() => h.App.Engine.RunAsync(jordan, jordan, "day1")), Task.Run(() => h.App.Engine.RunAsync(jordan, jordan, "day1")));
         both.Count(r => r.Status == "succeeded").Should().Be(1);
         both.Count(r => r.Status == "skipped").Should().Be(1);
 
@@ -80,6 +83,33 @@ public sealed class EndToEndTests
         Count(h, "SELECT COUNT(*) FROM documents").Should().Be(docs);
         h.Google.FilesOf(Harness.JordanEmail).Count.Should().Be(files, "no draft, folder, sheet or profile doc is duplicated");
         h.Google.SheetRows(Harness.JordanEmail, h.App.Tracker.Get(jordan)!.TrackerSheetId).Count.Should().Be(rows);
+    }
+
+    [Fact]
+    public async Task A_held_lease_skips_the_run_and_an_expired_lease_is_taken_over()
+    {
+        using var h = new Harness();
+        var (jordan, _) = h.Jordan();
+        h.App.Db.Write((c, tx) =>
+        {
+            c.Execute("INSERT INTO runs (id, user_id, kind, idempotency_key, status, attempt, started_at) VALUES ('run_dead', @jordan, 'search', 'k', 'running', 1, @at)",
+                new { jordan, at = Clock.Iso() }, tx);
+            c.Execute("INSERT INTO run_locks (user_id, run_id, lease_until) VALUES (@jordan, 'run_dead', @until)", new { jordan, until = Clock.Iso(Clock.Now.AddMinutes(10)) }, tx);
+        });
+
+        var blocked = await h.App.Engine.RunAsync(jordan, jordan, "k");
+        blocked.Status.Should().Be("skipped");
+        blocked.Reason.Should().Contain("holds this user's lease");
+        Count(h, "SELECT COUNT(*) FROM jobs").Should().Be(0);
+
+        using (Clock.Pin(() => DateTimeOffset.UtcNow.AddMinutes(20)))
+        {
+            var resumed = await h.App.Engine.RunAsync(jordan, jordan, "k");
+            resumed.Status.Should().Be("succeeded");
+            resumed.Attempt.Should().Be(2);
+        }
+        Query<string>(h, "SELECT status FROM runs WHERE id='run_dead'").Single().Should().Be("abandoned");
+        Count(h, "SELECT COUNT(*) FROM run_locks").Should().Be(0);
     }
 
     [Fact]
