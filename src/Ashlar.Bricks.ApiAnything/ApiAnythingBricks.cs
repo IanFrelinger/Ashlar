@@ -15,8 +15,19 @@ public abstract class ApiAnythingBrickBase : Ashlar.Core.Domain.Bricks.Brick
 
     /// <summary>Creates the brick over a client, or over one built from the environment on first use.</summary>
     /// <param name="client">The client, or <see langword="null"/> for <see cref="ApiAnythingOptions.FromEnvironment"/>.</param>
-    protected ApiAnythingBrickBase(ApiAnythingClient? client) =>
+    protected ApiAnythingBrickBase(ApiAnythingClient? client)
+    {
         _client = new Lazy<ApiAnythingClient>(() => client ?? new ApiAnythingClient(ApiAnythingOptions.FromEnvironment()));
+        // Declared so a WorkflowExecutor can run it: the implementation chain keeps only declared implementations.
+        Implementations = new BrickImplementations
+        {
+            Deterministic = new DeterministicImplementation
+            {
+                Id = "code", Name = "Code", Executor = "code",
+                Description = "Calls api-anything serve over HTTP; no model is involved.",
+            },
+        };
+    }
 
     /// <summary>The client.</summary>
     protected ApiAnythingClient Client => _client.Value;

@@ -1,0 +1,23 @@
+Jordan Rivera
+jordan.rivera@example.com | (555) 010-0101 | Denver, CO
+
+SUMMARY
+Data engineer who builds reliable batch and streaming pipelines for analytics teams.
+
+EXPERIENCE
+Senior Data Engineer — Acme Logistics | Denver, CO | 2020-03 – Present
+- Built Airflow pipelines in Python loading 2 TB/day into a Snowflake warehouse
+- Cut nightly SQL transform runtime from 6 hours to 90 minutes by repartitioning Spark jobs
+- Led migration of 40 ETL jobs from cron to Airflow on AWS
+Data Engineer — Beta Retail | Boulder, CO | 2017-06 – 2020-02
+- Maintained SQL data models for finance reporting
+- Wrote Python services that validated vendor feeds before load
+
+EDUCATION
+B.S. Computer Science — University of Colorado Boulder | 2017
+
+SKILLS
+Python, SQL, Airflow, Spark, AWS, Snowflake, Git, data modeling
+
+CERTIFICATIONS
+AWS Certified Data Engineer – Associate (2023)

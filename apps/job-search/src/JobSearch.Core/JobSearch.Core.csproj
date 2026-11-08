@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>JobSearch</RootNamespace>
+    <!-- IEgressGuard, EgressHttp, EgressFamilies (ASHLAREXP002) are the experimental egress surface; the Google
+         client routes through them by design, like every outbound path in Ashlar. -->
+    <NoWarn>$(NoWarn);ASHLAREXP002</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\Ashlar.Core.Domain\Ashlar.Core.Domain.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Ashlar.Core.Application\Ashlar.Core.Application.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Ashlar.Abstractions\Ashlar.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Ashlar.Bricks.ApiAnything\Ashlar.Bricks.ApiAnything.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <!-- Force the patched native SQLite bundle (GHSA-2m69-gcr7-jv3q), as Ashlar.Infrastructure does. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+    <PackageReference Include="QuestPDF" />
+    <PackageReference Include="PdfPig" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <!-- Dogfood Ashlar's brick contract rule (ASHLAR0001/ASHLAR0002) on the app's own bricks. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\Ashlar.Analyzers\Ashlar.Analyzers.csproj" OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" UndefineProperties="TargetFramework" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="JobSearch.Tests" />
+  </ItemGroup>
+
+</Project>

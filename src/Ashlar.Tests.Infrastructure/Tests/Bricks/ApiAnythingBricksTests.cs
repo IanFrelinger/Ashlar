@@ -287,6 +287,32 @@ public sealed class ApiAnythingBricksTests
         output.Get<IReadOnlyList<BoardEntry>>("entries").Should().HaveCount(1);
     }
 
+    [Theory]
+    [InlineData("Requirements\n- 5+ years", null)]
+    [InlineData("Requisition requirements follow", null)]
+    [InlineData("Req ID: AA-2210", "AA-2210")]
+    [InlineData("Requisition #R1042 opened", "R1042")]
+    [InlineData("Job ID 77812", "77812")]
+    public async Task A_requisition_id_needs_a_label_and_a_digit(string description, string? expected)
+    {
+        var server = new Server((_, _) => Ok(new[] { new { title = "Engineer", location = "Remote", description } }));
+        var brick = new JobPostingBrick(Client(server));
+        var input = new BrickInput();
+        input.Set("url", "https://job-boards.greenhouse.io/acme/jobs/9");
+
+        var output = await brick.ExecuteAsync(input, ImplementationType.Deterministic, Ctx);
+
+        output.Get<JobPosting>("posting").RequisitionId.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Every_brick_declares_its_deterministic_implementation_so_a_workflow_can_run_it()
+    {
+        using var client = Client(new Server((_, _) => Ok(1)));
+        Ashlar.Core.Domain.Bricks.Brick[] bricks = [new ApiAnythingCallBrick(client), new JobBoardBrick(client), new JobPostingBrick(client)];
+        bricks.Should().OnlyContain(b => b.Implementations.HasDeterministic);
+    }
+
     // ── parsing rules ─────────────────────────────────────────────────────────────────────────────────────
 
     [Theory]

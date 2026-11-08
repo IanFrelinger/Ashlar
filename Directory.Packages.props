@@ -93,6 +93,8 @@
     <PackageVersion Include="FlaUI.UIA3" Version="5.0.0" />
     <PackageVersion Include="LiteDB" Version="5.0.21" />
     <PackageVersion Include="QuestPDF" Version="2024.12.1" />
+    <!-- apps/job-search: reads generated PDFs back to prove their text is extractable (Apache-2.0). -->
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
     <PackageVersion Include="NetTopologySuite" Version="2.6.0" />
     <PackageVersion Include="NetTopologySuite.IO.VectorTiles" Version="1.1.0" />
     <PackageVersion Include="NetTopologySuite.IO.VectorTiles.Mapbox" Version="1.1.0" />

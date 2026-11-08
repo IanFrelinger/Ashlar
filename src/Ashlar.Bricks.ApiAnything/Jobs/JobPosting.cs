@@ -110,7 +110,9 @@ public static class JobSources
     ];
 
     private static readonly Regex Requisition = new(
-        @"\b(?:req(?:uisition)?\.?\s*(?:id|#|no\.?|number)?|job\s*id)\s*[:#]?\s*([A-Z0-9][A-Z0-9-]{2,})", RegexOptions.IgnoreCase, RegexBudget);
+        // A label is required ("Req ID", "Req #", "Requisition", "Job ID") and the id must contain a digit, so the word
+        // "Requirements" is never read as requisition "uirements".
+        @"\b(?:req\.?\s*(?:id|#|no\.?|number)|requisition(?:\s*(?:id|#|no\.?|number))?|job\s*id)\s*[:#]?\s*([A-Z0-9][A-Z0-9-]*\d[A-Z0-9-]*)\b", RegexOptions.IgnoreCase, RegexBudget);
 
     /// <summary>The getJob call for a pasted posting URL, or <see langword="null"/> when the site is not supported.</summary>
     /// <param name="url">The URL.</param>
