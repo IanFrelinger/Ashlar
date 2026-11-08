@@ -280,7 +280,7 @@ public sealed class IsolatedTaskRunnerTests
         var runner = provider.GetRequiredService<IIsolatedTaskRunner>();
         Assert.DoesNotContain(services, d => d.ServiceType == typeof(ISandboxedSessionRunner));
         Assert.Same(docker, provider.GetRequiredService<IProcessCommandRunner>());
-        Assert.Single(services.Where(d => d.ServiceType == typeof(IIsolatedTaskRunner)));
+        Assert.Single(services, d => d.ServiceType == typeof(IIsolatedTaskRunner));
         Assert.Empty(docker.Calls);
 
         var first = await runner.RunAsync(Request());
