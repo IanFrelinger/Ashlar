@@ -1,0 +1,220 @@
+# Job Search Studio: tests, QA agents and release (apps/job-search/docs/RELEASE.md).
+#
+#   pull_request, push to master (studio paths)  .NET tests; the image; the harness self-test, the UI suite and the
+#                                                 scripted QA agents (each on its own browser screen) against that
+#                                                 image, running on synthetic data
+#   nightly                                       the same plus the Claude QA agents, only when vars.STUDIO_QA_AGENTS is on
+#   workflow_dispatch                             the same; plus the Claude QA agents when the input asks
+#   tag studio-v*                                 all of it, Claude QA agents always; then, after approval in the
+#                                                 studio-production environment, the very image the agents tested goes
+#                                                 to ECR and the server rolls to it (and back, if it does not answer)
+#
+# A blocker or major finding fails its job, and a failed job stops the release. Every QA target is a synthetic studio
+# started from the image under test; the agents refuse any other target (qa/lib/studio.cjs).
+name: Job Search Studio
+
+on:
+  pull_request:
+    paths:
+      - "apps/job-search/**"
+      - "Directory.Packages.props"
+      - "global.json"
+      - ".github/workflows/job-search-studio.yml"
+  push:
+    branches: [master]
+    paths:
+      - "apps/job-search/**"
+      - "Directory.Packages.props"
+      - "global.json"
+      - ".github/workflows/job-search-studio.yml"
+    tags: ["studio-v*"]
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      claude_agents:
+        description: "Also run the Claude QA agents (spends API tokens)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: job-search-studio-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-qa:
+    name: tests, image, UI suite, scripted QA agents
+    # Manual-first (.github/workflows/README.md): the nightly run does nothing until the owner opts in.
+    if: github.event_name != 'schedule' || vars.STUDIO_QA_AGENTS == 'on'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      KEEP_IMAGE: ${{ startsWith(github.ref, 'refs/tags/studio-v') || (github.event_name == 'schedule' && vars.STUDIO_QA_AGENTS == 'on') || (github.event_name == 'workflow_dispatch' && inputs.claude_agents) }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.403
+
+      - name: .NET tests (apps/job-search)
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet test apps/job-search/tests/JobSearch.Tests/JobSearch.Tests.csproj -c Release --nologo \
+            --logger "trx;LogFileName=jobsearch.trx" --results-directory "$RUNNER_TEMP/trx"
+          bash scripts/ci/zero-test-guard.sh "$RUNNER_TEMP/trx/jobsearch.trx"
+
+      - name: Build the studio image
+        shell: bash
+        run: docker build -f apps/job-search/deploy/Dockerfile --build-arg BUILD="${GITHUB_SHA::12}" -t jobsearch-studio:ci .
+
+      - name: QA dependencies and Chromium
+        working-directory: apps/job-search/qa
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: QA harness self-test (no studio, no tokens)
+        working-directory: apps/job-search/qa
+        run: npm run selftest
+
+      - name: UI suite against the image
+        working-directory: apps/job-search/qa
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./serve-image.sh jobsearch-studio:ci 8080
+          STUDIO_URL=http://127.0.0.1:8080 npm run ui
+
+      - name: Scripted QA agents against a fresh copy of the image
+        working-directory: apps/job-search/qa
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./serve-image.sh jobsearch-studio:ci 8080
+          STUDIO_URL=http://127.0.0.1:8080 node agents/run.cjs --mode scripted --out "$RUNNER_TEMP/qa-scripted"
+
+      - name: QA report (scripted agents, screens and videos)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-scripted
+          path: ${{ runner.temp }}/qa-scripted
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Keep the tested image for the Claude agents and the release
+        if: env.KEEP_IMAGE == 'true'
+        shell: bash
+        run: docker save jobsearch-studio:ci | gzip -1 > "$RUNNER_TEMP/studio-image.tar.gz"
+
+      - name: Upload the tested image
+        if: env.KEEP_IMAGE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-image
+          path: ${{ runner.temp }}/studio-image.tar.gz
+          compression-level: 0
+          retention-days: 7
+
+  claude-agents:
+    name: Claude QA agents (each on its own screen)
+    needs: build-and-qa
+    if: startsWith(github.ref, 'refs/tags/studio-v') || (github.event_name == 'schedule' && vars.STUDIO_QA_AGENTS == 'on') || (github.event_name == 'workflow_dispatch' && inputs.claude_agents)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: studio-image
+          path: ${{ runner.temp }}
+
+      - name: Load the tested image
+        shell: bash
+        run: gunzip -c "$RUNNER_TEMP/studio-image.tar.gz" | docker load
+
+      - name: QA dependencies and Chromium
+        working-directory: apps/job-search/qa
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Claude QA agents against the image
+        working-directory: apps/job-search/qa
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          QA_PARALLEL: "3"
+        run: |
+          set -euo pipefail
+          ./serve-image.sh jobsearch-studio:ci 8080
+          STUDIO_URL=http://127.0.0.1:8080 node agents/run.cjs --mode claude --out "$RUNNER_TEMP/qa-claude"
+
+      - name: QA report (Claude agents, screens and videos)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-claude
+          path: ${{ runner.temp }}/qa-claude
+          if-no-files-found: ignore
+          retention-days: 30
+
+  release:
+    name: Release the tested image to the studio server
+    needs: [build-and-qa, claude-agents]
+    if: startsWith(github.ref, 'refs/tags/studio-v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # Give this environment required reviewers: the approval is the release decision, and only jobs in it can assume
+    # the deploy role (deploy/terraform/main.tf).
+    environment: studio-production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: studio-image
+          path: ${{ runner.temp }}
+
+      - name: Load the tested image
+        shell: bash
+        run: gunzip -c "$RUNNER_TEMP/studio-image.tar.gz" | docker load
+
+      - name: AWS credentials for the deploy role (GitHub OIDC; no stored AWS keys)
+        shell: bash
+        env:
+          ROLE_ARN: ${{ vars.STUDIO_AWS_DEPLOY_ROLE_ARN }}
+          REGION: ${{ vars.STUDIO_AWS_REGION }}
+        run: |
+          set -euo pipefail
+          token=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+          read -r key secret session < <(aws sts assume-role-with-web-identity --role-arn "$ROLE_ARN" \
+            --role-session-name "studio-release-$GITHUB_RUN_ID" --web-identity-token "$token" --duration-seconds 3600 \
+            --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          echo "::add-mask::$secret"
+          echo "::add-mask::$session"
+          { echo "AWS_ACCESS_KEY_ID=$key"; echo "AWS_SECRET_ACCESS_KEY=$secret"; echo "AWS_SESSION_TOKEN=$session"; echo "AWS_REGION=$REGION"; } >> "$GITHUB_ENV"
+
+      - name: Push the tested image and roll the server to it
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+          STUDIO_REPOSITORY_URL: ${{ vars.STUDIO_ECR_REPOSITORY_URL }}
+          STUDIO_INSTANCE_ID: ${{ vars.STUDIO_INSTANCE_ID }}
+          STUDIO_ROLLOUT_DOCUMENT: ${{ vars.STUDIO_ROLLOUT_DOCUMENT }}
+        run: apps/job-search/deploy/deploy.sh --image jobsearch-studio:ci "$TAG"

@@ -1,0 +1,17 @@
+{
+  "name": "jobsearch-studio-qa",
+  "private": true,
+  "description": "Job Search Studio QA: deterministic UI tests and QA agents that each operate their own browser screen. Runs only against a synthetic studio.",
+  "type": "commonjs",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "ui": "node --test --test-concurrency=1 ui/*.test.cjs",
+    "agents": "node agents/run.cjs",
+    "agents:scripted": "node agents/run.cjs --mode scripted",
+    "selftest": "node --test lib/*.test.cjs agents/*.test.cjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0",
+    "playwright": "1.63.0"
+  }
+}

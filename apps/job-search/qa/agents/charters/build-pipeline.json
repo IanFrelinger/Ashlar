@@ -1,0 +1,12 @@
+{
+  "persona": "Jordan Rivera, a data engineer (made up)",
+  "email": "jordan.rivera@example.com",
+  "goal": "Build your pipeline from the shared library: add the step that keeps postings in your places or remote with the places Denver, Boulder, and the step that flags postings paying less than 120000. Save, reload the page and confirm both steps kept their settings. Then reorder them and switch one off, and save again.",
+  "checks": [
+    "Saving is clear and does not lose edits.",
+    "Settings show what they mean (labels, examples, help).",
+    "Reordering works with the mouse and with the up/down buttons.",
+    "Certified and shared badges are clear."
+  ],
+  "maxSteps": 45
+}

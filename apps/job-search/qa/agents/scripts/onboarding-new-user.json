@@ -1,0 +1,46 @@
+{
+  "charter": "onboarding-new-user",
+  "steps": [
+    {
+      "waitFor": "[data-test=\"consent-continue\"]"
+    },
+    {
+      "click": "[data-test=\"read-notice\"]"
+    },
+    {
+      "expectText": "h1",
+      "matches": "Privacy",
+      "title": "The privacy notice opens before consent"
+    },
+    {
+      "click": "[data-test=\"back-to-welcome\"]"
+    },
+    {
+      "check": "[data-test=\"consent-privacy-notice\"]"
+    },
+    {
+      "check": "[data-test=\"consent-terms\"]"
+    },
+    {
+      "check": "[data-test=\"consent-age\"]"
+    },
+    {
+      "click": "[data-test=\"consent-continue\"]"
+    },
+    {
+      "waitFor": "[data-test=\"resume-text\"]"
+    },
+    {
+      "fill": "[data-test=\"resume-text\"]",
+      "text": "Casey New\ncasey.new@example.com | Chicago, IL\n\nEXPERIENCE\nData Analyst — Example Retail | Chicago, IL | 2021-01 – Present\n- Built weekly sales dashboards in SQL\n\nSKILLS\nSQL, Excel"
+    },
+    {
+      "click": "[data-test=\"resume-save\"]"
+    },
+    {
+      "expectText": "[data-test=\"profile-fields\"]",
+      "matches": "Casey New",
+      "title": "The profile is derived from the résumé"
+    }
+  ]
+}

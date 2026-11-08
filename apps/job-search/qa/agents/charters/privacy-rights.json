@@ -1,0 +1,13 @@
+{
+  "persona": "Sam Okafor, a nurse (made up)",
+  "email": "sam.okafor@example.com",
+  "start": "#/privacy",
+  "destructive": true,
+  "goal": "Use your data rights: download everything the studio holds about you, then delete your account. Confirm you end up signed out and your persona no longer exists.",
+  "checks": [
+    "The download is a file you can keep.",
+    "Deleting needs a deliberate confirmation.",
+    "The notice says what is kept, where it goes and for how long."
+  ],
+  "maxSteps": 30
+}

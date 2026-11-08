@@ -99,17 +99,17 @@ gh api --method PATCH -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-
 
 ## Trigger map
 
-Counts by trigger class (62 files, counted 2026-10-25):
+Counts by trigger class (63 files, counted 2026-10-25; `job-search-studio` added to the `pull_request` row 2026-11-08):
 
 | Class | Count | Meaning |
 | --- | --- | --- |
-| Runs on `pull_request` | 21 | 7 run on every PR (`build-gate`, `cert-gate`, `docs-link-check`, `full-platform-readiness-gate` — path filter inside the workflow, `layer-boundary` — `paths: "**"`, `shell-lint`, `uat-gate`), 13 path-filtered (including `runtime-portability-gate`, `pr-blockers-action`, and the project inventory guard added 2026-11-02), 1 label-driven (`release-staging-on-label`). *Corrected 2026-09-13: this row read 17 with a six-name unfiltered set that omitted `build-gate`; recounted from the workflow files.* |
+| Runs on `pull_request` | 22 | 7 run on every PR (`build-gate`, `cert-gate`, `docs-link-check`, `full-platform-readiness-gate` — path filter inside the workflow, `layer-boundary` — `paths: "**"`, `shell-lint`, `uat-gate`), 14 path-filtered (including `runtime-portability-gate`, `pr-blockers-action`, the project inventory guard added 2026-11-02, and `job-search-studio` added 2026-11-08), 1 label-driven (`release-staging-on-label`). *Corrected 2026-09-13: this row read 17 with a six-name unfiltered set that omitted `build-gate`; recounted from the workflow files.* |
 | Push- and/or schedule-driven (path-filtered on `master`/`main`/`cursor/**`), plus `workflow_dispatch` | 18 | Post-merge / scheduled signal; never blocks a PR. *Recounted 2026-11-02 after the project inventory guard gained a PR trigger. Corrected 2026-10-03: this row read 18, so the five rows summed to one fewer than the file count; recounted from the workflow files.* |
 | `workflow_dispatch` only | 18 | Manual lanes (mesh labs, multi-env Docker suites, ship/ops/perf, release plumbing) |
 | Tag / release event | 2 | `release.yml` (`v*.*.*` tags), `devlog-ghost-release.yml` (`release: published`) |
 | Reusable (`workflow_call`) | 3 | `reusable-*` |
 
-Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00), `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of each month), and `dogfood-continuous-proof` (06:00 weekdays). (`mesh-lab-stress-gate` lost its schedule 2026-08-16 and `mesh-lab-tls-gate` lost its Tue 07:00 on 2026-09-13, both after consecutive red scheduled runs; all three mesh lanes are dispatch-only. Corrected 2026-09-13: this sentence previously said six and listed six names, but seven workflows carried a `schedule` at the time — it named `mesh-lab-tls-gate` and omitted `dogfood-continuous-proof`, so BOTH the count and the set were wrong. Six is correct only because this same change removes the `mesh-lab-tls-gate` cron. An earlier version of this note claimed the count had been right; it had not.)
+Seven workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00), `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of each month), `dogfood-continuous-proof` (06:00 weekdays), and `job-search-studio` (06:17 daily, added 2026-11-08; its jobs are skipped unless the repository variable `STUDIO_QA_AGENTS` is `on`). (`mesh-lab-stress-gate` lost its schedule 2026-08-16 and `mesh-lab-tls-gate` lost its Tue 07:00 on 2026-09-13, both after consecutive red scheduled runs; all three mesh lanes are dispatch-only. Corrected 2026-09-13: this sentence previously said six and listed six names, but seven workflows carried a `schedule` at the time — it named `mesh-lab-tls-gate` and omitted `dogfood-continuous-proof`, so BOTH the count and the set were wrong. Six is correct only because this same change removes the `mesh-lab-tls-gate` cron. An earlier version of this note claimed the count had been right; it had not.)
 
 ### PR-triggered workflows
 
@@ -136,6 +136,7 @@ Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `f
 | `orchestration-build-gate.yml` | Orchestration build gate / `build-orchestration-tests` | paths: `src/Ashlar.Orchestration/**`, `src/Ashlar.Tests.Orchestration/**`, `src/Ashlar.Tests.Infrastructure/**`, `src/Ashlar.Hosting/AshlarKernelRegistrar*.cs`, the workflow file | push `master`/`main`, dispatch |
 | `mcp-a2a-gate.yml` | MCP + A2A protocol gate | paths: `src/Ashlar.Mcp.*`, `src/Ashlar.Transport.A2A*`, `Ashlar.API` | push (also `application/**` branches), dispatch |
 | `onboarding-docs-guard.yml` | Onboarding Docs Guard / `guard` | paths: `**/*.csproj`, `docs/ProjectTiers.md`, the workflow; checks project inventory before merge | push (broader onboarding/docs/script paths), dispatch |
+| `job-search-studio.yml` | Job Search Studio / `tests, image, UI suite, scripted QA agents`, `Claude QA agents (each on its own screen)`, `Release the tested image to the studio server` | paths: `apps/job-search/**`, `Directory.Packages.props`, `global.json`, the workflow | push `master` (same paths); tags `studio-v*` (the Claude QA fleet always runs, then the release job, in the `studio-production` environment, pushes the tested image and rolls the server to it); daily schedule 06:17 UTC, inert unless `vars.STUDIO_QA_AGENTS` is `on`; dispatch (`claude_agents` input) — **advisory**. Every QA run targets a synthetic studio started from the image under test. See `apps/job-search/docs/RELEASE.md`. |
 
 **AI Pipeline ownership:** automatic Kernel Tier A invokes `make kernel-gate`, then
 `make meai-pipeline-gate`, which tests `Ashlar.Tests.AI.Pipeline` on net8.0 Release. Native readiness

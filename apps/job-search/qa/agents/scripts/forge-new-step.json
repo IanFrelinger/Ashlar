@@ -1,0 +1,25 @@
+{
+  "charter": "forge-new-step",
+  "steps": [
+    {
+      "waitFor": "[data-test=\"forge-request\"]"
+    },
+    {
+      "fill": "[data-test=\"forge-request\"]",
+      "text": "Flag any title that contains \"intern\""
+    },
+    {
+      "click": "[data-test=\"forge-submit\"]"
+    },
+    {
+      "waitFor": "[data-test=\"forge-status\"]"
+    },
+    {
+      "expectText": "[data-test=\"forge-status\"]",
+      "matches": "^done$",
+      "timeout": 300000,
+      "severity": "blocker",
+      "title": "A described step is made and certified"
+    }
+  ]
+}

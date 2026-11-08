@@ -1,0 +1,11 @@
+{
+  "persona": "Jordan Rivera, a data engineer (made up)",
+  "email": "jordan.rivera@example.com",
+  "goal": "Ask the studio for a step that does not exist yet, in your own words: flag any posting whose title contains the word intern. Wait until it reports done (it can take a few minutes) and confirm the new step is in your pipeline with its setting.",
+  "checks": [
+    "The progress explains what happens and where your words go.",
+    "A step that is still being made cannot be lost by navigating.",
+    "The finished step appears without a reload."
+  ],
+  "maxSteps": 40
+}

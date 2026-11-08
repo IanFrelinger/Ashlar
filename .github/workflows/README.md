@@ -3,12 +3,13 @@
 Workflows in this directory are **manual-first** to reduce duplicate CI load, surprise
 minute costs, and branch-noise on `cursor/**` and other integration branches. The full,
 per-file trigger map lives in [`docs/CiGateInventory.md`](../../docs/CiGateInventory.md);
-the summary of the 62 files (recounted 2026-11-02, after the project inventory guard gained a PR trigger) is:
+the summary of the 63 files (recounted 2026-11-08, after `job-search-studio` was added) is:
 
-- **21 run on `pull_request`** — seven on every PR (`build-gate`, `cert-gate`, `docs-link-check`,
+- **22 run on `pull_request`** — seven on every PR (`build-gate`, `cert-gate`, `docs-link-check`,
   `full-platform-readiness-gate`, `layer-boundary`, `shell-lint`, `uat-gate`; `layer-boundary`
-  carries `paths: "**"`, which matches everything); thirteen path-filtered
-  (kernel/application/security/coverage/testing-strategy/project inventory/other path-scoped gates); and one
+  carries `paths: "**"`, which matches everything); fourteen path-filtered
+  (kernel/application/security/coverage/testing-strategy/project inventory/job-search studio/other path-scoped
+  gates); and one
   label-driven, `release-staging-on-label`. `full-platform-readiness-gate` filters
   paths *inside* the workflow (a `changes` job) so its `Readiness summary` check always reports:
   heavy platform lanes run only when a core path changed, otherwise the summary passes in ~1 min.
@@ -21,13 +22,15 @@ the summary of the 62 files (recounted 2026-11-02, after the project inventory g
   `cross-platform-tests` and `prod-dry-run-pr` despite their names: run them from the
   Actions tab or with `gh workflow run "<Workflow name>" --ref <branch>`.
 - **Tag-driven releases** stay automatic where required (`release.yml` on `v*.*.*` tags,
-  `devlog-ghost-release.yml` on published releases) — **2 files**.
+  `devlog-ghost-release.yml` on published releases) — **2 files**. `job-search-studio` also releases on
+  `studio-v*` tags, behind an environment approval; it is counted with the `pull_request` files.
 - **3 are reusable (`workflow_call`)** and carry no trigger of their own: `reusable-container-publish`,
   `reusable-release-nuget`, `reusable-verify-nuget-consumer`.
-- **Schedules** still exist on six workflows: `distribution-matrix-gate` (Mon 10:00 UTC),
+- **Schedules** still exist on seven workflows: `distribution-matrix-gate` (Mon 10:00 UTC),
   `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00),
-  `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of the month) and
-  `dogfood-continuous-proof` (06:00 weekdays). Everything else is push- or dispatch-driven.
+  `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of the month),
+  `dogfood-continuous-proof` (06:00 weekdays) and `job-search-studio` (06:17 daily, inert unless the repository
+  variable `STUDIO_QA_AGENTS` is `on`). Everything else is push- or dispatch-driven.
   `mesh-lab-tls-gate` lost its Tue 07:00 schedule on 2026-09-13 after four consecutive red
   scheduled runs, joining its two mesh siblings as manual-only.
 

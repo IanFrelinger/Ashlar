@@ -1,0 +1,46 @@
+{
+  "charter": "exploratory-usability",
+  "steps": [
+    {
+      "click": "[data-test=\"nav-designer\"]"
+    },
+    {
+      "expectVisible": "[data-test=\"pipeline\"]"
+    },
+    {
+      "click": "[data-test=\"show-wiring\"]"
+    },
+    {
+      "expectVisible": "[data-test=\"wiring\"]",
+      "title": "The wiring view renders"
+    },
+    {
+      "click": "[data-test=\"nav-tracker\"]"
+    },
+    {
+      "expectText": "h1",
+      "matches": "Tracker"
+    },
+    {
+      "click": "[data-test=\"nav-runs\"]"
+    },
+    {
+      "expectText": "h1",
+      "matches": "Runs"
+    },
+    {
+      "click": "[data-test=\"nav-profile\"]"
+    },
+    {
+      "expectText": "h1",
+      "matches": "Profile"
+    },
+    {
+      "click": "[data-test=\"nav-privacy\"]"
+    },
+    {
+      "expectText": "h1",
+      "matches": "Privacy"
+    }
+  ]
+}

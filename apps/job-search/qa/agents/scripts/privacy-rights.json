@@ -1,0 +1,27 @@
+{
+  "charter": "privacy-rights",
+  "steps": [
+    {
+      "waitFor": "[data-test=\"export\"]"
+    },
+    {
+      "expectVisible": "[data-test=\"export\"]",
+      "title": "The data download is offered"
+    },
+    {
+      "fill": "[data-test=\"delete-confirm\"]",
+      "text": "DELETE"
+    },
+    {
+      "click": "[data-test=\"delete-account\"]"
+    },
+    {
+      "waitFor": "[data-test^=\"persona-\"]"
+    },
+    {
+      "expectNone": "[data-test=\"persona-sam.okafor@example.com\"]",
+      "severity": "blocker",
+      "title": "A deleted account is gone"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "persona": "Jordan Rivera, a data engineer (made up)",
+  "email": "jordan.rivera@example.com",
+  "start": "#/runs",
+  "goal": "Run a search, then open the tracker. Mark one job as applied: the studio must ask what happened before it saves. Check that each job's fit, reason and your steps' results make sense together.",
+  "checks": [
+    "The studio never marks a job applied by itself.",
+    "Excluded jobs say which of your steps excluded them.",
+    "Status changes persist after a reload."
+  ],
+  "maxSteps": 40
+}

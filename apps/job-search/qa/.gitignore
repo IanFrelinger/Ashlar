@@ -1,0 +1,2 @@
+# QA reports, screens and videos (agents/run.cjs writes them here by default).
+out/

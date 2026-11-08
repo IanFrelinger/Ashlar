@@ -1,0 +1,23 @@
+{
+  "charter": "search-and-track",
+  "steps": [
+    {
+      "click": "[data-test=\"run-now\"]"
+    },
+    {
+      "wait": 8000
+    },
+    {
+      "click": "[data-test=\"nav-tracker\"]"
+    },
+    {
+      "waitFor": "[data-test=\"tracker\"]",
+      "timeout": 90000
+    },
+    {
+      "expectCount": "[data-test=\"tracker\"] tbody tr",
+      "atLeast": 1,
+      "title": "A search fills the tracker"
+    }
+  ]
+}

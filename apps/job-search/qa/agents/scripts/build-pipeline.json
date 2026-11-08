@@ -1,0 +1,45 @@
+{
+  "charter": "build-pipeline",
+  "steps": [
+    {
+      "waitFor": "[data-test=\"pipeline\"]"
+    },
+    {
+      "fill": "[data-test=\"library-search\"]",
+      "text": "places remote"
+    },
+    {
+      "waitFor": "[data-test^=\"library-item-step.keep-postings\"]",
+      "timeout": 240000
+    },
+    {
+      "click": "[data-test^=\"library-item-step.keep-postings\"]"
+    },
+    {
+      "click": "[data-test=\"add-step\"]"
+    },
+    {
+      "fill": "[data-test=\"your-steps\"] .step:last-child input[type=\"text\"]",
+      "text": "Denver, Boulder"
+    },
+    {
+      "click": "[data-test=\"save-workflow\"]"
+    },
+    {
+      "expectText": "#toast",
+      "matches": "saved",
+      "title": "Saving the workflow confirms it"
+    },
+    {
+      "reload": true
+    },
+    {
+      "waitFor": "[data-test=\"your-steps\"] .step"
+    },
+    {
+      "expectCount": "[data-test=\"your-steps\"] .step",
+      "atLeast": 1,
+      "title": "The saved step is still there after a reload"
+    }
+  ]
+}

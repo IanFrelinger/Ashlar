@@ -1,0 +1,12 @@
+{
+  "persona": "Casey New, a brand-new user (made up)",
+  "email": "new.user@example.com",
+  "goal": "You have just signed in for the first time. Read the privacy notice, give the consents, add a short made-up résumé (plain text, a few lines with a job and skills), and review the profile the studio derives from it.",
+  "checks": [
+    "Nothing about you is stored or used before you consent.",
+    "The notice can be read before agreeing to it.",
+    "The derived profile contains only what you wrote; nothing is invented.",
+    "Every control can be reached and understood."
+  ],
+  "maxSteps": 35
+}

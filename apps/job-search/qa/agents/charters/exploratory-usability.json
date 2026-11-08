@@ -1,0 +1,11 @@
+{
+  "persona": "Jordan Rivera, a data engineer (made up)",
+  "email": "jordan.rivera@example.com",
+  "goal": "Explore the whole studio as a first-time user would: the designer, the library, describing a step, the wiring view, runs, tracker, profile and privacy pages. Look for anything confusing, broken, inconsistent, hard to use by keyboard, or wrong.",
+  "checks": [
+    "Error messages say what to do.",
+    "Nothing claims more than it does (for example about privacy).",
+    "Layout holds together and nothing overlaps."
+  ],
+  "maxSteps": 50
+}
