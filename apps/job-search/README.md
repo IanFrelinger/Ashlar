@@ -110,7 +110,7 @@ unset ASHLAR_CERT_ED25519_KEY
 Verified in this repository (container, .NET 10), by tests that fail when the behaviour breaks
 (see the mutation checks in the PR):
 
-- 39 app tests: isolation of two concurrent users (database rows, Drive files, and a cross-account read refused);
+- 40 app tests: isolation of two concurrent users (database rows, Drive files, and a cross-account read refused);
   concurrent and repeated runs for one user without duplicate jobs, files, documents or rows; an interrupted run
   resumed without duplicating its orphaned upload; sheet edits imported, edited system cells kept, both-sides
   conflicts kept, deleted rows restored; evidence required for application statuses and never delegated; screening

@@ -117,6 +117,23 @@ public sealed class CertifiedTests
     }
 
     [Fact]
+    public async Task A_strong_match_with_an_open_question_is_conditional_and_says_why()
+    {
+        using var h = new Harness();
+        var (jordan, _) = h.Jordan();
+        var posting = new Ashlar.WebOperations.Jobs.JobPosting("Acme Analytics", "Senior Data Engineer", "Denver, CO", null, null, "hybrid", null, null, null, null,
+            "Requirements\n- Python, SQL and Airflow\n- Up to 10% travel", null, new("greenhouse", "getJob", new Dictionary<string, string>()), true);
+        var a = Screener.Assess(posting, h.App.Profiles.Load(jordan)!, h.App.Accounts.GetPreferences(jordan), new DateOnly(2026, 11, 8));
+        a.Coverage.Should().Be(1.0);
+        a.Unknowns.Should().ContainSingle(u => u.Requirement == "10% travel");
+        a.Decision.Unknowns.Should().Be(1);
+        var output = await h.App.Certified.Get(CertifiedIds.Recommendation)
+            .ExecuteAsync(new BrickInput(a.Decision.ToPorts()), ImplementationType.Deterministic, AppExecutionContext.Instance);
+        output.Get<string>("recommendation").Should().Be("conditional_fit");
+        output.Get<string>("reason").Should().Be("a strong match with questions for the user");
+    }
+
+    [Fact]
     public async Task A_users_edit_with_a_number_the_resume_does_not_have_is_flagged_by_the_certified_check()
     {
         using var h = new Harness();
