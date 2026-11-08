@@ -80,6 +80,13 @@ public sealed class StudioTests
         // Postings the step passes still get drafts.
         rows.Should().Contain(r => r.ExcludedBy == null);
         run.Drafted.Should().NotBeEmpty();
+
+        // A job still waiting for drafts is read again on the next run, ahead of the rest. An excluded job is not
+        // waiting for drafts, so a second run the same day leaves it to its daily re-check instead of spending reads.
+        var platformRef = h.App.Db.Read(c => c.QuerySingle<string>("SELECT source_ref FROM jobs WHERE id=@platformId", new { platformId }));
+        run.WorkflowLog.Should().Contain(l => l.StartsWith(platformRef + " ", StringComparison.Ordinal), "the first run read it");
+        var again = await h.App.Engine.RunAsync(jordan, jordan, "d2");
+        again.WorkflowLog.Should().NotContain(l => l.StartsWith(platformRef + " ", StringComparison.Ordinal));
     }
 
     /// <summary>
