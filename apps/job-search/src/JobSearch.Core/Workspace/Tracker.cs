@@ -33,7 +33,7 @@ public sealed class TrackerService(Db db, ApplicationService applications)
         ("Job ID", false), ("Employer", false), ("Title", false), ("Req ID", false), ("Link", false), ("Location", false),
         ("Arrangement", false), ("Pay", false), ("Posted", false), ("Deadline", false), ("Listing status", false),
         ("Last verified", false), ("Source", false), ("Fit", false), ("Score", false), ("Requirements", false),
-        ("Evidence", false), ("Gaps / to confirm", false), ("Tailored résumé", false), ("Cover letter", false), ("PDFs", false),
+        ("Evidence", false), ("Gaps / to confirm", false), ("Your steps", false), ("Tailored résumé", false), ("Cover letter", false), ("PDFs", false),
         ("Materials status", false), ("Validation", false),
         ("Application status", true), ("Applied date", true), ("Next steps", true), ("Notes", true),
         ("Sync flags", false),
@@ -125,11 +125,16 @@ public sealed class TrackerService(Db db, ApplicationService applications)
             ["Location"] = j.Location ?? "", ["Arrangement"] = j.WorkArrangement ?? "not stated", ["Pay"] = j.PayText ?? (r?.PayMax is { } pm ? $"up to {pm:N0}" : "not stated"),
             ["Posted"] = j.PostedDate ?? "", ["Deadline"] = j.Deadline ?? "", ["Listing status"] = listing,
             ["Last verified"] = j.LastVerifiedOpenAt ?? (j.LastCheckedAt is null ? "" : $"never open; last checked {j.LastCheckedAt}"),
-            ["Source"] = j.SourceRef, ["Fit"] = j.Recommendation ?? "", ["Score"] = j.Score?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
+            ["Source"] = j.SourceRef,
+            ["Fit"] = a?.ExcludedBy is { } ex ? $"{j.Recommendation} — excluded by your step \"{ex}\"" : j.Recommendation ?? "",
+            ["Score"] = j.Score?.ToString("0.00", CultureInfo.InvariantCulture) ?? "",
             ["Requirements"] = reqs,
             ["Evidence"] = a is null ? "" : Join(a.Evidence.Select(e => $"{e.Requirement}: {e.CandidateEvidence}")),
             ["Gaps / to confirm"] = a is null ? "" : Join(a.Blockers.Select(b => $"BLOCKER {b.Requirement}: {b.Detail}")
                 .Concat(a.Unknowns.Select(u => $"CONFIRM {u.Requirement}: {u.Detail}")).Concat(a.Gaps.Select(g => $"GAP {g.Requirement}"))),
+            ["Your steps"] = a is null ? "" : Join(a.Steps.Select(st => st.Kind == Studio.StepContract.Column
+                ? $"{st.Name}: {st.Text}"
+                : st.Verdict == "pass" ? $"{st.Name}: pass" : $"{st.Name}: {st.Verdict.ToUpperInvariant()}{(st.Text.Length > 0 ? " — " + st.Text : "")}")),
             ["Tailored résumé"] = editable.TryGetValue("resume", out var rd) ? Link("doc", rd.DriveFileId) : "",
             ["Cover letter"] = editable.TryGetValue("cover_letter", out var cd) ? Link("doc", cd.DriveFileId) : "",
             ["PDFs"] = string.Join(" ", pdfs.Select(p => Link("pdf", p.DriveFileId))),

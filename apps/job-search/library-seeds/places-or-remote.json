@@ -1,0 +1,145 @@
+{
+  "slug": "places-or-remote",
+  "design": {
+    "kind": "check",
+    "name": "Keep postings in these places or remote",
+    "description": "Rules out an on-site or hybrid posting outside the places you list; remote postings always pass.",
+    "settings": [
+      {
+        "label": "Places",
+        "help": "Cities, states or regions, separated by commas. A posting passes when its location contains one of them.",
+        "example": "Denver, Boulder"
+      }
+    ],
+    "behavior": "If setting1 is blank or arrangement (trimmed, lower-cased) is remote, pass. If location is blank, flag with the note: the posting does not state a location. If the lower-cased location contains any comma-separated, trimmed, lower-cased, non-empty place from setting1, pass. Otherwise exclude with the note: located in <location>."
+  },
+  "code": "private string Evaluate(string title, string employer, string location, string arrangement, string description, string payMin, string payMax, string skillsRequired, string skillsMissing, string setting1, string setting2, string setting3, out string note)\n{\n    note = \"\";\n    if (setting1.Trim().Length == 0 || arrangement.Trim().ToLowerInvariant() == \"remote\")\n        return \"pass\";\n    var where = location.Trim();\n    if (where.Length == 0)\n    {\n        note = \"the posting does not state a location\";\n        return \"flag\";\n    }\n    var lower = where.ToLowerInvariant();\n    var places = setting1.Split(',');\n    for (var i = 0; i < places.Length; i++)\n    {\n        var place = places[i].Trim().ToLowerInvariant();\n        if (place.Length > 0 && lower.Contains(place, StringComparison.Ordinal))\n            return \"pass\";\n    }\n    note = \"located in \" + where;\n    return \"exclude\";\n}",
+  "cases": [
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "Denver, CO",
+      "setting1": "Denver, Boulder",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "hybrid",
+      "location": "Austin, TX",
+      "setting1": "Denver, Boulder",
+      "verdict": "exclude",
+      "note": "located in Austin, TX"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "remote",
+      "location": "Austin, TX",
+      "setting1": "Denver",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "Austin, TX",
+      "setting1": "",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "",
+      "setting1": "Denver",
+      "verdict": "flag",
+      "note": "the posting does not state a location"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "Denver",
+      "setting1": "Boulder, Denver",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": " Remote ",
+      "location": "Austin",
+      "setting1": "Denver",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "Austin",
+      "setting1": "  ",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "DENVER, CO",
+      "setting1": "denver",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "Austin",
+      "setting1": "Denver,,",
+      "verdict": "exclude",
+      "note": "located in Austin"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "Brooklyn, NY",
+      "setting1": "NY",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "",
+      "location": "Austin",
+      "setting1": "Denver",
+      "verdict": "exclude",
+      "note": "located in Austin"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "CO",
+      "setting1": "Denver",
+      "verdict": "exclude",
+      "note": "located in CO"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "arrangement": "onsite",
+      "location": "Austin, TX",
+      "setting1": "NY",
+      "verdict": "exclude",
+      "note": "located in Austin, TX"
+    }
+  ]
+}

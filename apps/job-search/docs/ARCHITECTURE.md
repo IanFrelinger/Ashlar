@@ -1,5 +1,9 @@
 # Architecture
 
+This page is the job-search core: runs, screening, materials, the tracker. The hosted product, Job Search Studio, wraps
+this core in a web host, a shared step library, a forge and an isolated step host; its architecture is in
+[STUDIO.md](STUDIO.md) §4.
+
 ## Shape
 
 ```

@@ -30,14 +30,20 @@ public sealed class CertifiedBricks : ICertifiedRules, IDisposable
     /// <summary>The folder the build copies apps/job-search/certified into.</summary>
     public static string DefaultDirectory => Path.Combine(AppContext.BaseDirectory, "certified");
 
-    /// <summary>Loads and verifies every brick in <see cref="CertifiedIds.All"/> from <paramref name="directory"/>.</summary>
-    public static CertifiedBricks Load(string directory)
+    /// <summary>The signer keys pinned for the shipped certified bricks.</summary>
+    public static IReadOnlyList<string> PinnedKeys(string directory)
     {
         var keyPath = Path.Combine(directory, TrustedKeyFile);
         var keys = File.ReadAllLines(keyPath).Select(l => l.Trim()).Where(l => l.Length > 0 && !l.StartsWith('#')).ToList();
         if (keys.Count == 0)
             throw new CertificationTrustConfigurationException($"{keyPath} lists no trusted Ed25519 public key.");
-        var policy = CertificationTrustPolicy.FromTrustedKeys(keys);
+        return keys;
+    }
+
+    /// <summary>Loads and verifies every brick in <see cref="CertifiedIds.All"/> from <paramref name="directory"/>.</summary>
+    public static CertifiedBricks Load(string directory)
+    {
+        var policy = CertificationTrustPolicy.FromTrustedKeys(PinnedKeys(directory));
 
         var loaded = new CertifiedBricks();
         try
@@ -64,6 +70,38 @@ public sealed class CertifiedBricks : ICertifiedRules, IDisposable
     private static CertificationRecordData ReadRecord(string path) =>
         JsonSerializer.Deserialize<CertificationRecordData>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
         ?? throw new InvalidOperationException($"certification-record-invalid: {path} is empty");
+
+    /// <summary>
+    /// Verifies one brick folder (record, single source file, gate-emitted assembly) against <paramref name="policy"/>
+    /// and loads it into its own collectible context. Used for the app's certified bricks and, in the step host, for
+    /// library steps. Throws when anything does not verify.
+    /// </summary>
+    public static (DomainBrick Brick, string ContentHash, AssemblyLoadContext Context) LoadVerified(string id, string folder, CertificationTrustPolicy policy) =>
+        LoadOne(id, folder, policy);
+
+    /// <summary>
+    /// Verifies a folder without loading anything (the web server never loads model-written code; STUDIO.md I8).
+    /// Returns the failure, or null when the folder verifies.
+    /// </summary>
+    public static string? VerifyOnly(string id, string folder, CertificationTrustPolicy policy)
+    {
+        try
+        {
+            var record = ReadRecord(Path.Combine(folder, RecordFile));
+            if (!string.Equals(record.BrickId, id, StringComparison.Ordinal))
+                return $"the record names {record.BrickId}, not {id}";
+            var sources = Directory.GetFiles(folder, "*.cs");
+            if (sources.Length != 1)
+                return $"expected one source file, found {sources.Length}";
+            var trust = CertificationTrustVerifier.Verify(record, File.ReadAllText(sources[0]),
+                File.ReadAllBytes(Path.Combine(folder, CertifiedArtifactExporter.ArtifactFileName)), null, policy.Strict);
+            return trust.Trusted ? null : $"{trust.FailureCode}: {trust.Reason}";
+        }
+        catch (Exception ex) when (ex is IOException or JsonException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            return ex.Message;
+        }
+    }
 
     private static (DomainBrick, string, AssemblyLoadContext) LoadOne(string id, string folder, CertificationTrustPolicy policy)
     {
@@ -129,11 +167,13 @@ public sealed class CertifiedBricks : ICertifiedRules, IDisposable
 /// <c>CertifiedBrickRegistry</c> admits bricks only through its internal API, so an application that loads certified
 /// bricks itself has to put them in front of the executor this way (recorded as F10 in docs/DOGFOOD-FINDINGS.md).
 /// </summary>
-public sealed class CertifiedOverlayRegistry(IBrickRegistry inner, CertifiedBricks certified) : IBrickRegistry
+public sealed class CertifiedOverlayRegistry(IBrickRegistry inner, CertifiedBricks certified, Studio.StepLibrary? library = null) : IBrickRegistry
 {
     /// <inheritdoc />
     public DomainBrick? GetBrick(string id) =>
-        CertifiedIds.All.Contains(id, StringComparer.Ordinal) ? certified.Get(id) : inner.GetBrick(id);
+        CertifiedIds.All.Contains(id, StringComparer.Ordinal) ? certified.Get(id)
+        : library is not null && id.StartsWith("step.", StringComparison.Ordinal) ? library.Brick(id)
+        : inner.GetBrick(id);
 
     /// <inheritdoc />
     public IReadOnlyList<DomainBrick> GetAllBricks() =>

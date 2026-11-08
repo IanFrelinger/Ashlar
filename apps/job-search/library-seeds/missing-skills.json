@@ -1,0 +1,55 @@
+{
+  "slug": "missing-skills",
+  "design": {
+    "kind": "column",
+    "name": "Required skills you're missing",
+    "description": "A tracker column listing the skills a posting requires that your résumé does not show.",
+    "settings": [],
+    "behavior": "Split skillsMissing on new lines, trim each, skip empty ones, and join the rest with \", \". When none remain, answer none."
+  },
+  "code": "private string Value(string title, string employer, string location, string arrangement, string description, string payMin, string payMax, string skillsRequired, string skillsMissing, string setting1, string setting2, string setting3)\n{\n    var lines = skillsMissing.Split('\\n');\n    var sb = new StringBuilder();\n    var count = 0;\n    for (var i = 0; i < lines.Length; i++)\n    {\n        var skill = lines[i].Trim();\n        if (skill.Length == 0)\n            continue;\n        if (count > 0)\n            sb.Append(\", \");\n        sb.Append(skill);\n        count++;\n    }\n    if (count == 0)\n        return \"none\";\n    return sb.ToString();\n}",
+  "cases": [
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "skillsMissing": "kubernetes\nterraform",
+      "value": "kubernetes, terraform"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "skillsMissing": "",
+      "value": "none"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "skillsMissing": "go",
+      "value": "go"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "skillsMissing": "kubernetes\n\nterraform\ngo",
+      "value": "kubernetes, terraform, go"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "skillsMissing": "  spark  ",
+      "value": "spark"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "skillsMissing": "\n",
+      "value": "none"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "skillsMissing": "a\nb\nc",
+      "value": "a, b, c"
+    }
+  ]
+}

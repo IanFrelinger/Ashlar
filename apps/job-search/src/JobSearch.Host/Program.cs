@@ -15,9 +15,17 @@ public static class Program
     private const string Usage = """
         jobsearch [--data DIR] [--google fake|google] [--stub-boards FILE] <command> [options]
 
+          serve [--urls U] [--public-url U] [--synthetic]
+                                                   the studio web app (synthetic: made-up personas, stub boards, stand-in models)
+          library list | quarantine ID --reason R | reinstate ID
+                                                   operator view of the shared step library
+          backup --out DIR                         consistent copy of the data directory while the studio runs (no keys)
+          erasures apply --file erasures.json      after a restore: erase again the accounts erased since that backup
           demo                                     two synthetic users end to end (no network); writes ./demo-output
           user add --email E --name N [--tz Z]     create an account
           user list
+          user export --email E [--out FILE]       a data-subject request that reaches the operator: everything held, as JSON
+          user erase --email E --confirm ERASE     erase the account and every row about it (cannot be undone)
           connect-fake --user E                    fake mode: give the user a simulated Google account
           connect-google --user E [--code C]       real mode: print the consent URL, then exchange the code
           resume --user E --file PATH              upload/replace the master résumé (.txt, .md)
@@ -38,6 +46,8 @@ public static class Program
           runs --user E                            run history with what each checked and could not complete
 
         Environment: GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET unless a proxy injects it. Learned and repaired site specs are kept in <data>/specs.
+        Studio: JOBSEARCH_PRIVATE_MODEL_URL (loopback only) and JOBSEARCH_PRIVATE_MODEL for personal data; ANTHROPIC_API_KEY and
+        JOBSEARCH_FORGE_MODEL for writing steps from generic designs; JOBSEARCH_SIGNING_KEY, JOBSEARCH_MASTER_KEY (32 bytes, Base64).
         """;
 
     /// <summary>Main.</summary>
@@ -51,8 +61,22 @@ public static class Program
         }
         try
         {
+            // Child processes that run model-written code: no App, no database, no secrets (STUDIO.md I8).
+            if (args.Positional[0] == "certify-step")
+                return await Studio.CertifyStepCommand.RunAsync(args.Positional.ElementAtOrDefault(1) ?? throw new ArgumentException("certify-step needs a directory")).ConfigureAwait(false);
+            if (args.Positional[0] == "step-host")
+                return await Studio.StepHostServer.RunAsync((args.Get("trusted") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)).ConfigureAwait(false);
             if (args.Positional[0] == "demo")
                 return await Demo.RunAsync(args.Get("out") ?? "demo-output").ConfigureAwait(false);
+            if (args.Positional[0] == "serve")
+                return await ServeAsync(args).ConfigureAwait(false);
+            if (args.Positional[0] == "backup")
+            {
+                // No App: a backup opens nothing but the database it copies, and creates no keys.
+                var manifest = Studio.Backup.Write(args.Get("data") ?? Environment.GetEnvironmentVariable("JOBSEARCH_DATA") ?? ".jobsearch", args.Require("out"));
+                Console.WriteLine($"backup: {manifest.Files.Count} files, {manifest.Files.Sum(f => f.Bytes)} bytes, {manifest.Erasures} tombstones");
+                return 0;
+            }
             using var app = Build(args);
             return await DispatchAsync(app, args).ConfigureAwait(false);
         }
@@ -64,6 +88,37 @@ public static class Program
         }
     }
 
+    private static async Task<int> ServeAsync(Args args)
+    {
+        var synthetic = args.Has("synthetic");
+        if (synthetic && (args.Get("google") ?? "fake") != "fake")
+            throw new ArgumentException("synthetic mode runs only with --google fake: it must never touch a real account");
+        var dataDir = args.Get("data") ?? Environment.GetEnvironmentVariable("JOBSEARCH_DATA") ?? ".jobsearch";
+        var fixtures = Path.Combine(AppContext.BaseDirectory, "fixtures");
+        WebOperationClient? client = null;
+        if (synthetic || args.Get("stub-boards") is not null)
+            client = new WebOperationClient(new SpecStore(Path.Combine(dataDir, "specs")), null,
+                new StubBoards(args.Get("stub-boards") ?? Path.Combine(fixtures, "boards.json")), new WebOperationsOptions { PerHostInterval = TimeSpan.Zero }, now: () => Clock.Now);
+        using var app = new App(new AppOptions
+        {
+            DataDir = dataDir, GoogleMode = args.Get("google") ?? Environment.GetEnvironmentVariable("JOBSEARCH_GOOGLE_MODE") ?? "fake",
+            GoogleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID"), GoogleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET"),
+            Web = client, Synthetic = synthetic,
+        });
+        if (synthetic)
+            Web.Synthetic.EnsurePersonas(app, fixtures);
+        var options = new Web.StudioServerOptions
+        {
+            Urls = args.Get("urls") ?? Environment.GetEnvironmentVariable("JOBSEARCH_URLS") ?? "http://0.0.0.0:8080",
+            PublicUrl = args.Get("public-url") ?? Environment.GetEnvironmentVariable("JOBSEARCH_PUBLIC_URL") ?? "http://localhost:8080",
+            Dispatcher = !synthetic,
+        };
+        var web = Web.StudioServer.Build(app, options);
+        Console.WriteLine($"Job Search Studio on {options.Urls} (public {options.PublicUrl}){(synthetic ? " — SYNTHETIC: made-up personas only" : "")}");
+        await web.RunAsync().ConfigureAwait(false);
+        return 0;
+    }
+
     private static App Build(Args args)
     {
         var dataDir = args.Get("data") ?? Environment.GetEnvironmentVariable("JOBSEARCH_DATA") ?? ".jobsearch";
@@ -73,7 +128,7 @@ public static class Program
         return new App(new AppOptions
         {
             DataDir = dataDir,
-            GoogleMode = args.Get("google") ?? "fake",
+            GoogleMode = args.Get("google") ?? Environment.GetEnvironmentVariable("JOBSEARCH_GOOGLE_MODE") ?? "fake",
             GoogleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID"),
             GoogleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET"),
             Web = client,
@@ -95,6 +150,29 @@ public static class Program
             case "user" when args.Positional.ElementAtOrDefault(1) == "add":
                 Console.WriteLine(app.Accounts.CreateUser(args.Require("email"), args.Require("name"), args.Get("tz") ?? "UTC"));
                 return 0;
+            case "user" when args.Positional.ElementAtOrDefault(1) == "export":
+            {
+                // The same export as the Privacy page, for a request that arrives another way (PRIVACY.md).
+                var json = app.Compliance.Export(UserId(app, args, "email")).ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+                if (args.Get("out") is { } file)
+                {
+                    await File.WriteAllTextAsync(file, json).ConfigureAwait(false);
+                    Console.WriteLine($"wrote {file}");
+                }
+                else
+                {
+                    Console.WriteLine(json);
+                }
+                return 0;
+            }
+            case "user" when args.Positional.ElementAtOrDefault(1) == "erase":
+            {
+                if (args.Get("confirm") != "ERASE")
+                    throw new ArgumentException("erasing an account cannot be undone: add --confirm ERASE");
+                var rows = app.Compliance.Erase(UserId(app, args, "email"));
+                Console.WriteLine($"erased {rows} rows; a tombstone keeps only a keyed hash of the account id");
+                return 0;
+            }
             case "user":
                 Print(app.Accounts.ListUsers());
                 return 0;
@@ -245,6 +323,22 @@ public static class Program
                 Print(plan);
                 if (args.Has("apply"))
                     Console.WriteLine($"applied {app.Snapshots.ApplyRestore(id, Actor(app, args, id), plan, args.Require("commit"))} change(s)");
+                return 0;
+            }
+            case "library" when args.Positional.ElementAtOrDefault(1) == "list":
+                foreach (var e in app.Library.Visible(""))
+                    Console.WriteLine($"{e.Id}\t{e.Kind}\t{e.Status}\t{e.Uses} uses\t{e.Origin}\t{e.Name}");
+                return 0;
+            case "library" when args.Positional.ElementAtOrDefault(1) == "quarantine":
+                app.Library.Quarantine(args.Positional.ElementAtOrDefault(2) ?? throw new ArgumentException("library quarantine ID"), args.Require("reason"));
+                return 0;
+            case "library" when args.Positional.ElementAtOrDefault(1) == "reinstate":
+                app.Library.Reinstate(args.Positional.ElementAtOrDefault(2) ?? throw new ArgumentException("library reinstate ID"));
+                return 0;
+            case "erasures" when args.Positional.ElementAtOrDefault(1) == "apply":
+            {
+                var ledger = Studio.Backup.ReadLedger(args.Require("file"));
+                Console.WriteLine($"erased {app.Compliance.Reapply(ledger)} restored account(s) again; {ledger.Count} tombstones recorded");
                 return 0;
             }
             case "runs":

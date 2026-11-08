@@ -147,6 +147,44 @@ not set `deterministic: true`, so each compile gets a new module version id. Cer
 - **Fix:** compile with `deterministic: true`, which would let a consumer rebuild the artifact from source and compare.
   The emitted bytes are pinned by golden corpora, so this is its own change.
 
+## F12: the IL import fence refuses nested types of allowed BCL types
+
+The import fence admits a type by its namespace. A nested type has no namespace of its own in metadata, so
+`List<T>.Enumerator`, `Dictionary<TKey, TValue>.Enumerator` and `HashSet<T>.Enumerator` are refused even though
+`System.Collections.Generic` is allowed. `foreach` over any of them compiles to the nested enumerator, so ordinary,
+harmless code is refused.
+
+- **Cost here:** the two certified rules use indexed loops, and the studio's step writer is told not to use `foreach`
+  over those collections (`Prompts` in `JobSearch.Host/Studio/Forge.cs`). A model that does it anyway spends a
+  certification round and a repair attempt.
+- **Fix:** resolve a nested type's namespace through its declaring type before the allowlist check.
+
+## F13: mutation testing reaches only `ExecuteAsync` and private instance methods, four sites per operator
+
+`AstMutationCatalog` (`src/Ashlar.Infrastructure/Certification/AstMutationCatalog.cs:12`) mutates only `ExecuteAsync`
+and private instance methods, with at most four sites per operator (`MaxPerKind = 4`), taken in source order. A
+private `static` helper is never mutated. The certified claims-check rule's helpers (`Numbers`, `HasTerm`,
+`StripBullet`) are static, so its "every mutant killed" says nothing about them. The "5" matched "9.5" hole (in "What
+worked well" below) lived in `Numbers`, and the app's own test found it, not the gate. Rewriting those helpers as
+instance methods and re-certifying is open work.
+
+- **Cost here:** the studio refuses `static` in model-written code and puts the written methods before `ExecuteAsync`,
+  so the four-site budget reaches them first (`StepSource` in `JobSearch.Core/Studio/StepSource.cs`). The starter
+  steps are written the same way.
+- **Fix:** mutate every method in the brick's own type, static included. Report the sites the budget skipped, so a
+  certificate says what its mutation score covers.
+
+## F14: the in-process certifier has no per-execution timeout
+
+The certification gate runs witness cases and mutants in-process with no deadline. A mutant that turns a loop's
+condition around never returns, and certification hangs with it. For a human author that is a stuck build; for a
+service certifying model-written code, it is one request holding a worker forever.
+
+- **Cost here:** the studio runs every certification in a child process (`certify-step`) with a hard timeout, a heap
+  cap and a clean environment, and kills the process tree when time runs out (`Studio/Isolation.cs`; STUDIO.md I8).
+- **Fix:** a per-execution budget in the gate (witness and mutant runs alike), with a timed-out mutant counted as
+  killed and a timed-out witness case as a failure.
+
 ## What worked well
 
 - `AddAshlarSdk` + `AddAshlar()` composed with no configuration in a console host and in tests.

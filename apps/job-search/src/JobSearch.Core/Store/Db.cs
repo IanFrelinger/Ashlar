@@ -64,7 +64,10 @@ public sealed class Db
 
         CREATE TABLE IF NOT EXISTS assessments (
             job_id TEXT PRIMARY KEY REFERENCES jobs(id), user_id TEXT NOT NULL, recommendation TEXT NOT NULL,
-            score REAL NOT NULL, assessment_json TEXT NOT NULL, assessed_at TEXT NOT NULL);
+            score REAL NOT NULL, assessment_json TEXT NOT NULL, assessed_at TEXT NOT NULL, excluded_by TEXT);
+
+        -- The user's own workflow: the steps they added to the per-posting pipeline (JobSearch.Studio).
+        CREATE TABLE IF NOT EXISTS workflows (user_id TEXT PRIMARY KEY REFERENCES users(id), doc_json TEXT NOT NULL, updated_at TEXT NOT NULL);
 
         -- User-owned. The system never moves status past not_applied on its own.
         CREATE TABLE IF NOT EXISTS applications (
@@ -110,6 +113,15 @@ public sealed class Db
         using var c = Open();
         c.Execute("PRAGMA journal_mode=WAL;");
         c.Execute(Schema);
+        // Columns added after a table first shipped: CREATE TABLE IF NOT EXISTS leaves an existing table as it was.
+        AddColumnIfMissing(c, "assessments", "excluded_by", "TEXT");
+    }
+
+    private static void AddColumnIfMissing(SqliteConnection c, string table, string column, string type)
+    {
+        var columns = c.Query<string>($"SELECT name FROM pragma_table_info('{table}')").ToHashSet(StringComparer.Ordinal);
+        if (!columns.Contains(column))
+            c.Execute($"ALTER TABLE {table} ADD COLUMN {column} {type}");
     }
 
     /// <summary>A new open connection with foreign keys on and a 30 s busy timeout.</summary>

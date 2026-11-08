@@ -59,6 +59,10 @@ public sealed record Assessment
     public string DecidedBy { get; init; } = "";
     /// <summary>The counts the certified rule decides from.</summary>
     public DecisionInputs Decision { get; init; } = new();
+    /// <summary>What the user's own workflow steps said about the posting, in workflow order.</summary>
+    public List<Studio.StepResult> Steps { get; init; } = [];
+    /// <summary>The name of the user's step that excluded the posting; null when none did.</summary>
+    public string? ExcludedBy { get; init; }
     /// <summary>For ordering; not a probability.</summary>
     public double Score { get; init; }
     /// <summary>Share of required skills with résumé evidence; null when none could be extracted.</summary>

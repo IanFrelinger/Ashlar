@@ -69,6 +69,9 @@
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />
     <PackageVersion Include="Microsoft.Extensions.VectorData.Abstractions" Version="10.10.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.1" />
+    <!-- Official Anthropic SDK: Job Search Studio's step writer (apps/job-search, STUDIO.md I1). Pinned to a release
+         at least two weeks old when it was added (13.3.0, 2026-10-23). -->
+    <PackageVersion Include="Anthropic" Version="13.3.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.17" />
     <PackageVersion Include="Spectre.Console" Version="0.48.0" />
     <PackageVersion Include="YamlDotNet" Version="13.7.1" />

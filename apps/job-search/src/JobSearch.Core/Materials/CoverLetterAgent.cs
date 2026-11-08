@@ -1,18 +1,19 @@
-using Ashlar.Abstractions;
 using Ashlar.Core.Application.Generation.Ports;
 using Ashlar.Core.Application.Orchestration;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Bricks.Ports;
 using JobSearch.Certified;
+using JobSearch.Privacy;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JobSearch.Materials;
 
 /// <summary>
 /// The agent profile behind model-worded cover letters, run by Ashlar's generative pipeline (the first-party
-/// <c>generative-artifact</c> brick): a model drafts the letter body, the certified <c>jobsearch.claims-check</c> brick
-/// judges every draft, refused drafts go back to the model with the reasons, and model drafts always require a person's
-/// review. The app uses a model draft only when the pipeline marks it verified; otherwise it keeps the template letter.
+/// <c>generative-artifact</c> brick): the private model on this server drafts the letter body (the résumé is personal
+/// data, so it never goes to an external model), the certified <c>jobsearch.claims-check</c> brick judges every draft,
+/// refused drafts go back to the model with the reasons, and model drafts always require a person's review. The app uses
+/// a model draft only when the pipeline marks it verified; otherwise it keeps the template letter.
 /// </summary>
 public sealed class CoverLetterProfile : IAgentProfileFactory
 {
@@ -43,8 +44,8 @@ public sealed class CoverLetterProfile : IAgentProfileFactory
         {
             TargetId = TargetId,
             // Resolved when a letter is drafted, not when the profile is built: the app must start without a model
-            // configured, since model wording is off unless the user turns it on.
-            Drafter = new ModelDrafter(() => services.GetRequiredService<IModel>()),
+            // configured, since model wording is off unless the user turns it on. Only the private model: PII stays on the host.
+            Drafter = new ModelDrafter(() => services.GetRequiredService<IPrivateModel>()),
             DeterministicDrafter = new TemplateDrafter(),
             Validators = [new ClaimsValidator(rules)],
             Llm = new LLMConfig { SystemPrompt = SystemPrompt },
@@ -68,15 +69,17 @@ public sealed class CoverLetterProfile : IAgentProfileFactory
     private static Dictionary<string, string> Files(GenerationRequest request) =>
         new(StringComparer.Ordinal) { [ClaimsFile] = Store.Json.Write(Claims(request)) };
 
-    /// <summary>Asks the model for the body, passing back why earlier drafts were refused.</summary>
-    internal sealed class ModelDrafter(Func<IModel> model) : IArtifactDrafter
+    /// <summary>Asks the private model for the body, passing back why earlier drafts were refused.</summary>
+    internal sealed class ModelDrafter(Func<IPrivateModel> model) : IArtifactDrafter
     {
         public async Task<GeneratedArtifact> DraftAsync(GenerationRequest request, IReadOnlyList<string> priorFeedback, CancellationToken cancellationToken = default)
         {
             var user = request.Grounding;
             if (priorFeedback.Count > 0)
                 user += "\n\nYour previous draft was refused for these unsupported claims; write it again without them:\n" + string.Join("\n", priorFeedback);
-            var output = await model().CompleteAsync(new ModelInput([("system", SystemPrompt), ("user", user)]), cancellationToken).ConfigureAwait(false);
+            // The grounding holds the résumé: a personal frame, which the guard lets reach only this host.
+            using var frame = Pii.EnterPersonalFrame("cover-letter");
+            var output = await model().CompleteTextAsync(SystemPrompt, user, cancellationToken).ConfigureAwait(false);
             return new GeneratedArtifact { Content = output.Text.Trim(), Files = Files(request) };
         }
     }

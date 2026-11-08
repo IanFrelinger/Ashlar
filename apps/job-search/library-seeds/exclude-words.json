@@ -1,0 +1,123 @@
+{
+  "slug": "exclude-words",
+  "design": {
+    "kind": "check",
+    "name": "Exclude postings that mention words",
+    "description": "Rules out a posting whose title or text mentions any of your words or phrases, such as on-call or travel.",
+    "settings": [
+      {
+        "label": "Words or phrases",
+        "help": "Separate them with commas. Matching ignores case and whole words only.",
+        "example": "on-call, pager"
+      }
+    ],
+    "behavior": "Lower-case the title and description. For each comma-separated phrase in setting1 (trimmed, lower-cased, skipped when empty), if it occurs as a whole word or phrase, answer exclude with the note: mentions \"<phrase>\". Otherwise pass."
+  },
+  "code": "private string Evaluate(string title, string employer, string location, string arrangement, string description, string payMin, string payMax, string skillsRequired, string skillsMissing, string setting1, string setting2, string setting3, out string note)\n{\n    note = \"\";\n    var text = (title + \"\\n\" + description).ToLowerInvariant();\n    var phrases = setting1.Split(',');\n    for (var i = 0; i < phrases.Length; i++)\n    {\n        var phrase = phrases[i].Trim().ToLowerInvariant();\n        if (phrase.Length > 0 && ContainsPhrase(text, phrase))\n        {\n            note = \"mentions \\\"\" + phrase + \"\\\"\";\n            return \"exclude\";\n        }\n    }\n    return \"pass\";\n}\n\nprivate bool ContainsPhrase(string text, string phrase)\n{\n    var at = text.IndexOf(phrase, StringComparison.Ordinal);\n    while (at >= 0)\n    {\n        var end = at + phrase.Length;\n        var before = at == 0 || !char.IsLetterOrDigit(text[at - 1]);\n        var after = end == text.Length || !char.IsLetterOrDigit(text[end]);\n        if (before && after)\n            return true;\n        at = text.IndexOf(phrase, at + 1, StringComparison.Ordinal);\n    }\n    return false;\n}",
+  "cases": [
+    {
+      "title": "Site Reliability Engineer",
+      "employer": "Example Co",
+      "description": "Join our team. You will be on-call one week a month.",
+      "setting1": "on-call, pager",
+      "verdict": "exclude",
+      "note": "mentions \"on-call\""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "Carry a pager during launches.",
+      "setting1": "on-call, pager",
+      "verdict": "exclude",
+      "note": "mentions \"pager\""
+    },
+    {
+      "title": "On-Call Support Lead",
+      "employer": "Example Co",
+      "description": "Weekday hours.",
+      "setting1": "on-call",
+      "verdict": "exclude",
+      "note": "mentions \"on-call\""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "We build AI tools for hospitals.",
+      "setting1": "AI",
+      "verdict": "exclude",
+      "note": "mentions \"ai\""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "She said the team ships weekly.",
+      "setting1": "ai",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "Our devops team is small.",
+      "setting1": "ops",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "Anything on-call.",
+      "setting1": "",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Platform Engineer",
+      "employer": "Example Co",
+      "description": "On-call rotation required.",
+      "setting1": "on-call",
+      "verdict": "exclude",
+      "note": "mentions \"on-call\""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "Regular hours, no rotations.",
+      "setting1": "pager, on-call",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "Quiet team.",
+      "setting1": "on-call,,pager",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "on-call duties",
+      "setting1": "  On-Call  ",
+      "verdict": "exclude",
+      "note": "mentions \"on-call\""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "Rotations are on-call.",
+      "setting1": "call",
+      "verdict": "exclude",
+      "note": "mentions \"call\""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "description": "Must be on-call",
+      "setting1": "on-call",
+      "verdict": "exclude",
+      "note": "mentions \"on-call\""
+    }
+  ]
+}

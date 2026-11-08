@@ -1,6 +1,5 @@
 using System.Runtime.Loader;
 using System.Text.Json;
-using Ashlar.Abstractions;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
 using Dapper;
@@ -206,16 +205,20 @@ public sealed class RecertificationTests
     }
 }
 
-/// <summary>A model that answers from a script and records what it was asked.</summary>
-public sealed class ScriptedModel(Func<ModelInput, string> answer) : IModel
+/// <summary>A private model that answers from a script and records what it was asked.</summary>
+public sealed class ScriptedModel(Func<string, string> answer) : JobSearch.Privacy.IPrivateModel
 {
-    public List<ModelInput> Calls { get; } = [];
+    public List<(string System, string User)> Calls { get; } = [];
 
-    public Task<ModelOutput> CompleteAsync(ModelInput input, CancellationToken ct)
+    public string Describe() => "scripted";
+
+    public Task<JobSearch.Privacy.ModelReply> CompleteJsonAsync(string system, string user, string jsonSchema, CancellationToken ct) => CompleteTextAsync(system, user, ct);
+
+    public Task<JobSearch.Privacy.ModelReply> CompleteTextAsync(string system, string user, CancellationToken ct)
     {
         lock (Calls)
-            Calls.Add(input);
-        return Task.FromResult(new ModelOutput(answer(input)));
+            Calls.Add((system, user));
+        return Task.FromResult(new JobSearch.Privacy.ModelReply(answer(user), "scripted", 10, 20));
     }
 }
 
@@ -265,20 +268,20 @@ public sealed class ModelCoverLetterTests
             v.NeedsConfirmation.Should().Contain(n => n.StartsWith("A model worded this draft"));
         }
         model.Calls.Should().HaveCount(letters.Count, "each letter verified on the first draft");
-        model.Calls[0].Messages[0].content.Should().Be(CoverLetterProfile.SystemPrompt);
-        model.Calls[0].Messages[1].content.Should().Contain("Résumé:\nJordan Rivera");
+        model.Calls[0].System.Should().Be(CoverLetterProfile.SystemPrompt);
+        model.Calls[0].User.Should().Contain("Résumé:\nJordan Rivera");
     }
 
     [Fact]
     public async Task A_refused_draft_goes_back_to_the_model_with_the_certified_reasons()
     {
         // First drafts invent; a draft written after a refusal does not.
-        var model = new ScriptedModel(i => i.Messages[1].content.Contains("previous draft was refused", StringComparison.Ordinal) ? Good : Invented);
+        var model = new ScriptedModel(user => user.Contains("previous draft was refused", StringComparison.Ordinal) ? Good : Invented);
         var (h, letters) = await RunAsync(model);
         using var _ = h;
         letters.Should().OnlyContain(l => l.Origin == "model" && l.V.Passed);
         model.Calls.Should().HaveCount(2 * letters.Count);
-        var retry = model.Calls.Select(c => c.Messages[1].content).First(c => c.Contains("previous draft was refused", StringComparison.Ordinal));
+        var retry = model.Calls.Select(c => c.User).First(c => c.Contains("previous draft was refused", StringComparison.Ordinal));
         retry.Should().Contain("skill not in the résumé: kubernetes").And.Contain("number without a source: 5")
             .And.Contain("clearance mentioned but not as the user confirmed it");
     }

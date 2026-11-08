@@ -90,9 +90,11 @@ public sealed record RunSummary
 /// </summary>
 public sealed class RunEngine(
     Db db, AccountService accounts, ProfileService profiles, TrackerService tracker,
-    IWorkspaceFactory workspaces, IAshlarRuntime ashlar, Func<TimeSpan, CancellationToken, Task>? delay = null)
+    IWorkspaceFactory workspaces, IAshlarRuntime ashlar, Func<TimeSpan, CancellationToken, Task>? delay = null,
+    Studio.IWorkflowSource? workflows = null)
 {
     private readonly Func<TimeSpan, CancellationToken, Task> _delay = delay ?? ((d, ct) => Task.Delay(d, ct));
+    private readonly Studio.IWorkflowSource _workflows = workflows ?? Studio.NoUserSteps.Instance;
 
     /// <summary>How long a lease holds without renewal.</summary>
     public static readonly TimeSpan Lease = TimeSpan.FromMinutes(15);
@@ -300,7 +302,7 @@ public sealed class RunEngine(
         // re-queued whatever their last check time; everything else is re-checked about once a day.
         var pendingDrafts = db.Read(c => c.Query<string>("""
             SELECT j.id FROM jobs j JOIN assessments s ON s.job_id=j.id WHERE j.user_id=@userId AND j.archived_at IS NULL AND j.listing_status='open'
-            AND s.recommendation IN @draftFor AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.job_id=j.id AND d.resume_sha=@sha AND d.status<>'archived')
+            AND s.recommendation IN @draftFor AND s.excluded_by IS NULL AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.job_id=j.id AND d.resume_sha=@sha AND d.status<>'archived')
             """, new { userId, draftFor = prefs.Materials.DraftFor, sha = profile.ResumeSha }).ToHashSet(StringComparer.Ordinal));
         var recheck = known.Where(k => k.Status != "closed" && (pendingDrafts.Contains(k.Id) || k.LastChecked is null || Clock.Parse(k.LastChecked)!.Value < Clock.Now.AddHours(-20)))
             .OrderBy(k => pendingDrafts.Contains(k.Id) ? 0 : 1).ThenBy(k => k.LastChecked ?? "", StringComparer.Ordinal)
@@ -314,6 +316,8 @@ public sealed class RunEngine(
         s.Deferred = Math.Max(0, deferred);
 
         var draftBudget = prefs.Materials.MaxNewDraftsPerRun;
+        // The user's own steps, resolved once per run so every posting in the run sees the same workflow.
+        var userSteps = _workflows.StepsFor(userId);
         var rateLimitedSites = new HashSet<string>(StringComparer.Ordinal);
         foreach (var cand in queue)
         {
@@ -328,7 +332,7 @@ public sealed class RunEngine(
                 ResumeText = profile.ResumeText, ResumeSha = profile.ResumeSha, Preferences = prefs, AllowDraft = allowDraft,
                 Today = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             };
-            var outcome = await PostingWorkflow.RunAsync(scope.Executor, cand.Key, cand.Employer, ctx, ct).ConfigureAwait(false);
+            var outcome = await PostingWorkflow.RunAsync(scope.Executor, cand.Key, cand.Employer, ctx, ct, userSteps).ConfigureAwait(false);
             s.PostingsRead++;
             lock (s.WorkflowLog) s.WorkflowLog.AddRange(outcome.NodeLog.Select(l => $"{cand.Key} {l}"));
             if (outcome.Signal == "rate")
@@ -460,9 +464,10 @@ public sealed class RunEngine(
             if (o.Assessment is { } a)
             {
                 c.Execute("""
-                    INSERT INTO assessments (job_id, user_id, recommendation, score, assessment_json, assessed_at) VALUES (@id,@userId,@rec,@score,@json,@now)
-                    ON CONFLICT(job_id) DO UPDATE SET recommendation=excluded.recommendation, score=excluded.score, assessment_json=excluded.assessment_json, assessed_at=excluded.assessed_at
-                    """, new { id, userId, rec = a.Recommendation, score = a.Score, json = Json.Write(a), now }, tx);
+                    INSERT INTO assessments (job_id, user_id, recommendation, score, assessment_json, assessed_at, excluded_by) VALUES (@id,@userId,@rec,@score,@json,@now,@excludedBy)
+                    ON CONFLICT(job_id) DO UPDATE SET recommendation=excluded.recommendation, score=excluded.score, assessment_json=excluded.assessment_json,
+                        assessed_at=excluded.assessed_at, excluded_by=excluded.excluded_by
+                    """, new { id, userId, rec = a.Recommendation, score = a.Score, json = Json.Write(a), now, excludedBy = a.ExcludedBy }, tx);
                 if (a.Requirements.Deadline is { } dl)
                     c.Execute("UPDATE jobs SET deadline=@dl WHERE id=@id AND user_id=@userId", new { id, userId, dl }, tx);
             }

@@ -108,6 +108,19 @@ public sealed class AccountService(Db db, AccessControl access)
         db.Read(c => c.QuerySingleOrDefault<User>("SELECT id, email, display_name, timezone, created_at FROM users WHERE id=@userId", new { userId }))
         ?? throw new KeyNotFoundException($"no user {userId}");
 
+    /// <summary>Sets the user's time zone (an IANA or Windows id this server knows); only the user themselves.</summary>
+    public void SetTimezone(string userId, string actorId, string timezone)
+    {
+        if (actorId != userId)
+            throw new AccessDeniedException("only the user can change their time zone");
+        _ = TimeZoneInfo.FindSystemTimeZoneById(timezone); // validates
+        db.Write((c, tx) =>
+        {
+            c.Execute("UPDATE users SET timezone=@timezone WHERE id=@userId", new { userId, timezone }, tx);
+            Db.Log(c, tx, userId, actorId, "account.timezone", timezone);
+        });
+    }
+
     /// <summary>The user with this email, or null.</summary>
     public User? FindUser(string email) =>
         db.Read(c => c.QuerySingleOrDefault<User>("SELECT id, email, display_name, timezone, created_at FROM users WHERE email=@e",

@@ -12,6 +12,17 @@ to start if their signed records do not verify.
 - Architecture, data model, what is authoritative where, and how sheet edits are reconciled:
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - What building this on Ashlar taught us about Ashlar: [docs/DOGFOOD-FINDINGS.md](docs/DOGFOOD-FINDINGS.md).
+- **Job Search Studio**, the hosted product built on this app ([docs/STUDIO.md](docs/STUDIO.md)):
+  - each user designs their own pipeline in a web designer;
+  - steps are written from plain words, certified, and shared between users;
+  - personal data reaches only a model on the same server;
+  - QA agents, each with its own screen, gate every release.
+
+  Related documents:
+  - AWS deployment: [deploy/README.md](deploy/README.md)
+  - releases: [docs/RELEASE.md](docs/RELEASE.md)
+  - the record of processing: [docs/PRIVACY.md](docs/PRIVACY.md)
+  - the QA suites: [qa/README.md](qa/README.md)
 
 ## What it does
 
@@ -110,6 +121,17 @@ unset ASHLAR_CERT_ED25519_KEY
 Verified in this repository (container, .NET 10), by tests that fail when the behaviour breaks
 (see the mutation checks in the PR):
 
+- The studio's 29 tests (69 in `JobSearch.Tests` in all), with the browser suites besides:
+  - workflow documents and their compilation;
+  - the shared library and its isolated step host: a step that loops forever is stopped and quarantined;
+  - both model tiers behind the enforcing egress guard: Claude is refused from a frame that read personal data, and
+    the private model is reachable only on loopback;
+  - the PII gate keeping a step private;
+  - in the web host: the consent gate, the CSRF header, isolation between users, and export and erasure;
+  - backups without keys, with erasures re-applied after a restore;
+  - the operator's export and erase commands;
+  - in the browser, against the production image: the UI suite (9 tests) and the scripted QA fleet (6 charters).
+    See [qa/README.md](qa/README.md) and [deploy/README.md](deploy/README.md).
 - 40 app tests: isolation of two concurrent users (database rows, Drive files, and a cross-account read refused);
   concurrent and repeated runs for one user without duplicate jobs, files, documents or rows; an interrupted run
   resumed without duplicating its orphaned upload; sheet edits imported, edited system cells kept, both-sides
@@ -142,7 +164,9 @@ Verified in this repository (container, .NET 10), by tests that fail when the be
   `keepForever`, Sheets value ranges) are written to the documented APIs but unobserved.
 - **GitHub snapshot push.** `Push` runs `git push`; nothing confirms privacy for you. The caller must check it with the
   GitHub API under the user's own authorization.
-- **Nothing is deployed or scheduled.** `dispatch` is a foreground loop; no service unit, container or cron exists.
+- **Nothing is deployed yet.** The studio has a container image, a Compose stack, systemd units and Terraform
+  (`deploy/`). They were verified in containers here, as `deploy/README.md` lists, and were never applied to an AWS
+  account. The studio's web host runs the per-user schedule itself; the CLI's `dispatch` remains a foreground loop.
 - **Not yet observed in CI.** `apps/job-search/**` is in both readiness path lists, and the readiness lane's
   `native ci verify` discovers `JobSearch.Tests` (`ci/test-ownership.tsv`), but no CI run of it has been seen yet.
   `apps/` is outside Ashlar's egress-scan roots (DOGFOOD-FINDINGS F5).
@@ -153,7 +177,8 @@ Verified in this repository (container, .NET 10), by tests that fail when the be
    confirm the bundled specs.
 2. Create the Google OAuth client (Drive + Sheets APIs, scope `drive.file`), connect one test user, and run once to
    confirm workspace creation, Doc conversion, the `appProperties` lookup and Sheets writes.
-3. Decide where it runs (one host with `dispatch` under a service manager), and where `secrets.json` lives.
+3. Deploy the studio: `deploy/README.md`. The Google client there is a *Web application* client, not the CLI's
+   desktop client.
 4. Confirm the readiness lane runs `JobSearch.Tests` on the first PR, and decide whether `apps/` joins the
    egress-scan roots (DOGFOOD-FINDINGS F5).
 5. For GitHub snapshots: a private repository per user, created and authorized by that user; the remote's privacy is

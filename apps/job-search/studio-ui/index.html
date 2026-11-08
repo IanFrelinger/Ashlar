@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Job Search Studio</title>
+  <meta name="description" content="Design your own job search: your steps, your data, your Drive.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="app.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <span>Job Search Studio</span>
+    </div>
+    <nav id="nav" aria-label="Main" hidden>
+      <a href="#/designer" data-test="nav-designer">Designer</a>
+      <a href="#/tracker" data-test="nav-tracker">Tracker</a>
+      <a href="#/runs" data-test="nav-runs">Runs</a>
+      <a href="#/profile" data-test="nav-profile">Profile</a>
+      <a href="#/privacy" data-test="nav-privacy">Privacy &amp; data</a>
+    </nav>
+    <div class="who" id="who"></div>
+  </header>
+  <div id="synthetic-banner" class="banner" role="status" hidden>
+    Synthetic environment: made-up people and postings only. Never enter real personal data here.
+  </div>
+  <main id="main" tabindex="-1">
+    <p class="loading">Loading…</p>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

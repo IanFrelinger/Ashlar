@@ -1,0 +1,132 @@
+{
+  "slug": "pay-floor",
+  "design": {
+    "kind": "check",
+    "name": "Flag postings that pay less than an amount",
+    "description": "Flags (or excludes) a posting whose stated pay tops out below your minimum. Postings that state no pay pass.",
+    "settings": [
+      {
+        "label": "Minimum pay",
+        "help": "A yearly amount; anything that isn't a digit is ignored.",
+        "example": "120000"
+      },
+      {
+        "label": "Exclude instead of flag",
+        "help": "Type exclude to rule such postings out; leave empty to flag them.",
+        "example": "exclude"
+      }
+    ],
+    "behavior": "Keep only the digits of setting1 (min) and payMax (max). If either is empty or longer than 15 digits, pass. If max < min, answer flag (exclude when setting2, trimmed and lower-cased, is exclude) with the note: tops out at <max>, below <min>. Otherwise pass."
+  },
+  "code": "private string Evaluate(string title, string employer, string location, string arrangement, string description, string payMin, string payMax, string skillsRequired, string skillsMissing, string setting1, string setting2, string setting3, out string note)\n{\n    note = \"\";\n    var min = Digits(setting1);\n    var max = Digits(payMax);\n    if (min.Length == 0 || max.Length == 0 || min.Length > 15 || max.Length > 15)\n        return \"pass\";\n    if (long.Parse(max, CultureInfo.InvariantCulture) < long.Parse(min, CultureInfo.InvariantCulture))\n    {\n        note = \"tops out at \" + max + \", below \" + min;\n        return setting2.Trim().ToLowerInvariant() == \"exclude\" ? \"exclude\" : \"flag\";\n    }\n    return \"pass\";\n}\n\nprivate string Digits(string text)\n{\n    var sb = new StringBuilder();\n    for (var i = 0; i < text.Length; i++)\n    {\n        if (char.IsDigit(text[i]))\n            sb.Append(text[i]);\n    }\n    return sb.ToString();\n}",
+  "cases": [
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "100000",
+      "setting1": "120000",
+      "setting2": "",
+      "verdict": "flag",
+      "note": "tops out at 100000, below 120000"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "150000",
+      "setting1": "120000",
+      "setting2": "",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "100000",
+      "setting1": "",
+      "setting2": "",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "",
+      "setting1": "120000",
+      "setting2": "",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "100000",
+      "setting1": "$120,000",
+      "setting2": "",
+      "verdict": "flag",
+      "note": "tops out at 100000, below 120000"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "40",
+      "setting1": "50",
+      "setting2": "",
+      "verdict": "flag",
+      "note": "tops out at 40, below 50"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "200000",
+      "setting1": "1000000000000000",
+      "setting2": "",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "0000000000000050",
+      "setting1": "120000",
+      "setting2": "",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "90000",
+      "setting1": "120000",
+      "setting2": "exclude",
+      "verdict": "exclude",
+      "note": "tops out at 90000, below 120000"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "90000",
+      "setting1": "120000",
+      "setting2": " Exclude ",
+      "verdict": "exclude",
+      "note": "tops out at 90000, below 120000"
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "120000",
+      "setting1": "120000",
+      "setting2": "",
+      "verdict": "pass",
+      "note": ""
+    },
+    {
+      "title": "Data Engineer",
+      "employer": "Example Co",
+      "payMax": "100000",
+      "setting1": "abc",
+      "setting2": "",
+      "verdict": "pass",
+      "note": ""
+    }
+  ]
+}

@@ -10,6 +10,7 @@ using JobSearch.Materials;
 using JobSearch.Profile;
 using JobSearch.Screening;
 using JobSearch.Store;
+using JobSearch.Studio;
 
 namespace JobSearch.Bricks;
 
@@ -145,6 +146,7 @@ public sealed class DecideBrick : Ashlar.Core.Domain.Bricks.Brick
                 new BrickInputDefinition("reason", "string", "jobsearch.recommendation reason", required: false, defaultValue: ""),
                 new BrickInputDefinition("posting", "object", "JobPosting", required: false),
                 new BrickInputDefinition("candidate", "string", "CandidateContext JSON", required: true),
+                new BrickInputDefinition("steps", "string", "The user's steps as JSON [{key,name,kind}]; their results arrive as verdict.KEY, note.KEY, value.KEY", required: false, defaultValue: "[]"),
             ],
             Outputs =
             [
@@ -172,14 +174,111 @@ public sealed class DecideBrick : Ashlar.Core.Domain.Bricks.Brick
         if (recommendation.Length == 0)
             throw new InvalidOperationException("jobsearch.recommendation returned no recommendation for a screened posting");
         var by = $"{CertifiedIds.Recommendation} (certified, content hash {_rules.ContentHash(CertifiedIds.Recommendation)})";
-        var assessment = Screener.WithDecision(screened, recommendation, input.Get("reason", "") ?? "", by);
+        var results = StepResults(input);
+        var excludedBy = results.FirstOrDefault(r => r.Kind == StepContract.Check && r.Verdict == "exclude")?.Name;
+        var assessment = Screener.WithDecision(screened, recommendation, input.Get("reason", "") ?? "", by) with { Steps = results, ExcludedBy = excludedBy };
         var candidate = CandidateContext.Parse(input.Get<string>("candidate"));
-        var draft = candidate.AllowDraft && posting.ProvesOpen && candidate.Preferences.Materials.DraftFor.Contains(recommendation);
+        // A user's own step can rule a posting out; it never rules one in past the certified recommendation.
+        var draft = candidate.AllowDraft && posting.ProvesOpen && candidate.Preferences.Materials.DraftFor.Contains(recommendation) && excludedBy is null;
         output.Set("recommendation", recommendation);
         output.Set("assessment", assessment);
         output.Set("draft", draft);
-        output.Summary = $"{recommendation}: {assessment.RecommendationReason}";
+        output.Summary = excludedBy is null
+            ? $"{recommendation}: {assessment.RecommendationReason}"
+            : $"{recommendation}, excluded by your step \"{excludedBy}\"";
         return Task.FromResult(output);
+    }
+
+    /// <summary>The user's steps' results, in workflow order. A step that returned nothing usable is flagged, never passed.</summary>
+    internal static List<StepResult> StepResults(BrickInput input)
+    {
+        var meta = Json.Read<List<StepMeta>>(input.Get("steps", "[]") ?? "[]") ?? [];
+        var results = new List<StepResult>(meta.Count);
+        foreach (var m in meta)
+        {
+            if (m.Kind == StepContract.Column)
+            {
+                var value = input.TryGet<string>($"value.{m.Key}", out var v) && v is not null ? v : "";
+                results.Add(new StepResult(m.Key, m.Name, m.Kind, "value", Bound(value)));
+                continue;
+            }
+            var verdict = input.TryGet<string>($"verdict.{m.Key}", out var raw) && raw is not null ? raw.Trim().ToLowerInvariant() : "";
+            var note = input.TryGet<string>($"note.{m.Key}", out var n) && n is not null ? n : "";
+            if (!StepContract.Verdicts.Contains(verdict))
+                (verdict, note) = ("flag", verdict.Length == 0 ? "the step returned no verdict" : $"the step returned an unknown verdict \"{Bound(verdict, 40)}\"");
+            results.Add(new StepResult(m.Key, m.Name, m.Kind, verdict, Bound(note)));
+        }
+        return results;
+    }
+
+    private static string Bound(string text, int max = 300) => text.Length <= max ? text : text[..max] + "…";
+
+    /// <summary>One user step, as the workflow tells the decide node about it.</summary>
+    public sealed record StepMeta(string Key, string Name, string Kind);
+}
+
+/// <summary>
+/// <c>jobsearch.posting-fields</c>: a posting's fields as plain text, the inputs every user step receives
+/// (<see cref="StepContract.PostingInputs"/>). Empty strings when nothing was read.
+/// </summary>
+public sealed class PostingFieldsBrick : Ashlar.Core.Domain.Bricks.Brick
+{
+    /// <summary>Longest description handed to a step.</summary>
+    public const int MaxDescription = 20000;
+
+    /// <summary>Creates the brick.</summary>
+    public PostingFieldsBrick()
+    {
+        Id = "jobsearch.posting-fields";
+        Name = "Posting fields for your steps";
+        Version = "1.0.0";
+        Icon = "🧾";
+        Category = BrickCategory.Analysis;
+        Description = "Gives a posting's title, employer, location, arrangement, text, pay and skills to the user's own steps as plain text.";
+        Implementations = CodeImplementation.Deterministic("Copies posting and screening fields; no model.");
+        Interface = new BrickInterface
+        {
+            Inputs =
+            [
+                new BrickInputDefinition("posting", "object", "JobPosting, when read", required: false),
+                new BrickInputDefinition("assessment", "object", "Assessment, when screened", required: false),
+            ],
+            Outputs = [.. StepContract.PostingInputs.Select(f => new BrickOutputDefinition(f, "string", StepContract.InputHelp[f]))],
+        };
+    }
+
+    /// <inheritdoc />
+    public override Task<BrickOutput> ExecuteAsync(BrickInput input, ImplementationType implementation, IExecutionContext context, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        var output = new BrickOutput();
+        var posting = input.TryGet<JobPosting>("posting", out var p) ? p : null;
+        var assessment = input.TryGet<Assessment>("assessment", out var a) ? a : null;
+        foreach (var (k, v) in Fields(posting, assessment))
+            output.Set(k, v);
+        output.Summary = posting is null ? "no posting" : $"fields of {posting.Employer} — {posting.Title}";
+        return Task.FromResult(output);
+    }
+
+    /// <summary>The fields, keyed by input name. Exposed for the designer's preview and for tests.</summary>
+    public static Dictionary<string, string> Fields(JobPosting? p, Assessment? a)
+    {
+        string Pay(decimal? d) => d is { } x ? decimal.Round(x).ToString("0", CultureInfo.InvariantCulture) : "";
+        var required = a?.Requirements.SkillsRequired ?? [];
+        var matched = a?.MatchedSkills ?? [];
+        var description = p?.Description ?? "";
+        return new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["title"] = p?.Title ?? "",
+            ["employer"] = p?.Employer ?? "",
+            ["location"] = p?.Location ?? "",
+            ["arrangement"] = p?.WorkArrangement ?? "",
+            ["description"] = description.Length <= MaxDescription ? description : description[..MaxDescription],
+            ["payMin"] = Pay(a?.Requirements.PayMin),
+            ["payMax"] = Pay(a?.Requirements.PayMax),
+            ["skillsRequired"] = string.Join("\n", required),
+            ["skillsMissing"] = string.Join("\n", required.Where(r => !matched.Contains(r, StringComparer.Ordinal))),
+        };
     }
 }
 

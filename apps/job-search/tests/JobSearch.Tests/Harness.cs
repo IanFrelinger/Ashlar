@@ -17,7 +17,15 @@ public sealed class Harness : IDisposable
     public App App { get; }
     public List<TimeSpan> Waits { get; } = [];
 
-    public Harness(IEgressGuard? apiGuard = null, Ashlar.Abstractions.IModel? model = null, string? certifiedDir = null)
+    /// <summary>One certification cache for the whole test run: identical step source and witness certify once.</summary>
+    public static readonly string CertCache = Path.Combine(Path.GetTempPath(), "jobsearch-cert-cache");
+
+    /// <summary>A fixed test signing key, so cached certifications verify in every harness.</summary>
+    public const string TestSigningKey = "dGVzdC1zaWduaW5nLWtleS0wMDAwMDAwMDAwMDAwMDA=";
+
+    public Harness(IEgressGuard? apiGuard = null, JobSearch.Privacy.IPrivateModel? model = null, string? certifiedDir = null,
+        JobSearch.Privacy.IStepWriter? writer = null, bool synthetic = false, JobSearch.Host.Studio.ForgeLimits? limits = null,
+        TimeSpan? stepTimeout = null)
     {
         var client = new WebOperationClient(new SpecStore(Path.Combine(Dir, "specs")), apiGuard ?? new EgressGuard("full", "report"), Boards,
             new WebOperationsOptions { PerHostInterval = TimeSpan.Zero }, now: () => Clock.Now);
@@ -25,7 +33,9 @@ public sealed class Harness : IDisposable
         {
             DataDir = Dir, GoogleMode = "fake", Fake = Google, Web = client,
             Delay = (d, _) => { lock (Waits) Waits.Add(d); return Task.CompletedTask; },
-            Model = model, CertifiedDir = certifiedDir,
+            PrivateModel = model, StepWriter = writer, CertifiedDir = certifiedDir, Synthetic = synthetic,
+            SigningKey = TestSigningKey, CertificationCacheDir = CertCache, ForgeLimits = limits ?? new(),
+            SeedsDir = Path.Combine(AppContext.BaseDirectory, "library-seeds"), StepTimeout = stepTimeout ?? TimeSpan.FromSeconds(3),
         });
     }
 
@@ -59,6 +69,20 @@ public sealed class Harness : IDisposable
         });
         return (id, App.ConnectFakeGoogle(id, SamEmail));
     }
+
+    private static readonly SemaphoreSlim SeedGate = new(1, 1);
+
+    /// <summary>Puts the starter steps in this harness's library. The first call in a test run certifies them; the rest hit the cache.</summary>
+    public async Task SeedAsync()
+    {
+        await SeedGate.WaitAsync();
+        try { await App.Library.EnsureSeedsAsync(App.Certifier, App.SeedsDir, Path.Combine(Dir, "forge"), CancellationToken.None); }
+        finally { SeedGate.Release(); }
+    }
+
+    /// <summary>The library id of a starter step by its file slug.</summary>
+    public static string SeedId(string slug) => JobSearch.Host.Studio.StepLibrary.SeedId(
+        System.Text.Json.JsonSerializer.Deserialize<JobSearch.Studio.StepSeed>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "library-seeds", slug + ".json")), JobSearch.Store.Json.Options)!);
 
     public void Dispose()
     {

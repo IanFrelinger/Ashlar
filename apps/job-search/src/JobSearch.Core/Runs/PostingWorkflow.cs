@@ -4,6 +4,7 @@ using Ashlar.Core.Domain.Workflows;
 using JobSearch.Bricks;
 using JobSearch.Materials;
 using JobSearch.Screening;
+using JobSearch.Studio;
 
 namespace JobSearch.Runs;
 
@@ -34,9 +35,10 @@ public static class PostingWorkflow
     private static VisualWorkflowConnection Wire(string from, string fromPort, string to, string toPort) =>
         new() { Id = $"{from}.{fromPort}->{to}.{toPort}", FromNodeId = from, FromPortId = $"out:{fromPort}", ToNodeId = to, ToPortId = $"in:{toPort}" };
 
-    /// <summary>The workflow for one posting and one candidate.</summary>
-    public static WorkflowDefinition Build(string postingKey, string employer, CandidateContext candidate)
+    /// <summary>The workflow for one posting and one candidate, with the user's own steps (none by default).</summary>
+    public static WorkflowDefinition Build(string postingKey, string employer, CandidateContext candidate, IReadOnlyList<CompiledStep>? steps = null)
     {
+        steps ??= [];
         var nodes = new List<WorkflowNode>
         {
             new InputNode { Id = "posting-ref", Name = "Posting ref", Type = InputType.Content, Content = postingKey, Outputs = [Out("data")] },
@@ -61,7 +63,11 @@ public static class PostingWorkflow
             new BrickNode
             {
                 Id = "decide", Name = "Apply the recommendation", BrickId = "jobsearch.decide", Implementation = Ashlar.Core.Domain.Bricks.ImplementationType.Deterministic,
-                Inputs = [In("screened"), In("assessment"), In("recommendation"), In("reason"), In("posting"), In("candidate")],
+                Inputs =
+                [
+                    In("screened"), In("assessment"), In("recommendation"), In("reason"), In("posting"), In("candidate"), In("steps"),
+                    .. steps.SelectMany(st => StepContract.Outputs(st.Kind).Select(o => In($"{o}.{st.Key}"))),
+                ],
                 Outputs = [Out("recommendation"), Out("assessment"), Out("draft")],
             },
             new BrickNode
@@ -76,6 +82,37 @@ public static class PostingWorkflow
                 Outputs = [Out("validated"), Out("passed"), Out("resumeValidation"), Out("coverValidation"), Out("resumePdf"), Out("coverPdf")],
             },
         };
+        // The user's steps: each gets the posting's fields and its own settings, and reports to the decide node.
+        if (steps.Count > 0)
+        {
+            nodes.Add(new BrickNode
+            {
+                Id = "fields", Name = "Posting fields", BrickId = "jobsearch.posting-fields", Implementation = Ashlar.Core.Domain.Bricks.ImplementationType.Deterministic,
+                Inputs = [In("posting"), In("assessment")], Outputs = [.. StepContract.PostingInputs.Select(Out)],
+            });
+        }
+        nodes.Add(new InputNode
+        {
+            Id = "steps-meta", Name = "Your steps", Type = InputType.Content, Outputs = [Out("data")],
+            Content = Store.Json.Write(steps.Select(st => new DecideBrick.StepMeta(st.Key, st.Name, st.Kind)).ToList()),
+        });
+        foreach (var st in steps)
+        {
+            nodes.Add(new BrickNode
+            {
+                Id = StepNode(st), Name = st.Name, BrickId = st.BrickId, Implementation = Ashlar.Core.Domain.Bricks.ImplementationType.Deterministic,
+                Inputs = [.. StepContract.Inputs.Select(In)], Outputs = [.. StepContract.Outputs(st.Kind).Select(Out)],
+            });
+            for (var i = 0; i < StepContract.SettingInputs.Length; i++)
+            {
+                nodes.Add(new InputNode
+                {
+                    Id = $"{StepNode(st)}-{StepContract.SettingInputs[i]}", Name = $"{st.Name}: {StepContract.SettingInputs[i]}", Type = InputType.Content,
+                    Content = i < st.Settings.Count ? st.Settings[i] : "", Outputs = [Out("data")],
+                });
+            }
+        }
+
         List<VisualWorkflowConnection> wires =
         [
             Wire("posting-ref", "data", "get", "posting"), Wire("employer", "data", "get", "employer"),
@@ -88,7 +125,20 @@ public static class PostingWorkflow
             Wire("candidate", "data", "tailor", "candidate"),
             Wire("tailor", "drafted", "validate", "drafted"), Wire("tailor", "resume", "validate", "resume"), Wire("tailor", "coverLetter", "validate", "coverLetter"),
             Wire("get", "posting", "validate", "posting"), Wire("decide", "assessment", "validate", "assessment"), Wire("candidate", "data", "validate", "candidate"),
+            Wire("steps-meta", "data", "decide", "steps"),
         ];
+        if (steps.Count > 0)
+        {
+            wires.Add(Wire("get", "posting", "fields", "posting"));
+            wires.Add(Wire("screen", "assessment", "fields", "assessment"));
+        }
+        foreach (var st in steps)
+        {
+            var node = StepNode(st);
+            wires.AddRange(StepContract.PostingInputs.Select(f => Wire("fields", f, node, f)));
+            wires.AddRange(StepContract.SettingInputs.Select(si => Wire($"{node}-{si}", "data", node, si)));
+            wires.AddRange(StepContract.Outputs(st.Kind).Select(o => Wire(node, o, "decide", $"{o}.{st.Key}")));
+        }
         return new WorkflowDefinition
         {
             Id = $"jobsearch.posting:{postingKey}", Name = "jobsearch: read, screen, decide (certified), draft, validate one posting",
@@ -96,8 +146,12 @@ public static class PostingWorkflow
         };
     }
 
+    /// <summary>The node id of a user step.</summary>
+    public static string StepNode(CompiledStep step) => $"user-{step.Key}";
+
     /// <summary>Executes the workflow and collects its outputs and a log line per node.</summary>
-    public static async Task<PostingOutcome> RunAsync(WorkflowExecutor executor, string postingKey, string employer, CandidateContext candidate, CancellationToken ct)
+    public static async Task<PostingOutcome> RunAsync(WorkflowExecutor executor, string postingKey, string employer, CandidateContext candidate, CancellationToken ct,
+        IReadOnlyList<CompiledStep>? steps = null)
     {
         var log = new List<string>();
         using var _ = executor.Events.Subscribe(new Observer(e =>
@@ -105,7 +159,7 @@ public static class PostingWorkflow
             if (e is NodeCompletedEvent { Node: BrickNode n } done)
                 lock (log) log.Add($"{n.BrickId}: {Describe(done.Result.Outputs)}");
         }));
-        var result = await executor.ExecuteAsync(Build(postingKey, employer, candidate), new WorkflowInput(), ct).ConfigureAwait(false);
+        var result = await executor.ExecuteAsync(Build(postingKey, employer, candidate, steps), new WorkflowInput(), ct).ConfigureAwait(false);
 
         T? Out<T>(string node, string key) =>
             result.NodeResults.TryGetValue(node, out var r) && r.Outputs.TryGetValue(key, out var v) && v is T t ? t : default;

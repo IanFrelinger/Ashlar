@@ -12,16 +12,26 @@ namespace JobSearch.Workspace;
 
 /// <summary>
 /// Secrets (OAuth tokens), kept out of the database: one JSON file readable only by the service account
-/// (mode 0600 on Unix), keyed by token reference. Never logged, exported or snapshotted.
+/// (mode 0600 on Unix), keyed by token reference. Never logged, exported or snapshotted. With a master key every value
+/// is encrypted with AES-256-GCM (the reference is bound as associated data, so a value cannot be moved to another
+/// user's reference), so a backup of the data directory holds no usable token without the key, which is kept out of it.
 /// </summary>
-public sealed class SecretStore(string path)
+public sealed class SecretStore(string path, byte[]? masterKey = null)
 {
+    private const string Prefix = "enc:v1:";
     private readonly object _lock = new();
+
+    /// <summary>Whether values are encrypted at rest.</summary>
+    public bool Encrypted => masterKey is not null;
 
     /// <summary>The secret, or null.</summary>
     public Dictionary<string, string>? Get(string reference)
     {
-        lock (_lock) return Load().GetValueOrDefault(reference);
+        lock (_lock)
+        {
+            var stored = Load().GetValueOrDefault(reference);
+            return stored?.ToDictionary(kv => kv.Key, kv => Open(reference, kv.Value), StringComparer.Ordinal);
+        }
     }
 
     /// <summary>Stores a secret.</summary>
@@ -30,13 +40,57 @@ public sealed class SecretStore(string path)
         lock (_lock)
         {
             var all = Load();
-            all[reference] = secret;
-            var tmp = path + ".tmp";
-            File.WriteAllText(tmp, JsonSerializer.Serialize(all));
-            if (!OperatingSystem.IsWindows())
-                File.SetUnixFileMode(tmp, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-            File.Move(tmp, path, overwrite: true);
+            all[reference] = secret.ToDictionary(kv => kv.Key, kv => Seal(reference, kv.Value), StringComparer.Ordinal);
+            Save(all);
         }
+    }
+
+    /// <summary>Removes a secret (account deletion). True when one was there.</summary>
+    public bool Remove(string reference)
+    {
+        lock (_lock)
+        {
+            var all = Load();
+            if (!all.Remove(reference))
+                return false;
+            Save(all);
+            return true;
+        }
+    }
+
+    private string Seal(string reference, string value)
+    {
+        if (masterKey is null)
+            return value;
+        var nonce = System.Security.Cryptography.RandomNumberGenerator.GetBytes(12);
+        var plain = Encoding.UTF8.GetBytes(value);
+        var cipher = new byte[plain.Length];
+        var tag = new byte[16];
+        using var aes = new System.Security.Cryptography.AesGcm(masterKey, 16);
+        aes.Encrypt(nonce, plain, cipher, tag, Encoding.UTF8.GetBytes(reference));
+        return Prefix + Convert.ToBase64String([.. nonce, .. tag, .. cipher]);
+    }
+
+    private string Open(string reference, string stored)
+    {
+        if (!stored.StartsWith(Prefix, StringComparison.Ordinal))
+            return stored; // written before encryption was configured; re-sealed on the next Put
+        if (masterKey is null)
+            throw new InvalidOperationException("secrets are encrypted at rest and no master key is configured (JOBSEARCH_MASTER_KEY)");
+        var blob = Convert.FromBase64String(stored[Prefix.Length..]);
+        var plain = new byte[blob.Length - 28];
+        using var aes = new System.Security.Cryptography.AesGcm(masterKey, 16);
+        aes.Decrypt(blob.AsSpan(0, 12), blob.AsSpan(28), blob.AsSpan(12, 16), plain, Encoding.UTF8.GetBytes(reference));
+        return Encoding.UTF8.GetString(plain);
+    }
+
+    private void Save(Dictionary<string, Dictionary<string, string>> all)
+    {
+        var tmp = path + ".tmp";
+        File.WriteAllText(tmp, JsonSerializer.Serialize(all));
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(tmp, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        File.Move(tmp, path, overwrite: true);
     }
 
     private Dictionary<string, Dictionary<string, string>> Load() =>

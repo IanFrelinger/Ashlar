@@ -10,14 +10,17 @@ using Ashlar.Hosting.Sdk.Extensions;
 using JobSearch.Accounts;
 using JobSearch.Bricks;
 using JobSearch.Certified;
+using JobSearch.Host.Studio;
 using JobSearch.Materials;
+using JobSearch.Privacy;
 using JobSearch.Profile;
 using JobSearch.Runs;
 using JobSearch.Store;
+using JobSearch.Studio;
 using JobSearch.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 
-#pragma warning disable ASHLAREXP002 // IEgressGuard is the experimental egress surface; the app passes a guard to its Google and web-operations clients by design.
+#pragma warning disable ASHLAREXP002 // IEgressGuard and EgressGuard are the experimental egress surface; the app passes a guard to its Google, web-operations and model clients by design.
 
 namespace JobSearch.Host;
 
@@ -42,8 +45,26 @@ public sealed record AppOptions
     public Func<TimeSpan, CancellationToken, Task>? Delay { get; init; }
     /// <summary>Where the certified bricks are deployed; null for the copy next to the app.</summary>
     public string? CertifiedDir { get; init; }
-    /// <summary>The model for model-worded cover letters; null for the model Ashlar's host configuration provides.</summary>
-    public IModel? Model { get; init; }
+    /// <summary>The server-hosted model for anything with personal data; null builds one from the environment.</summary>
+    public IPrivateModel? PrivateModel { get; init; }
+    /// <summary>The external step writer; null builds one from the environment.</summary>
+    public IStepWriter? StepWriter { get; init; }
+    /// <summary>Synthetic mode (QA and demos): deterministic stand-ins for both model tiers; the web host marks itself synthetic.</summary>
+    public bool Synthetic { get; init; }
+    /// <summary>Base64 Ed25519 private key that signs certified steps; null reads JOBSEARCH_SIGNING_KEY or a development key.</summary>
+    public string? SigningKey { get; init; }
+    /// <summary>Base64 AES-256 key for secrets at rest; null reads JOBSEARCH_MASTER_KEY or a development key.</summary>
+    public string? MasterKey { get; init; }
+    /// <summary>Where starter steps are; null for the copy next to the app.</summary>
+    public string? SeedsDir { get; init; }
+    /// <summary>A cache of certification verdicts keyed by source and witness (tests share one); null disables it.</summary>
+    public string? CertificationCacheDir { get; init; }
+    /// <summary>Limits on new steps.</summary>
+    public ForgeLimits ForgeLimits { get; init; } = new();
+    /// <summary>Step-host processes.</summary>
+    public int StepHosts { get; init; } = 2;
+    /// <summary>How long one step may run on one posting.</summary>
+    public TimeSpan StepTimeout { get; init; } = TimeSpan.FromSeconds(3);
 }
 
 /// <summary>Ashlar's real composition root (AddAshlarSdk + AddAshlar) with the app's bricks registered.</summary>
@@ -52,16 +73,19 @@ public sealed class AshlarRuntime : IAshlarRuntime, IDisposable
     /// <summary>The bricks the app registers and requires.</summary>
     public static readonly string[] RequiredBricks =
     [
-        "web.call", "web.learn", "jobs.list-board", "jobs.get-posting", "jobsearch.screen", "jobsearch.decide", "jobsearch.tailor",
-        "jobsearch.validate-materials", "generative-artifact", .. CertifiedIds.All,
+        "web.call", "web.learn", "jobs.list-board", "jobs.get-posting", "jobsearch.screen", "jobsearch.decide", "jobsearch.posting-fields",
+        "jobsearch.tailor", "jobsearch.validate-materials", "generative-artifact", .. CertifiedIds.All,
     ];
 
     private readonly ServiceProvider _provider;
     private readonly CertifiedBricks _certified;
     private readonly bool _ownsCertified;
 
-    /// <summary>Builds the Ashlar host. <paramref name="certified"/> null loads (and owns) the deployed certified bricks.</summary>
-    public AshlarRuntime(WebOperationClient web, CertifiedBricks? certified = null, IModel? model = null)
+    /// <summary>
+    /// Builds the Ashlar host. <paramref name="certified"/> null loads (and owns) the deployed certified bricks;
+    /// <paramref name="library"/> puts the studio's library steps in front of the executor.
+    /// </summary>
+    public AshlarRuntime(WebOperationClient web, CertifiedBricks? certified = null, IPrivateModel? privateModel = null, StepLibrary? library = null)
     {
         _ownsCertified = certified is null;
         _certified = certified ?? CertifiedBricks.Load(CertifiedBricks.DefaultDirectory);
@@ -69,6 +93,7 @@ public sealed class AshlarRuntime : IAshlarRuntime, IDisposable
         services.AddLogging();
         services.AddSingleton(web); // the web-operation bricks take it through their constructor
         services.AddSingleton<ICertifiedRules>(_certified);
+        services.AddSingleton(privateModel ?? new UnavailablePrivateModel());
         services.AddAshlarSdk(sdk => sdk
             .RegisterBrick<WebCallBrick>()
             .RegisterBrick<WebLearnBrick>()
@@ -76,14 +101,13 @@ public sealed class AshlarRuntime : IAshlarRuntime, IDisposable
             .RegisterBrick<JobPostingBrick>()
             .RegisterBrick<ScreenBrick>()
             .RegisterBrick<DecideBrick>()
+            .RegisterBrick<PostingFieldsBrick>()
             .RegisterBrick<TailorBrick>()
             .RegisterBrick<ValidateMaterialsBrick>());
         services.AddAshlarGenerativeAgents();
         services.AddAshlarAgentProfile<CoverLetterProfile>();
         services.AddAshlar(o => o.RegisterBackgroundAgentHostedService = false);
-        if (model is not null)
-            services.AddSingleton(model);
-        OverlayCertified(services, _certified);
+        OverlayCertified(services, _certified, library);
         _provider = services.BuildServiceProvider();
 
         // The registry skips a brick it cannot construct without saying so; fail here, loudly, instead.
@@ -97,7 +121,7 @@ public sealed class AshlarRuntime : IAshlarRuntime, IDisposable
     /// Replaces the last IBrickRegistry registration with the same one behind <see cref="CertifiedOverlayRegistry"/>, keeping
     /// its lifetime, so the workflow executor resolves the certified bricks to the verified instances.
     /// </summary>
-    private static void OverlayCertified(IServiceCollection services, CertifiedBricks certified)
+    private static void OverlayCertified(IServiceCollection services, CertifiedBricks certified, StepLibrary? library)
     {
         var original = services.Last(d => d.ServiceType == typeof(IBrickRegistry) && !d.IsKeyedService);
         services.Remove(original);
@@ -106,7 +130,7 @@ public sealed class AshlarRuntime : IAshlarRuntime, IDisposable
             var inner = original.ImplementationInstance as IBrickRegistry
                 ?? original.ImplementationFactory?.Invoke(sp) as IBrickRegistry
                 ?? (IBrickRegistry)ActivatorUtilities.CreateInstance(sp, original.ImplementationType!);
-            return new CertifiedOverlayRegistry(inner, certified);
+            return new CertifiedOverlayRegistry(inner, certified, library);
         }, original.Lifetime));
     }
 
@@ -158,6 +182,30 @@ public sealed class App : IDisposable
     public AshlarRuntime Ashlar { get; }
     /// <summary>The verified certified bricks.</summary>
     public CertifiedBricks Certified { get; }
+    /// <summary>Platform keys.</summary>
+    public StudioKeys Keys { get; }
+    /// <summary>Each user's workflow.</summary>
+    public WorkflowStore Workflows { get; }
+    /// <summary>The shared step library.</summary>
+    public StepLibrary Library { get; }
+    /// <summary>The isolated step hosts.</summary>
+    public StepHostPool StepHosts { get; }
+    /// <summary>Certifies steps in a child process.</summary>
+    public StepCertifier Certifier { get; }
+    /// <summary>New steps from plain words.</summary>
+    public ForgeService Forge { get; }
+    /// <summary>Consent, export, erasure, retention.</summary>
+    public Compliance Compliance { get; }
+    /// <summary>The server-hosted model for personal data.</summary>
+    public IPrivateModel PrivateModel { get; }
+    /// <summary>Whether this instance runs on synthetic data only.</summary>
+    public bool Synthetic { get; }
+    /// <summary>Where the starter steps are.</summary>
+    public string SeedsDir { get; }
+    /// <summary>The data directory.</summary>
+    public string DataDir { get; }
+    /// <summary>Completes when the web host's worker has put the starter steps in the library.</summary>
+    public TaskCompletionSource SeedsReady { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     /// <summary>Wires the app.</summary>
     public App(AppOptions o)
@@ -169,7 +217,14 @@ public sealed class App : IDisposable
         Profiles = new ProfileService(Db, Access);
         Applications = new ApplicationService(Db, Access);
         Tracker = new TrackerService(Db, Applications);
-        Secrets = new SecretStore(Path.Combine(o.DataDir, "secrets.json"));
+        DataDir = o.DataDir;
+        Synthetic = o.Synthetic;
+        var certifiedDir = o.CertifiedDir ?? CertifiedBricks.DefaultDirectory;
+        var alsoTrusted = CertifiedBricks.PinnedKeys(certifiedDir)
+            .Concat((Environment.GetEnvironmentVariable("JOBSEARCH_TRUSTED_KEYS") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        Keys = StudioKeys.Load(o.DataDir, o.SigningKey ?? Environment.GetEnvironmentVariable("JOBSEARCH_SIGNING_KEY"),
+            o.MasterKey ?? Environment.GetEnvironmentVariable("JOBSEARCH_MASTER_KEY"), alsoTrusted);
+        Secrets = new SecretStore(Path.Combine(o.DataDir, "secrets.json"), Keys.MasterKey);
         Fake = o.GoogleMode == "fake" ? o.Fake ?? new FakeGoogle(Path.Combine(o.DataDir, "fake-google.json")) : null;
         var fake = Fake;
         Func<Connection, IGoogleWorkspace> build = fake is not null
@@ -177,9 +232,26 @@ public sealed class App : IDisposable
             : conn => new GoogleRestWorkspace(Secrets, conn.TokenRef,
                 o.GoogleClientId ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID is not set"),
                 o.GoogleClientSecret, o.Guard); // null: the environment's credential for oauth2.googleapis.com authenticates the client
-        Certified = CertifiedBricks.Load(o.CertifiedDir ?? CertifiedBricks.DefaultDirectory);
-        Ashlar = new AshlarRuntime(o.Web ?? new WebOperationClient(new SpecStore(Path.Combine(o.DataDir, "specs")), o.Guard, now: () => Clock.Now), Certified, o.Model);
-        Engine = new RunEngine(Db, Accounts, Profiles, Tracker, new WorkspaceFactory(Accounts, build), Ashlar, o.Delay);
+        Certified = CertifiedBricks.Load(certifiedDir);
+        Workflows = new WorkflowStore(Db, Access);
+        StepHosts = new StepHostPool(Keys.TrustedKeys, o.StepHosts, o.StepTimeout);
+        Library = new StepLibrary(Db, Path.Combine(o.DataDir, "library"), Keys, StepHosts);
+        Certifier = new StepCertifier(Keys, cacheDir: o.CertificationCacheDir);
+        SeedsDir = o.SeedsDir ?? Path.Combine(AppContext.BaseDirectory, "library-seeds");
+        // Both model tiers go through an enforcing guard: a call off this host from a frame that read PII is refused.
+        var modelGuard = new EgressGuard("full", "enforce");
+        PrivateModel = o.PrivateModel ?? (o.Synthetic ? new SyntheticPrivateModel()
+            : Environment.GetEnvironmentVariable("JOBSEARCH_PRIVATE_MODEL_URL") is { Length: > 0 } privateUrl
+                ? new OllamaPrivateModel(new Uri(privateUrl), Environment.GetEnvironmentVariable("JOBSEARCH_PRIVATE_MODEL") ?? "llama3.1:8b", modelGuard)
+                : new UnavailablePrivateModel());
+        var writer = o.StepWriter ?? (o.Synthetic ? new SyntheticStepWriter()
+            : Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY") is { Length: > 0 } apiKey
+                ? new ClaudeStepWriter(apiKey, Environment.GetEnvironmentVariable("JOBSEARCH_FORGE_MODEL"), modelGuard)
+                : new UnavailableStepWriter());
+        Forge = new ForgeService(Db, Profiles, Workflows, Library, Certifier, PrivateModel, writer, o.ForgeLimits, Path.Combine(o.DataDir, "forge"));
+        Compliance = new Compliance(Db, Secrets, Library, System.Security.Cryptography.HMACSHA256.HashData(Keys.MasterKey, "deletion-pepper"u8));
+        Ashlar = new AshlarRuntime(o.Web ?? new WebOperationClient(new SpecStore(Path.Combine(o.DataDir, "specs")), o.Guard, now: () => Clock.Now), Certified, PrivateModel, Library);
+        Engine = new RunEngine(Db, Accounts, Profiles, Tracker, new WorkspaceFactory(Accounts, build), Ashlar, o.Delay, new StudioWorkflowSource(Workflows, Library));
         Dispatcher = new Dispatcher(Db, Accounts, Engine);
         Snapshots = new Snapshots(Db, Applications);
     }
@@ -199,5 +271,7 @@ public sealed class App : IDisposable
     {
         Ashlar.Dispose();
         Certified.Dispose();
+        StepHosts.Dispose();
+        (PrivateModel as IDisposable)?.Dispose();
     }
 }

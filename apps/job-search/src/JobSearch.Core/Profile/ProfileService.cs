@@ -126,6 +126,8 @@ public sealed class ProfileService(Db db, AccessControl access)
     /// <summary>The profile, with user-only fields shown as unknown when absent. Null when no résumé is stored.</summary>
     public CandidateProfile? Load(string userId)
     {
+        // The résumé and profile are personal data: from here on this flow may reach only the private model (STUDIO.md §3).
+        Privacy.Pii.Observe();
         var resume = db.Read(c => c.QuerySingleOrDefault<(string Text, string Sha)?>(
             "SELECT text, sha256 FROM resume_versions WHERE user_id=@userId AND is_current=1", new { userId }));
         var rows = db.Read(c => c.Query<(string Field, string? Value, string Source, string Status, string? Evidence)>(
