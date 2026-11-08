@@ -102,6 +102,57 @@ public sealed class DockerSandboxSessionTests
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*no such image*");
     }
 
+    [Fact]
+    public async Task FailedStart_RemovesTheKnownContainerName_AndPreservesTheLaunchFailure()
+    {
+        var calls = new List<IReadOnlyList<string>>();
+        var docker = new FakeProcessRunner((_, args) =>
+        {
+            calls.Add(args.ToArray());
+            return Task.FromResult(args[0] == "run"
+                ? new ProcessCommandResult(125, "", "launch failed after create")
+                : new ProcessCommandResult(1, "", "cleanup also failed"));
+        });
+        var runner = new DockerSandboxedSessionRunner(docker);
+
+        var act = () => runner.StartAsync(KeepaliveSpec());
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*launch failed after create*");
+        var name = calls[0][calls[0].ToList().IndexOf("--name") + 1];
+        calls[1].Should().Equal("rm", "-f", name);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CancelledStart_CleansUpWithAnIndependentToken_EvenAfterSuccessfulResponse(bool returnSuccess)
+    {
+        using var caller = new CancellationTokenSource();
+        var calls = new List<IReadOnlyList<string>>();
+        var docker = new TokenAwareProcessRunner((args, token) =>
+        {
+            calls.Add(args.ToArray());
+            if (args[0] == "run")
+            {
+                caller.Cancel();
+                if (!returnSuccess)
+                    throw new OperationCanceledException(token);
+                return Task.FromResult(new ProcessCommandResult(0, "created", ""));
+            }
+
+            token.IsCancellationRequested.Should().BeFalse("launch cancellation must not prevent removal");
+            return Task.FromResult(new ProcessCommandResult(0, "", ""));
+        });
+        var runner = new DockerSandboxedSessionRunner(docker);
+
+        var act = () => runner.StartAsync(KeepaliveSpec(), caller.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        calls.Should().HaveCount(2);
+        var name = calls[0][calls[0].ToList().IndexOf("--name") + 1];
+        calls[1].Should().Equal("rm", "-f", name);
+    }
+
     // --- exec + teardown -----------------------------------------------------------------
 
     [Fact]
@@ -152,6 +203,30 @@ public sealed class DockerSandboxSessionTests
         var act = () => session.DisposeAsync().AsTask();
 
         await act.Should().NotThrowAsync("a failed teardown must not mask the work's own result");
+    }
+
+    [Fact]
+    public async Task Teardown_StopsWaitingAtItsOwnDeadline_WithoutMaskingTheWorkResult()
+    {
+        var clock = new ControlledTimerClock();
+        var docker = new TokenAwareProcessRunner(async (args, token) =>
+        {
+            if (args[0] == "rm")
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+            return new ProcessCommandResult(0, "", "");
+        });
+        var runner = new DockerSandboxedSessionRunner(docker, clock);
+        var session = await runner.StartAsync(KeepaliveSpec());
+
+        var cleanup = session.DisposeAsync().AsTask();
+        cleanup.IsCompleted.Should().BeFalse();
+        clock.DueTime.Should().Be(DockerSandboxedSessionRunner.TeardownTimeout);
+        clock.Fire();
+        var act = () => cleanup.WaitAsync(TimeSpan.FromSeconds(5));
+
+        await act.Should().NotThrowAsync("the reaper handles removal after the bounded attempt");
+        var exec = () => session.ExecAsync(new[] { "echo", "after-timeout" });
+        await exec.Should().ThrowAsync<InvalidOperationException>().WithMessage("*stopped*");
     }
 
     // --- reaper --------------------------------------------------------------------------
@@ -284,6 +359,41 @@ public sealed class DockerSandboxSessionTests
     }
 
     // --- helpers -------------------------------------------------------------------------
+
+    private sealed class ControlledTimerClock : TimeProvider
+    {
+        private TimerCallback? _callback;
+        private object? _state;
+        public TimeSpan DueTime { get; private set; }
+        public void Fire() => _callback!(_state);
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            _callback = callback;
+            _state = state;
+            DueTime = dueTime;
+            return new NoopTimer();
+        }
+
+        private sealed class NoopTimer : ITimer
+        {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class TokenAwareProcessRunner : IProcessCommandRunner
+    {
+        private readonly Func<IReadOnlyList<string>, CancellationToken, Task<ProcessCommandResult>> _handler;
+        public TokenAwareProcessRunner(Func<IReadOnlyList<string>, CancellationToken, Task<ProcessCommandResult>> handler) =>
+            _handler = handler;
+        public Task<ProcessCommandResult> RunAsync(string fileName, IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken = default)
+        {
+            fileName.Should().Be("docker");
+            return _handler(arguments, cancellationToken);
+        }
+    }
 
     private sealed class FrozenClock : TimeProvider
     {

@@ -16,12 +16,12 @@
     "projects": 62,
     "projects_shipped_to_nuget": 24,
     "projects_declaring_ispackable_true": 20,
-    "config_variables": 179,
+    "config_variables": 181,
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 841,
-    "declared_facts": 5559,
+    "test_files_declaring_facts": 843,
+    "declared_facts": 5581,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -1594,6 +1594,15 @@
       "in_any_document": true
     },
     {
+      "name": "ASHLAR_ISOLATED_TASK_TEST_IMAGE",
+      "declared_in": [
+        "Ashlar.Tests.Infrastructure"
+      ],
+      "test_only": true,
+      "in_configuration_reference": false,
+      "in_any_document": true
+    },
+    {
       "name": "ASHLAR_KEY_DIR",
       "declared_in": [
         "Ashlar.Manifest",
@@ -2366,6 +2375,15 @@
     },
     {
       "name": "ASHLAR_RUN_DYNAMODB_CONTAINER",
+      "declared_in": [
+        "Ashlar.Tests.Infrastructure"
+      ],
+      "test_only": true,
+      "in_configuration_reference": false,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_RUN_ISOLATED_TASK_DOCKER",
       "declared_in": [
         "Ashlar.Tests.Infrastructure"
       ],
@@ -3416,6 +3434,13 @@
       "project": "Ashlar.Tests.Application",
       "namespace": "Ashlar.Tests.Application.Tests.Bricks",
       "declared_facts": 12,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Application/Tests/Execution/IsolatedTaskContractTests.cs",
+      "project": "Ashlar.Tests.Application",
+      "namespace": "Ashlar.Tests.Application.Tests.Execution",
+      "declared_facts": 3,
       "in_cert_gate_filter": false
     },
     {
@@ -6390,7 +6415,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/DockerSandboxSessionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
-      "declared_facts": 16,
+      "declared_facts": 19,
       "in_cert_gate_filter": false
     },
     {
@@ -6454,6 +6479,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
       "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/IsolatedTaskRunnerTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
+      "declared_facts": 16,
       "in_cert_gate_filter": false
     },
     {

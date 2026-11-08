@@ -17,6 +17,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — isolated code tasks
+
+- Hosts can opt into `IIsolatedTaskRunner` with `AddAshlarIsolatedTasks`: one temporary
+  Docker session per task, explicit argv/results, no network or host mounts, resource
+  limits and pre-execution inspection. Ordinary data classes and model routing are unchanged.
+- Failed or cancelled session startup now attempts bounded cleanup; teardown cancellation
+  is recorded without replacing the task outcome. Container isolation is not a complete
+  security sandbox for hostile code. See [Isolated code tasks](docs/IsolatedCodeTasks.md).
+
 ### Changed — provider-aware and recollected release evidence
 
 - Brick contract `1.4.0` checks each required context's app binding independently. Wrong-app failures
