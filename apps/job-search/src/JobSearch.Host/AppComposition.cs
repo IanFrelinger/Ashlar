@@ -127,7 +127,7 @@ public sealed class App : IDisposable
             ? conn => fake.Client(Secrets.Get(conn.TokenRef)?.GetValueOrDefault("access_token") ?? throw new AuthExpiredException("google", "no stored credential"))
             : conn => new GoogleRestWorkspace(Secrets, conn.TokenRef,
                 o.GoogleClientId ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID is not set"),
-                o.GoogleClientSecret ?? throw new InvalidOperationException("GOOGLE_CLIENT_SECRET is not set"), o.Guard);
+                o.GoogleClientSecret, o.Guard); // null: the environment's credential for oauth2.googleapis.com authenticates the client
         Ashlar = new AshlarRuntime(o.Web ?? new WebOperationClient(new SpecStore(Path.Combine(o.DataDir, "specs")), o.Guard, now: () => Clock.Now));
         Engine = new RunEngine(Db, Accounts, Profiles, Tracker, new WorkspaceFactory(Accounts, build), Ashlar, o.Delay);
         Dispatcher = new Dispatcher(Db, Accounts, Engine);

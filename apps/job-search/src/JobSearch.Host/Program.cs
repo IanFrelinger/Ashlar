@@ -37,7 +37,7 @@ public static class Program
           restore --user E --repo DIR --commit SHA [--apply]
           runs --user E                            run history with what each checked and could not complete
 
-        Environment: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET. Learned and repaired site specs are kept in <data>/specs.
+        Environment: GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET unless a proxy injects it. Learned and repaired site specs are kept in <data>/specs.
         """;
 
     /// <summary>Main.</summary>

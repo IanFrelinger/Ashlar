@@ -22,9 +22,10 @@ public static class GoogleConnect
     {
         var clientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
         var clientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
-        if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+        if (string.IsNullOrEmpty(clientId))
         {
-            Console.Error.WriteLine("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set (a Google Cloud OAuth client for a desktop app).");
+            Console.Error.WriteLine("GOOGLE_CLIENT_ID must be set (a Google Cloud OAuth client for a desktop app). The client secret comes from " +
+                                    "GOOGLE_CLIENT_SECRET, or, when that is unset, from the environment's saved credential for oauth2.googleapis.com.");
             return 2;
         }
         if (code is null)
@@ -35,10 +36,11 @@ public static class GoogleConnect
             return 0;
         }
         using var http = EgressHttp.CreateClient(EgressFamilies.Http, Workspace.GoogleRestWorkspace.EgressSite);
-        using var resp = await http.PostAsync(new Uri("https://oauth2.googleapis.com/token"), new FormUrlEncodedContent(new Dictionary<string, string>
+        using var tokenRequest = Workspace.GoogleClientAuth.TokenRequest(clientId, clientSecret, new Dictionary<string, string>
         {
-            ["code"] = code, ["client_id"] = clientId, ["client_secret"] = clientSecret, ["redirect_uri"] = Redirect, ["grant_type"] = "authorization_code",
-        })).ConfigureAwait(false);
+            ["code"] = code, ["redirect_uri"] = Redirect, ["grant_type"] = "authorization_code",
+        });
+        using var resp = await http.SendAsync(tokenRequest).ConfigureAwait(false);
         var body = await resp.Content.ReadFromJsonAsync<JsonObject>().ConfigureAwait(false);
         if (!resp.IsSuccessStatusCode || body?["access_token"] is null)
         {

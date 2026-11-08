@@ -56,7 +56,6 @@ public sealed class GoogleRestWorkspace : IGoogleWorkspace, IDisposable
     private const string Drive = "https://www.googleapis.com/drive/v3";
     private const string Upload = "https://www.googleapis.com/upload/drive/v3";
     private const string Sheets = "https://sheets.googleapis.com/v4/spreadsheets";
-    private const string TokenUrl = "https://oauth2.googleapis.com/token";
     private const string FolderMime = "application/vnd.google-apps.folder";
     private const string DocMime = "application/vnd.google-apps.document";
     private const string SheetMime = "application/vnd.google-apps.spreadsheet";
@@ -65,10 +64,10 @@ public sealed class GoogleRestWorkspace : IGoogleWorkspace, IDisposable
     private readonly SecretStore _secrets;
     private readonly string _tokenRef;
     private readonly string _clientId;
-    private readonly string _clientSecret;
+    private readonly string? _clientSecret;
 
     /// <summary>Creates the client for one user's token.</summary>
-    public GoogleRestWorkspace(SecretStore secrets, string tokenRef, string clientId, string clientSecret, IEgressGuard? guard = null)
+    public GoogleRestWorkspace(SecretStore secrets, string tokenRef, string clientId, string? clientSecret, IEgressGuard? guard = null)
     {
         _secrets = secrets;
         _tokenRef = tokenRef;
@@ -85,11 +84,11 @@ public sealed class GoogleRestWorkspace : IGoogleWorkspace, IDisposable
         var secret = _secrets.Get(_tokenRef) ?? throw new AuthExpiredException("google");
         if (!secret.TryGetValue("refresh_token", out var refresh))
             throw new AuthExpiredException("google", "no refresh token; reconnect Google Drive");
-        using var body = new FormUrlEncodedContent(new Dictionary<string, string>
+        using var request = GoogleClientAuth.TokenRequest(_clientId, _clientSecret, new Dictionary<string, string>
         {
-            ["client_id"] = _clientId, ["client_secret"] = _clientSecret, ["refresh_token"] = refresh, ["grant_type"] = "refresh_token",
+            ["refresh_token"] = refresh, ["grant_type"] = "refresh_token",
         });
-        using var resp = await _http.PostAsync(new Uri(TokenUrl), body, ct).ConfigureAwait(false);
+        using var resp = await _http.SendAsync(request, ct).ConfigureAwait(false);
         if (resp.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized)
             throw new AuthExpiredException("google", "refresh token rejected (invalid_grant); reconnect Google Drive");
         if (!resp.IsSuccessStatusCode)
@@ -276,6 +275,36 @@ public sealed class GoogleRestWorkspace : IGoogleWorkspace, IDisposable
 
     /// <inheritdoc />
     public void Dispose() => _http.Dispose();
+}
+
+/// <summary>
+/// How the app proves its identity to Google's token endpoint. With the client secret in hand it goes in the form body.
+/// Without it, the request carries HTTP Basic client authentication (RFC 6749 §2.3.1, which Google's token endpoint
+/// accepts) whose value a credential-injecting proxy supplies; the secret then never reaches this process at all.
+/// </summary>
+public static class GoogleClientAuth
+{
+    /// <summary>Google's OAuth token endpoint.</summary>
+    public const string TokenUrl = "https://oauth2.googleapis.com/token";
+
+    /// <summary>A token request for <paramref name="form"/>, authenticated as the OAuth client.</summary>
+    public static HttpRequestMessage TokenRequest(string clientId, string? clientSecret, Dictionary<string, string> form)
+    {
+        var fields = new Dictionary<string, string>(form) { ["client_id"] = clientId };
+        var request = new HttpRequestMessage(HttpMethod.Post, new Uri(TokenUrl));
+        if (!string.IsNullOrEmpty(clientSecret))
+        {
+            fields["client_secret"] = clientSecret;
+        }
+        else
+        {
+            // Placeholder in the shape the proxy replaces; the real client id:secret is injected for this host.
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:supplied-by-the-environment")));
+        }
+        request.Content = new FormUrlEncodedContent(fields);
+        return request;
+    }
 }
 
 /// <summary>Resolves each user's client from that user's own connection: fake accounts or Google.</summary>
