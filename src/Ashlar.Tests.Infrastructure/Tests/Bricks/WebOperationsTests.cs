@@ -221,6 +221,23 @@ public sealed class WebOperationsTests
         web.Requests.Should().HaveCount(1);
     }
 
+    [Fact]
+    public async Task A_write_the_egress_guard_refuses_is_not_recorded_so_its_key_stays_usable()
+    {
+        var ledger = new InMemoryWriteLedger();
+        var web = new Web(_ => Json(new { ok = true }));
+        var store = Store(Demo(kind: "write", method: "POST"));
+        var options = new CallOptions { AllowWrites = true, IdempotencyKey = "k1" };
+        using (var airGapped = new WebOperationClient(store, new EgressGuard("air-gapped", "enforce"), web, ledger: ledger))
+            (await airGapped.CallAsync("demo", "search", A(("q", "abc")), options)).Class.Should().Be("refused");
+
+        using var allowed = new WebOperationClient(store, Allow, web, ledger: ledger, delay: (_, _) => Task.CompletedTask);
+        var sent = await allowed.CallAsync("demo", "search", A(("q", "abc")), options);
+
+        (sent.Class, sent.Write).Should().Be(("ok", "sent"), "a refused write was never sent, so its idempotency key must not count as used");
+        web.Requests.Should().ContainSingle();
+    }
+
     // ── learning ─────────────────────────────────────────────────────────────────────────────────────────
 
     private static CapturedExchange Capture(string company, string extraQuery = "", Dictionary<string, string>? headers = null) => new()
