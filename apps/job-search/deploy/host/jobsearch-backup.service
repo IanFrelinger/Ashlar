@@ -1,0 +1,12 @@
+# One backup of the studio's data to S3 (jobsearch backup); started hourly by jobsearch-backup.timer.
+[Unit]
+Description=Job Search Studio backup to S3
+Requires=docker.service
+After=docker.service jobsearch.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/jobsearch
+ExecStart=/opt/jobsearch/bin/jobsearch backup
+Nice=10
+IOSchedulingClass=idle

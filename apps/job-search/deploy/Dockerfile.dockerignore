@@ -1,0 +1,19 @@
+# The studio image's build context (docker build -f apps/job-search/deploy/Dockerfile .), as an allowlist: only what
+# `dotnet publish` of JobSearch.Host reads. This file replaces the repository's .dockerignore for this Dockerfile.
+*
+!global.json
+!VERSION
+!README.md
+!.editorconfig
+!Directory.Build.props
+!Directory.Build.targets
+!Directory.Packages.props
+!src
+!apps/job-search
+apps/job-search/qa
+apps/job-search/deploy
+apps/job-search/docs
+apps/job-search/tests
+**/bin
+**/obj
+**/node_modules

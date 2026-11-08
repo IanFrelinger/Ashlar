@@ -1,0 +1,15 @@
+# TLS in front of the studio. Certificates come from Let's Encrypt for STUDIO_DOMAIN; plain HTTP redirects to HTTPS.
+# No access log (Caddy writes none unless a `log` directive asks): request lines can carry personal data.
+{
+	email {$ACME_EMAIL}
+}
+
+{$STUDIO_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy pod:8080 {
+		# The studio has no use for a visitor's IP address, so it never receives one (data minimisation).
+		header_up -X-Forwarded-For
+		header_up -X-Real-IP
+	}
+	header -Server
+}

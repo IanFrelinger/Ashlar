@@ -1,0 +1,8 @@
+# Local Terraform state and settings: state holds no secrets by design (deploy/README.md), but it is still the
+# operator's, and a tfvars file names their domain and contact address.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+crash.log

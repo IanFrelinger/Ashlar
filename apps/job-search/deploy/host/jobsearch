@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+# The studio's operator command on the server, installed as /opt/jobsearch/bin/jobsearch by cloud-init.
+#
+#   jobsearch up            start the stack (jobsearch.service runs this at boot); does nothing until an image is set
+#   jobsearch rollout TAG   switch to another image tag, wait until the studio and its private model answer, and go
+#                           back to the previous tag if they do not (deploy.sh runs this through SSM)
+#   jobsearch backup        copy the data while the studio runs and ship it to S3 (jobsearch-backup.timer, hourly)
+#   jobsearch health        exit 0 when the studio and the private model both answer
+#   jobsearch env           write studio.env from the parameter store
+#
+# Non-secret settings are in host.conf and .env (cloud-init writes both from Terraform); secrets are read from the
+# parameter store into studio.env at each start, root-only, and only the studio container reads them.
+set -euo pipefail
+# systemd units run without /snap/bin, where the AWS CLI lives on Ubuntu.
+export PATH="$PATH:/snap/bin"
+
+home=${JOBSEARCH_HOME:-/opt/jobsearch}
+# shellcheck source=/dev/null
+. "$home/host.conf"
+cd "$home"
+
+say() { printf 'jobsearch: %s\n' "$*" >&2; }
+
+configured_image() { sed -n 's/^STUDIO_IMAGE=//p' .env; }
+
+set_image() {
+  local tmp
+  tmp=$(mktemp "$home/.env.XXXXXX")
+  sed "s|^STUDIO_IMAGE=.*|STUDIO_IMAGE=$1|" .env >"$tmp"
+  chmod 644 "$tmp"
+  mv "$tmp" .env
+}
+
+# Every parameter under PARAM_PATH becomes one variable named after its last path segment, single-quoted so compose
+# takes it literally. The file is written next to its target and moved into place, so a failed read leaves the old one.
+write_env() {
+  local tmp
+  tmp=$(mktemp "$home/.studio.env.XXXXXX")
+  chmod 600 "$tmp"
+  if ! aws ssm get-parameters-by-path --region "$AWS_REGION" --path "$PARAM_PATH" --recursive --with-decryption \
+      --query 'Parameters[].[Name,Value]' --output json | python3 -c '
+import json, re, sys
+out = []
+names = set()
+for name, value in json.load(sys.stdin):
+    key = name.rsplit("/", 1)[-1]
+    if not re.fullmatch(r"[A-Z][A-Z0-9_]*", key):
+        sys.exit(f"parameter {name}: the last segment must be an environment variable name")
+    if "\x27" in value or "\n" in value or "\r" in value:
+        sys.exit(f"parameter {name}: a value may not contain a quote or a line break")
+    out.append(f"{key}=\x27{value}\x27")
+    names.add(key)
+missing = {"GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "JOBSEARCH_SIGNING_KEY", "JOBSEARCH_MASTER_KEY"} - names
+if missing:
+    sys.exit("missing from the parameter store: " + ", ".join(sorted(missing)))
+if "ANTHROPIC_API_KEY" not in names:
+    print("jobsearch: no ANTHROPIC_API_KEY: the studio runs, but cannot write new steps", file=sys.stderr)
+print("\n".join(out))
+' >"$tmp"; then
+    rm -f "$tmp"
+    say "could not read the parameter store under $PARAM_PATH"
+    return 1
+  fi
+  mv "$tmp" studio.env
+}
+
+ecr_login() {
+  aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY" >/dev/null
+}
+
+# The pod container shares the studio's network namespace, so its loopback is the studio's (docker-compose.yml).
+probe() { docker compose exec -T pod wget -q -T 5 -O /dev/null "http://127.0.0.1:8080$1" 2>/dev/null; }
+
+healthy() { probe /health && probe /health/model; }
+
+wait_healthy() {
+  local _
+  for _ in $(seq 1 "${1:-60}"); do
+    if healthy; then return 0; fi
+    sleep 5
+  done
+  return 1
+}
+
+pull_model() {
+  local model
+  model=$(sed -n 's/^PRIVATE_MODEL=//p' .env)
+  model=${model:-llama3.1:8b}
+  # A pull of a model already on disk only checks its manifest.
+  docker compose exec -T ollama ollama pull "$model" >/dev/null
+}
+
+up() {
+  if [[ -z "$(configured_image)" ]]; then
+    say "no image yet: build and push one, then run deploy.sh (deploy/README.md)"
+    return 0
+  fi
+  write_env
+  ecr_login
+  docker compose pull --quiet
+  docker compose up -d --remove-orphans
+  pull_model
+}
+
+rollout() {
+  local tag=${1:?usage: jobsearch rollout TAG}
+  if [[ ! $tag =~ ^[A-Za-z0-9._-]{1,128}$ ]]; then
+    say "not an image tag: $tag"
+    return 2
+  fi
+  local previous image
+  previous=$(configured_image)
+  image="$ECR_REGISTRY/$STUDIO_REPOSITORY:$tag"
+  write_env
+  ecr_login
+  docker pull --quiet "$image" >/dev/null
+  set_image "$image"
+  docker compose up -d --remove-orphans
+  pull_model
+  if wait_healthy "${JOBSEARCH_WAIT_TRIES:-60}"; then
+    say "rolled out $image"
+    return 0
+  fi
+  say "$image did not come up healthy"
+  docker compose logs --tail 40 studio >&2 || true
+  if [[ -n "$previous" ]]; then
+    say "rolling back to $previous"
+    set_image "$previous"
+    docker compose up -d --remove-orphans
+    wait_healthy "${JOBSEARCH_WAIT_TRIES:-60}" || say "the previous image is not healthy either"
+  fi
+  return 1
+}
+
+# The studio copies its own data while it runs (SQLite's online backup; no keys) into a staging directory on the data
+# volume; the copy goes to S3, where the bucket's default encryption applies the backup KMS key. The newest erasure
+# ledger goes beside it, for restores (deploy/README.md, "Restore").
+backup() {
+  local stamp data staging archive
+  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  data=${DATA_DIR:-/srv/jobsearch/data}
+  staging="$data/.backup/$stamp"
+  archive=$(mktemp -d /var/tmp/jobsearch-backup.XXXXXX)
+  # shellcheck disable=SC2064 # expand now: the paths are fixed for this run
+  trap "rm -rf '$staging' '$archive'" EXIT
+  docker compose exec -T studio dotnet jobsearch.dll backup --out "/data/.backup/$stamp" >&2
+  tar -C "$staging" -czf "$archive/$stamp.tar.gz" .
+  aws s3 cp "$archive/$stamp.tar.gz" "s3://$BACKUP_BUCKET/backups/$stamp.tar.gz" --region "$AWS_REGION" --only-show-errors
+  aws s3 cp "$staging/erasures.json" "s3://$BACKUP_BUCKET/erasures/latest.json" --region "$AWS_REGION" --only-show-errors
+  say "backup $stamp: $(du -h "$archive/$stamp.tar.gz" | cut -f1)"
+}
+
+case "${1:-}" in
+  up) up ;;
+  rollout) rollout "${2:-}" ;;
+  backup) backup ;;
+  health) healthy ;;
+  env) write_env ;;
+  *) sed -n '2,12p' "$0" >&2; exit 2 ;;
+esac

@@ -1,0 +1,11 @@
+# Hourly backups, so an erasure is in the newest ledger within the hour (deploy/README.md, "Restore").
+[Unit]
+Description=Hourly Job Search Studio backup
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
