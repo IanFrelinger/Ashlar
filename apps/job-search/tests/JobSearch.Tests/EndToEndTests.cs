@@ -86,6 +86,21 @@ public sealed class EndToEndTests
     }
 
     [Fact]
+    public async Task The_read_budget_is_shared_across_boards_and_deferral_is_not_a_failure()
+    {
+        using var h = new Harness();
+        var (jordan, _) = h.Jordan();
+        h.App.Accounts.SetPreferences(jordan, jordan, h.App.Accounts.GetPreferences(jordan) with { MaxPostingReadsPerRun = 3 });
+
+        var run = await h.App.Engine.RunAsync(jordan, jordan, "d1");
+
+        run.Status.Should().Be("succeeded", "reads left for tomorrow are the budget working, not a failure");
+        run.Deferred.Should().Be(1);
+        Query<string>(h, "SELECT source_ref FROM jobs WHERE user_id=@jordan", new { jordan })
+            .Select(k => k[..k.IndexOf('.')]).Should().BeEquivalentTo(["greenhouse", "lever", "ashby"], "one read from each board before a second from any");
+    }
+
+    [Fact]
     public async Task A_held_lease_skips_the_run_and_an_expired_lease_is_taken_over()
     {
         using var h = new Harness();

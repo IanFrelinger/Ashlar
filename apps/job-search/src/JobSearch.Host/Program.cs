@@ -176,7 +176,7 @@ public static class Program
                 do
                 {
                     foreach (var r in await app.Dispatcher.RunDueAsync(Clock.Now, parallel).ConfigureAwait(false))
-                        Console.WriteLine($"{Clock.Iso()} {r.UserId} {r.Status} {r.Reason} new={r.NewJobs} read={r.PostingsRead} drafted={r.Drafted.Count} incomplete={r.CouldNotComplete.Count}");
+                        Console.WriteLine($"{Clock.Iso()} {r.UserId} {r.Status} {r.Reason} new={r.NewJobs} read={r.PostingsRead} drafted={r.Drafted.Count} deferred={r.Deferred} incomplete={r.CouldNotComplete.Count}");
                     if (args.Has("once")) break;
                     await Task.Delay(TimeSpan.FromMinutes(15)).ConfigureAwait(false);
                 } while (true);

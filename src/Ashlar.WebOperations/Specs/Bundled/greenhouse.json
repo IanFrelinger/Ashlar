@@ -2,35 +2,116 @@
   "site": "greenhouse",
   "title": "Greenhouse job boards",
   "version": 1,
-  "hosts": ["boards-api.greenhouse.io"],
+  "hosts": [
+    "boards-api.greenhouse.io"
+  ],
   "source": "Greenhouse Job Board API (public, no key), documented endpoints",
-  "notes": "Written from Greenhouse's public Job Board API documentation; not yet called live from the repository. 'company' is the board token in job-boards.greenhouse.io/<token>. A closed or unknown job answers 404. 'content' is HTML that the API returns entity-escaped. updatedAt is when the post was last updated, not first posted.",
+  "notes": "Checked live on 2026-11-09 against boards-api.greenhouse.io (gitlab board): every field read here was present. 'company' is the board token in job-boards.greenhouse.io/<token>. A closed or unknown job answers 404. 'content' is HTML that the API returns entity-escaped. postedAt is first_published; updatedAt is the last edit; deadline is application_deadline when the employer sets one.",
   "operations": {
     "listJobs": {
       "kind": "read",
       "description": "Every open job on a board, with its description.",
-      "params": { "company": { "pattern": "[A-Za-z0-9_-]+", "description": "Board token" } },
-      "request": { "method": "GET", "url": "https://boards-api.greenhouse.io/v1/boards/{company}/jobs?content=true", "headers": { "Accept": "application/json" } },
+      "params": {
+        "company": {
+          "pattern": "[A-Za-z0-9_-]+",
+          "description": "Board token"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://boards-api.greenhouse.io/v1/boards/{company}/jobs?content=true",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
       "response": {
-        "format": "json", "extract": "jobs", "list": true, "shape": ["id", "title"],
+        "format": "json",
+        "extract": "jobs",
+        "list": true,
+        "shape": [
+          "id",
+          "title"
+        ],
         "fields": {
-          "id": "id", "title": "title", "location": "location.name", "url": "absolute_url",
-          "updatedAt": { "path": "updated_at", "as": "date" }, "description": { "path": "content", "as": "html-text" }
+          "id": "id",
+          "title": "title",
+          "location": "location.name",
+          "url": "absolute_url",
+          "updatedAt": {
+            "path": "updated_at",
+            "as": "date"
+          },
+          "description": {
+            "path": "content",
+            "as": "html-text"
+          },
+          "postedAt": {
+            "path": "first_published",
+            "as": "date"
+          },
+          "deadline": {
+            "path": "application_deadline",
+            "as": "date"
+          }
         }
       }
     },
     "getJob": {
       "kind": "read",
       "description": "One job with its description and, where the employer publishes it, its pay range.",
-      "params": { "company": { "pattern": "[A-Za-z0-9_-]+" }, "jobId": { "pattern": "[0-9]+" } },
-      "request": { "method": "GET", "url": "https://boards-api.greenhouse.io/v1/boards/{company}/jobs/{jobId}?pay_transparency=true", "headers": { "Accept": "application/json" } },
+      "params": {
+        "company": {
+          "pattern": "[A-Za-z0-9_-]+"
+        },
+        "jobId": {
+          "pattern": "[0-9]+"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://boards-api.greenhouse.io/v1/boards/{company}/jobs/{jobId}?pay_transparency=true",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
       "response": {
-        "format": "json", "extract": "$", "shape": ["id", "title"],
+        "format": "json",
+        "extract": "$",
+        "shape": [
+          "id",
+          "title"
+        ],
         "fields": {
-          "id": "id", "title": "title", "location": "location.name", "url": "absolute_url", "requisitionId": "requisition_id",
-          "updatedAt": { "path": "updated_at", "as": "date" }, "description": { "path": "content", "as": "html-text" },
-          "payMin": { "path": "pay_input_ranges[0].min_cents", "as": "cents" }, "payMax": { "path": "pay_input_ranges[0].max_cents", "as": "cents" },
-          "payCurrency": "pay_input_ranges[0].currency_type"
+          "id": "id",
+          "title": "title",
+          "location": "location.name",
+          "url": "absolute_url",
+          "requisitionId": "requisition_id",
+          "updatedAt": {
+            "path": "updated_at",
+            "as": "date"
+          },
+          "description": {
+            "path": "content",
+            "as": "html-text"
+          },
+          "payMin": {
+            "path": "pay_input_ranges[0].min_cents",
+            "as": "cents"
+          },
+          "payMax": {
+            "path": "pay_input_ranges[0].max_cents",
+            "as": "cents"
+          },
+          "payCurrency": "pay_input_ranges[0].currency_type",
+          "postedAt": {
+            "path": "first_published",
+            "as": "date"
+          },
+          "deadline": {
+            "path": "application_deadline",
+            "as": "date"
+          }
         }
       }
     }

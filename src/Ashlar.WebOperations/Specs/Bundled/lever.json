@@ -2,35 +2,97 @@
   "site": "lever",
   "title": "Lever job boards",
   "version": 1,
-  "hosts": ["api.lever.co"],
+  "hosts": [
+    "api.lever.co"
+  ],
   "source": "Lever Postings API v0 (public, no key), documented endpoints",
-  "notes": "Written from Lever's public Postings API documentation; not yet called live from the repository. 'company' is the slug in jobs.lever.co/<company>. A closed or unknown posting answers 404. Boards on Lever's EU instance (api.eu.lever.co) are not covered.",
+  "notes": "Checked live on 2026-11-09 against api.lever.co (palantir board): every field read here was present. 'company' is the slug in jobs.lever.co/<company>. A closed or unknown posting answers 404. Boards on Lever's EU instance (api.eu.lever.co) are not covered.",
   "operations": {
     "listJobs": {
       "kind": "read",
       "description": "Every open posting on a board.",
-      "params": { "company": { "pattern": "[A-Za-z0-9._-]+" } },
-      "request": { "method": "GET", "url": "https://api.lever.co/v0/postings/{company}?mode=json", "headers": { "Accept": "application/json" } },
+      "params": {
+        "company": {
+          "pattern": "[A-Za-z0-9._-]+"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.lever.co/v0/postings/{company}?mode=json",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
       "response": {
-        "format": "json", "extract": "$", "list": true, "shape": ["id", "text"],
+        "format": "json",
+        "extract": "$",
+        "list": true,
+        "shape": [
+          "id",
+          "text"
+        ],
         "fields": {
-          "id": "id", "title": "text", "location": "categories.location", "team": "categories.team", "employmentType": "categories.commitment",
-          "workplaceType": "workplaceType", "postedAt": { "path": "createdAt", "as": "epoch-ms-date" }, "url": "hostedUrl"
+          "id": "id",
+          "title": "text",
+          "location": "categories.location",
+          "team": "categories.team",
+          "employmentType": "categories.commitment",
+          "workplaceType": "workplaceType",
+          "postedAt": {
+            "path": "createdAt",
+            "as": "epoch-ms-date"
+          },
+          "url": "hostedUrl"
         }
       }
     },
     "getJob": {
       "kind": "read",
       "description": "One posting with its description, requirement lists and, where published, its salary range.",
-      "params": { "company": { "pattern": "[A-Za-z0-9._-]+" }, "postingId": { "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}" } },
-      "request": { "method": "GET", "url": "https://api.lever.co/v0/postings/{company}/{postingId}", "headers": { "Accept": "application/json" } },
+      "params": {
+        "company": {
+          "pattern": "[A-Za-z0-9._-]+"
+        },
+        "postingId": {
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        }
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.lever.co/v0/postings/{company}/{postingId}",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
       "response": {
-        "format": "json", "extract": "$", "shape": ["id", "text"],
+        "format": "json",
+        "extract": "$",
+        "shape": [
+          "id",
+          "text"
+        ],
         "fields": {
-          "id": "id", "title": "text", "location": "categories.location", "team": "categories.team", "employmentType": "categories.commitment",
-          "workplaceType": "workplaceType", "postedAt": { "path": "createdAt", "as": "epoch-ms-date" }, "url": "hostedUrl",
-          "description": "descriptionPlain", "sections": { "path": "lists[*].content", "as": "html-text" }, "additional": "additionalPlain",
-          "payMin": "salaryRange.min", "payMax": "salaryRange.max", "payCurrency": "salaryRange.currency", "payInterval": "salaryRange.interval"
+          "id": "id",
+          "title": "text",
+          "location": "categories.location",
+          "team": "categories.team",
+          "employmentType": "categories.commitment",
+          "workplaceType": "workplaceType",
+          "postedAt": {
+            "path": "createdAt",
+            "as": "epoch-ms-date"
+          },
+          "url": "hostedUrl",
+          "description": "descriptionPlain",
+          "sections": {
+            "path": "lists[*].content",
+            "as": "html-text"
+          },
+          "additional": "additionalPlain",
+          "payMin": "salaryRange.min",
+          "payMax": "salaryRange.max",
+          "payCurrency": "salaryRange.currency",
+          "payInterval": "salaryRange.interval"
         }
       }
     }

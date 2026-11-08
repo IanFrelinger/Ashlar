@@ -64,6 +64,8 @@ public sealed record RunSummary
     public int NewConflicts { get; set; }
     /// <summary>What could not be completed, and why.</summary>
     public List<string> CouldNotComplete { get; init; } = [];
+    /// <summary>Postings left for the next run by the per-run read limit (not a failure).</summary>
+    public int Deferred { get; set; }
     /// <summary>One line per workflow node that ran.</summary>
     public List<string> WorkflowLog { get; init; } = [];
 }
@@ -286,7 +288,10 @@ public sealed class RunEngine(
         var known = db.Read(c => c.Query<(string Id, string SourceRef, string Employer, string Status, string? LastChecked)>(
             "SELECT id, source_ref, employer, listing_status, last_checked_at FROM jobs WHERE user_id=@userId AND archived_at IS NULL", new { userId }).AsList());
         var knownRefs = known.ToDictionary(k => k.SourceRef, k => k.Id, StringComparer.Ordinal);
-        var fresh = discovered.Where(d => !knownRefs.ContainsKey(d.Key)).GroupBy(d => d.Key).Select(gp => gp.First()).ToList();
+        // New postings are taken round-robin across boards, so one large board cannot use up the whole read budget.
+        var fresh = discovered.Where(d => !knownRefs.ContainsKey(d.Key)).GroupBy(d => d.Key).Select(gp => gp.First())
+            .GroupBy(d => d.Key[..d.Key.IndexOf(':', StringComparison.Ordinal)] + (PostingRef.TryParse(d.Key)?.Args.GetValueOrDefault("company") ?? ""))
+            .SelectMany(board => board.Select((c, i) => (c, i))).OrderBy(x => x.i).Select(x => x.c).ToList();
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(Clock.Now, TimeZoneInfo.FindSystemTimeZoneById(user.Timezone)).DateTime);
         // Jobs that qualify for drafts but have none for the current résumé (e.g. a run was interrupted mid-draft) are
         // re-queued whatever their last check time; everything else is re-checked about once a day.
@@ -302,8 +307,8 @@ public sealed class RunEngine(
         var cap = Math.Max(1, prefs.MaxPostingReadsPerRun);
         var queue = recheck.Take(cap / 2).Concat(fresh).Concat(recheck.Skip(cap / 2)).Take(cap).ToList();
         var deferred = recheck.Count + fresh.Count - queue.Count;
-        if (deferred > 0)
-            s.CouldNotComplete.Add($"{deferred} postings deferred to the next run (limit {cap} reads per run)");
+        // Deferral is the budget working, not a failure: the run can still succeed, and the rest waits for tomorrow.
+        s.Deferred = Math.Max(0, deferred);
 
         var draftBudget = prefs.Materials.MaxNewDraftsPerRun;
         var rateLimitedSites = new HashSet<string>(StringComparer.Ordinal);
