@@ -13,15 +13,15 @@
     "AstMutationEngineTests"
   ],
   "counts": {
-    "projects": 62,
+    "projects": 63,
     "projects_shipped_to_nuget": 24,
     "projects_declaring_ispackable_true": 20,
     "config_variables": 179,
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 841,
-    "declared_facts": 5559,
+    "test_files_declaring_facts": 842,
+    "declared_facts": 5575,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -219,6 +219,22 @@
         "netstandard2.0"
       ],
       "references": []
+    },
+    {
+      "name": "Ashlar.Bricks.ApiAnything",
+      "path": "src/Ashlar.Bricks.ApiAnything/Ashlar.Bricks.ApiAnything.csproj",
+      "layer": "src",
+      "is_packable_explicit": false,
+      "ships_to_nuget": false,
+      "target_frameworks": [
+        "net10.0",
+        "net8.0"
+      ],
+      "references": [
+        "Ashlar.Abstractions",
+        "Ashlar.Analyzers",
+        "Ashlar.Core.Domain"
+      ]
     },
     {
       "name": "Ashlar.Bricks.GitHub",
@@ -828,6 +844,7 @@
         "Ashlar.Agents.TestKit",
         "Ashlar.BackgroundAgents",
         "Ashlar.BackgroundAgents.HostRunners",
+        "Ashlar.Bricks.ApiAnything",
         "Ashlar.Bricks.GitHub",
         "Ashlar.Bricks.Owasp",
         "Ashlar.Certification.Contracts",
@@ -4900,6 +4917,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.BaseFramework",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Bricks/ApiAnythingBricksTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Bricks",
+      "declared_facts": 16,
       "in_cert_gate_filter": false
     },
     {

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+        <LangVersion>12.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Not packed yet: the integration has been exercised only against a stand-in server here
+             (README, "What is verified"). Packing it is a release decision. -->
+        <IsPackable>false</IsPackable>
+        <Description>API Anything bricks for Ashlar: call operations that `api-anything serve` learned from a website's own requests, and read employer job boards (Greenhouse, Lever, Ashby, Workable, Workday) with an open/closed/unverified verdict and its evidence, behind the Ashlar egress guard.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Ashlar.Core.Domain\Ashlar.Core.Domain.csproj" />
+        <ProjectReference Include="..\Ashlar.Abstractions\Ashlar.Abstractions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Ashlar.Tests.Infrastructure" />
+    </ItemGroup>
+
+    <!-- Brick contract drift rule (ASHLAR0001/ASHLAR0002), as in Ashlar.Bricks.GitHub. -->
+    <ItemGroup>
+        <ProjectReference Include="..\Ashlar.Analyzers\Ashlar.Analyzers.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all"
+                          UndefineProperties="TargetFramework" />
+    </ItemGroup>
+
+</Project>
