@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Certified brick: the certifier compiles the single .cs file here itself (it never runs this
+       project's build). This project exists for the certifier's dependency fence, which admits only
+       the Ashlar.Brick.Contracts package; it is in no solution. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ashlar.Brick.Contracts" Version="0.1.0" />
+  </ItemGroup>
+
+</Project>

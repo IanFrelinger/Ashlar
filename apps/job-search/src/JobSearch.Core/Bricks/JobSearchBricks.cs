@@ -1,9 +1,11 @@
 using System.Globalization;
 using System.Text.Json;
 using Ashlar.WebOperations.Jobs;
+using Ashlar.Core.Application.Generation;
 using Ashlar.Core.Domain.Bricks;
 using Ashlar.Core.Domain.Execution;
 using JobSearch.Accounts;
+using JobSearch.Certified;
 using JobSearch.Materials;
 using JobSearch.Profile;
 using JobSearch.Screening;
@@ -52,15 +54,21 @@ internal static class CodeImplementation
     };
 }
 
-/// <summary><c>jobsearch.screen</c>: requirements, evidence, gaps and a recommendation for one posting.</summary>
+/// <summary>
+/// <c>jobsearch.screen</c>: requirements, evidence, gaps and unknowns for one posting, and the counts the certified
+/// <c>jobsearch.recommendation</c> brick decides from. It does not decide the recommendation itself.
+/// </summary>
 public sealed class ScreenBrick : Ashlar.Core.Domain.Bricks.Brick
 {
+    /// <summary>The decision ports, named as the certified recommendation brick's inputs.</summary>
+    public static readonly string[] DecisionPorts = [.. new DecisionInputs().ToPorts().Keys];
+
     /// <summary>Creates the brick.</summary>
     public ScreenBrick()
     {
         Id = "jobsearch.screen";
         Name = "Screen a job posting";
-        Version = "1.0.0";
+        Version = "2.0.0";
         Icon = "🔎";
         Category = BrickCategory.Analysis;
         Description = "Extracts what a posting requires and checks it against the candidate's résumé and confirmed profile. Unknowns stay unknown.";
@@ -76,9 +84,8 @@ public sealed class ScreenBrick : Ashlar.Core.Domain.Bricks.Brick
             Outputs =
             [
                 new BrickOutputDefinition("screened", "bool", "Whether a posting was screened"),
-                new BrickOutputDefinition("recommendation", "string", "strong_fit, conditional_fit, stretch, not_currently_eligible; empty when not screened"),
-                new BrickOutputDefinition("assessment", "object", "Assessment"),
-                new BrickOutputDefinition("draft", "bool", "Whether materials should be drafted"),
+                new BrickOutputDefinition("assessment", "object", "Assessment, without a recommendation"),
+                .. DecisionPorts.Select(p => new BrickOutputDefinition(p, "int|bool", "jobsearch.recommendation input")),
             ],
         };
     }
@@ -92,50 +99,58 @@ public sealed class ScreenBrick : Ashlar.Core.Domain.Bricks.Brick
         var signal = input.Get("signal", "error") ?? "error";
         if (signal != "found" || !input.TryGet<JobPosting>("posting", out var posting) || posting is null)
         {
+            // The certified node downstream still runs (a workflow has no skip); it gets neutral counts and its answer is
+            // discarded by jobsearch.decide because nothing was screened.
             output.Set("screened", false);
-            output.Set("recommendation", "");
-            output.Set("draft", false);
+            foreach (var (k, v) in new DecisionInputs().ToPorts())
+                output.Set(k, v);
             output.Summary = $"not screened: the posting was not read ({signal})";
             return Task.FromResult(output);
         }
         var assessment = Screener.Assess(posting, candidate.Profile(), candidate.Preferences, candidate.TodayDate());
-        var draft = candidate.AllowDraft && posting.ProvesOpen && candidate.Preferences.Materials.DraftFor.Contains(assessment.Recommendation);
         output.Set("screened", true);
-        output.Set("recommendation", assessment.Recommendation);
         output.Set("assessment", assessment);
-        output.Set("draft", draft);
-        output.Summary = $"{assessment.Recommendation} (coverage {assessment.Coverage?.ToString("P0", CultureInfo.InvariantCulture) ?? "n/a"}, {assessment.Gaps.Count} gaps, {assessment.Unknowns.Count} unknowns)";
+        foreach (var (k, v) in assessment.Decision.ToPorts())
+            output.Set(k, v);
+        output.Summary = $"coverage {assessment.Coverage?.ToString("P0", CultureInfo.InvariantCulture) ?? "n/a"}, {assessment.Gaps.Count} gaps, {assessment.Unknowns.Count} unknowns, {assessment.Blockers.Count} blockers";
         return Task.FromResult(output);
     }
 }
 
-/// <summary><c>jobsearch.tailor</c>: a job-specific résumé and cover letter from verified facts only.</summary>
-public sealed class TailorBrick : Ashlar.Core.Domain.Bricks.Brick
+/// <summary>
+/// <c>jobsearch.decide</c>: applies the certified recommendation to the assessment and decides whether to draft.
+/// </summary>
+public sealed class DecideBrick : Ashlar.Core.Domain.Bricks.Brick
 {
+    private readonly ICertifiedRules _rules;
+
     /// <summary>Creates the brick.</summary>
-    public TailorBrick()
+    public DecideBrick(ICertifiedRules rules)
     {
-        Id = "jobsearch.tailor";
-        Name = "Draft tailored materials";
+        _rules = rules;
+        Id = "jobsearch.decide";
+        Name = "Apply the certified recommendation";
         Version = "1.0.0";
-        Icon = "✍️";
-        Category = BrickCategory.Generation;
-        Description = "Drafts a tailored résumé (the résumé's own bullets, reordered) and a cover letter with placeholders only the user can fill.";
-        Implementations = CodeImplementation.Deterministic("Assembles verified résumé facts; no model.");
+        Icon = "⚖️";
+        Category = BrickCategory.Analysis;
+        Description = "Records the certified jobsearch.recommendation verdict (with its certificate hash) on the assessment, and whether to draft.";
+        Implementations = CodeImplementation.Deterministic("Copies the certified verdict; no rule of its own.");
         Interface = new BrickInterface
         {
             Inputs =
             [
-                new BrickInputDefinition("proceed", "bool", "jobsearch.screen draft", required: false, defaultValue: false),
-                new BrickInputDefinition("posting", "object", "JobPosting", required: false),
+                new BrickInputDefinition("screened", "bool", "jobsearch.screen screened", required: false, defaultValue: false),
                 new BrickInputDefinition("assessment", "object", "Assessment", required: false),
+                new BrickInputDefinition("recommendation", "string", "jobsearch.recommendation recommendation", required: false, defaultValue: ""),
+                new BrickInputDefinition("reason", "string", "jobsearch.recommendation reason", required: false, defaultValue: ""),
+                new BrickInputDefinition("posting", "object", "JobPosting", required: false),
                 new BrickInputDefinition("candidate", "string", "CandidateContext JSON", required: true),
             ],
             Outputs =
             [
-                new BrickOutputDefinition("drafted", "bool", "Whether drafts were produced"),
-                new BrickOutputDefinition("resume", "object", "Draft"),
-                new BrickOutputDefinition("coverLetter", "object", "Draft"),
+                new BrickOutputDefinition("recommendation", "string", "The certified recommendation; empty when not screened"),
+                new BrickOutputDefinition("assessment", "object", "Assessment with the recommendation"),
+                new BrickOutputDefinition("draft", "bool", "Whether materials should be drafted"),
             ],
         };
     }
@@ -145,21 +160,132 @@ public sealed class TailorBrick : Ashlar.Core.Domain.Bricks.Brick
     {
         ArgumentNullException.ThrowIfNull(input);
         var output = new BrickOutput();
+        if (!input.Get("screened", false) || !input.TryGet<Assessment>("assessment", out var screened) || screened is null ||
+            !input.TryGet<JobPosting>("posting", out var posting) || posting is null)
+        {
+            output.Set("recommendation", "");
+            output.Set("draft", false);
+            output.Summary = "not screened";
+            return Task.FromResult(output);
+        }
+        var recommendation = input.Get("recommendation", "") ?? "";
+        if (recommendation.Length == 0)
+            throw new InvalidOperationException("jobsearch.recommendation returned no recommendation for a screened posting");
+        var by = $"{CertifiedIds.Recommendation} (certified, content hash {_rules.ContentHash(CertifiedIds.Recommendation)})";
+        var assessment = Screener.WithDecision(screened, recommendation, input.Get("reason", "") ?? "", by);
+        var candidate = CandidateContext.Parse(input.Get<string>("candidate"));
+        var draft = candidate.AllowDraft && posting.ProvesOpen && candidate.Preferences.Materials.DraftFor.Contains(recommendation);
+        output.Set("recommendation", recommendation);
+        output.Set("assessment", assessment);
+        output.Set("draft", draft);
+        output.Summary = $"{recommendation}: {assessment.RecommendationReason}";
+        return Task.FromResult(output);
+    }
+}
+
+/// <summary>
+/// <c>jobsearch.tailor</c>: a job-specific résumé and cover letter from verified facts only. When the user has opted in,
+/// the cover letter's body is worded by a model through Ashlar's generative pipeline and is used only if the certified
+/// claims check passed it; otherwise the template letter is used and the reason is recorded.
+/// </summary>
+public sealed class TailorBrick : Ashlar.Core.Domain.Bricks.Brick
+{
+    private readonly GenerativeArtifactBrick _generative;
+
+    /// <summary>Creates the brick.</summary>
+    public TailorBrick(GenerativeArtifactBrick generative)
+    {
+        _generative = generative;
+        Id = "jobsearch.tailor";
+        Name = "Draft tailored materials";
+        Version = "2.0.0";
+        Icon = "✍️";
+        Category = BrickCategory.Generation;
+        Description = "Drafts a tailored résumé (the résumé's own bullets, reordered) and a cover letter with placeholders only the user can fill.";
+        Implementations = CodeImplementation.Deterministic("Assembles verified résumé facts; the optional model letter goes through the generative pipeline and the certified claims check.");
+        Interface = new BrickInterface
+        {
+            Inputs =
+            [
+                new BrickInputDefinition("proceed", "bool", "jobsearch.decide draft", required: false, defaultValue: false),
+                new BrickInputDefinition("posting", "object", "JobPosting", required: false),
+                new BrickInputDefinition("assessment", "object", "Assessment", required: false),
+                new BrickInputDefinition("candidate", "string", "CandidateContext JSON", required: true),
+            ],
+            Outputs =
+            [
+                new BrickOutputDefinition("drafted", "bool", "Whether drafts were produced"),
+                new BrickOutputDefinition("resume", "object", "Draft"),
+                new BrickOutputDefinition("coverLetter", "object", "Draft"),
+                new BrickOutputDefinition("coverLetterOrigin", "string", "template or model, and why"),
+            ],
+        };
+    }
+
+    /// <inheritdoc />
+    public override async Task<BrickOutput> ExecuteAsync(BrickInput input, ImplementationType implementation, IExecutionContext context, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        var output = new BrickOutput();
         // Ashlar's ConditionalNode does not gate downstream nodes, so the gate is this input.
         if (!input.Get("proceed", false) || !input.TryGet<JobPosting>("posting", out var posting) || posting is null ||
             !input.TryGet<Assessment>("assessment", out var assessment) || assessment is null)
         {
             output.Set("drafted", false);
             output.Summary = "skipped: not selected for drafting";
-            return Task.FromResult(output);
+            return output;
         }
         var candidate = CandidateContext.Parse(input.Get<string>("candidate"));
         var profile = candidate.Profile();
+        var today = candidate.TodayDate();
+        var cover = Tailor.CoverLetter(profile, posting, assessment, today);
+        var origin = "template";
+        if (candidate.Preferences.Materials.ModelCoverLetter)
+            (cover, origin) = await ModelLetterAsync(profile, posting, assessment, today, cover, context, cancellationToken).ConfigureAwait(false);
         output.Set("drafted", true);
         output.Set("resume", Tailor.Resume(profile, assessment));
-        output.Set("coverLetter", Tailor.CoverLetter(profile, posting, assessment, candidate.TodayDate()));
-        output.Summary = $"drafted résumé and cover letter for {posting.Employer} — {posting.Title}";
-        return Task.FromResult(output);
+        output.Set("coverLetter", cover);
+        output.Set("coverLetterOrigin", origin);
+        output.Summary = $"drafted résumé and cover letter ({origin}) for {posting.Employer} — {posting.Title}";
+        return output;
+    }
+
+    private async Task<(Draft Letter, string Origin)> ModelLetterAsync(
+        Profile.CandidateProfile profile, JobPosting posting, Assessment assessment, DateOnly today, Draft template, IExecutionContext context, CancellationToken ct)
+    {
+        var templateBody = string.Join("\n", Tailor.CoverLetterBody(profile, posting, assessment).Select(l => l.Style == "li" ? "- " + l.Text : l.Text));
+        var grounding = $"Job: {posting.Title} at {posting.Employer}\n" +
+                        $"Required skills the résumé shows: {(assessment.MatchedSkills.Count == 0 ? "none" : string.Join(", ", assessment.MatchedSkills))}\n\n" +
+                        $"Résumé:\n{profile.ResumeText}";
+        var request = new BrickInput(new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            ["target"] = CoverLetterProfile.TargetId,
+            ["grounding"] = grounding,
+            ["preferDeterministic"] = false,
+            ["overrides"] = new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                [CoverLetterProfile.ClaimsKey] = CertifiedClaims.Context(profile, posting),
+                [CoverLetterProfile.TemplateKey] = templateBody,
+            },
+        });
+        BrickOutput generated;
+        try
+        {
+            generated = await _generative.ExecuteAsync(request, ImplementationType.Agentic, context, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return (template, $"template: the model could not be used ({ex.GetType().Name}: {ex.Message})");
+        }
+        var artifact = generated.Get<Ashlar.Core.Domain.Bricks.Ports.GeneratedArtifact>("artifact");
+        var provenance = artifact.Provenance;
+        if (!generated.Get<bool>("verified") || provenance is null || !provenance.Verified)
+        {
+            var why = provenance?.Warnings is { Count: > 0 } w ? string.Join(" | ", w) : "not verified";
+            return (template, $"template: the model's drafts were refused by {CertifiedIds.ClaimsCheck} ({why})");
+        }
+        var letter = Tailor.CoverLetterWith(profile, posting, today, CoverLetterProfile.ParseBody(artifact.Content), origin: "model");
+        return (letter, $"model: worded by a model, passed {CertifiedIds.ClaimsCheck}; needs your review");
     }
 }
 
@@ -169,16 +295,19 @@ public sealed class TailorBrick : Ashlar.Core.Domain.Bricks.Brick
 /// </summary>
 public sealed class ValidateMaterialsBrick : Ashlar.Core.Domain.Bricks.Brick
 {
+    private readonly ICertifiedRules _rules;
+
     /// <summary>Creates the brick.</summary>
-    public ValidateMaterialsBrick()
+    public ValidateMaterialsBrick(ICertifiedRules rules)
     {
+        _rules = rules;
         Id = "jobsearch.validate-materials";
         Name = "Validate tailored materials";
-        Version = "1.0.0";
         Icon = "✅";
         Category = BrickCategory.Validation;
-        Description = "Traces each claim in a draft to the résumé or the user's confirmed profile, lists what needs the user, renders PDFs and checks their text extracts.";
-        Implementations = CodeImplementation.Deterministic("Rule-based claim tracing, QuestPDF rendering, PdfPig read-back; no model.");
+        Version = "2.0.0";
+        Description = "Traces each claim in a draft to the résumé or the user's confirmed profile, runs the certified jobsearch.claims-check, lists what needs the user, renders PDFs and checks their text extracts.";
+        Implementations = CodeImplementation.Deterministic("Rule-based claim tracing, the certified claims check, QuestPDF rendering, PdfPig read-back; no model.");
         Interface = new BrickInterface
         {
             Inputs =
@@ -203,7 +332,7 @@ public sealed class ValidateMaterialsBrick : Ashlar.Core.Domain.Bricks.Brick
     }
 
     /// <inheritdoc />
-    public override Task<BrickOutput> ExecuteAsync(BrickInput input, ImplementationType implementation, IExecutionContext context, CancellationToken cancellationToken = default)
+    public override async Task<BrickOutput> ExecuteAsync(BrickInput input, ImplementationType implementation, IExecutionContext context, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);
         var output = new BrickOutput();
@@ -215,14 +344,16 @@ public sealed class ValidateMaterialsBrick : Ashlar.Core.Domain.Bricks.Brick
             output.Set("validated", false);
             output.Set("passed", false);
             output.Summary = "skipped: nothing drafted";
-            return Task.FromResult(output);
+            return output;
         }
         var profile = CandidateContext.Parse(input.Get<string>("candidate")).Profile();
         var title = $"{posting.Employer} — {posting.Title}";
         var resumePdf = Pdf.Render(resume, $"Résumé — {title}");
         var coverPdf = Pdf.Render(cover, $"Cover letter — {title}");
-        var rv = Validator.Validate(resume, profile, posting, assessment, Pdf.CheckExtractable(resumePdf, resume.Text));
-        var cv = Validator.Validate(cover, profile, posting, assessment, Pdf.CheckExtractable(coverPdf, cover.Text));
+        var rv = Validator.WithCertified(Validator.Validate(resume, profile, posting, assessment, Pdf.CheckExtractable(resumePdf, resume.Text)),
+            await CertifiedClaims.CheckAsync(_rules, resume, profile, posting, cancellationToken).ConfigureAwait(false));
+        var cv = Validator.WithCertified(Validator.Validate(cover, profile, posting, assessment, Pdf.CheckExtractable(coverPdf, cover.Text)),
+            await CertifiedClaims.CheckAsync(_rules, cover, profile, posting, cancellationToken).ConfigureAwait(false));
         var passed = rv.Passed && cv.Passed && rv.Pdf!.Passed && cv.Pdf!.Passed;
         output.Set("validated", true);
         output.Set("passed", passed);
@@ -232,6 +363,6 @@ public sealed class ValidateMaterialsBrick : Ashlar.Core.Domain.Bricks.Brick
         output.Set("coverPdf", coverPdf);
         output.Summary = $"{(passed ? "passed" : "needs attention")}: {rv.Unsupported.Count + cv.Unsupported.Count} unsupported claims, " +
                          $"{rv.NeedsConfirmation.Count + cv.NeedsConfirmation.Count} items for the user, PDF text {rv.Pdf!.Ratio:P0}/{cv.Pdf!.Ratio:P0}";
-        return Task.FromResult(output);
+        return output;
     }
 }

@@ -11,18 +11,20 @@ namespace JobSearch.Runs;
 public sealed record PostingOutcome(
     string Signal, bool ProvesOpen, string Detail, JobPosting? Posting, Assessment? Assessment,
     bool Drafted, Draft? Resume, Draft? CoverLetter, ValidationRecord? ResumeValidation, ValidationRecord? CoverValidation,
-    byte[]? ResumePdf, byte[]? CoverPdf, IReadOnlyList<string> NodeLog);
+    byte[]? ResumePdf, byte[]? CoverPdf, IReadOnlyList<string> NodeLog, string? CoverLetterOrigin = null);
 
 /// <summary>
 /// One posting through an Ashlar workflow, executed by Ashlar's <see cref="WorkflowExecutor"/>:
 /// <code>
-///   [posting ref] ──► jobs.get-posting ──► jobsearch.screen ──► jobsearch.tailor ──► jobsearch.validate-materials
-///   [candidate]  ───────────────────────────┴───────────────────────┴──────────────────────┘
+///   [posting ref] ─► jobs.get-posting ─► jobsearch.screen ─► jobsearch.recommendation ─► jobsearch.decide ─► jobsearch.tailor ─► jobsearch.validate-materials
+///   [candidate]  ──────────────────────────┴───────────────────────────────────────────────┴─────────────────┴────────────────────┘
 /// </code>
-/// Runtime values enter as InputNode text, because the executor gives brick nodes only what arrives on connected
-/// ports (WorkflowInput.Parameters reach cluster nodes only). Drafting is gated by the screen brick's <c>draft</c>
-/// output wired to the tailor brick's <c>proceed</c> input, because a ConditionalNode computes a flag but does not stop
-/// downstream nodes. Both are recorded in docs/DOGFOOD-FINDINGS.md.
+/// <c>jobsearch.recommendation</c> is a certified brick: the node runs the gate-emitted assembly its certification record
+/// covers, loaded by the host after the record's signature verified (JobSearch.Host.CertifiedBricks). Screening only
+/// counts; the certified rule decides. Runtime values enter as InputNode text, because the executor gives brick nodes
+/// only what arrives on connected ports (WorkflowInput.Parameters reach cluster nodes only). Drafting is gated by
+/// <c>jobsearch.decide</c>'s <c>draft</c> output wired to the tailor brick's <c>proceed</c> input, because a ConditionalNode
+/// computes a flag but does not stop downstream nodes. Both are recorded in docs/DOGFOOD-FINDINGS.md.
 /// </summary>
 public static class PostingWorkflow
 {
@@ -48,12 +50,24 @@ public static class PostingWorkflow
             new BrickNode
             {
                 Id = "screen", Name = "Screen", BrickId = "jobsearch.screen", Implementation = Ashlar.Core.Domain.Bricks.ImplementationType.Deterministic,
-                Inputs = [In("signal"), In("posting"), In("candidate")], Outputs = [Out("screened"), Out("recommendation"), Out("assessment"), Out("draft")],
+                Inputs = [In("signal"), In("posting"), In("candidate")],
+                Outputs = [Out("screened"), Out("assessment"), .. ScreenBrick.DecisionPorts.Select(Out)],
+            },
+            new BrickNode
+            {
+                Id = "recommend", Name = "Recommend (certified)", BrickId = Certified.CertifiedIds.Recommendation, Implementation = Ashlar.Core.Domain.Bricks.ImplementationType.Deterministic,
+                Inputs = [.. ScreenBrick.DecisionPorts.Select(In)], Outputs = [Out("recommendation"), Out("coveragePercent"), Out("reason")],
+            },
+            new BrickNode
+            {
+                Id = "decide", Name = "Apply the recommendation", BrickId = "jobsearch.decide", Implementation = Ashlar.Core.Domain.Bricks.ImplementationType.Deterministic,
+                Inputs = [In("screened"), In("assessment"), In("recommendation"), In("reason"), In("posting"), In("candidate")],
+                Outputs = [Out("recommendation"), Out("assessment"), Out("draft")],
             },
             new BrickNode
             {
                 Id = "tailor", Name = "Draft materials", BrickId = "jobsearch.tailor", Implementation = Ashlar.Core.Domain.Bricks.ImplementationType.Deterministic,
-                Inputs = [In("proceed"), In("posting"), In("assessment"), In("candidate")], Outputs = [Out("drafted"), Out("resume"), Out("coverLetter")],
+                Inputs = [In("proceed"), In("posting"), In("assessment"), In("candidate")], Outputs = [Out("drafted"), Out("resume"), Out("coverLetter"), Out("coverLetterOrigin")],
             },
             new BrickNode
             {
@@ -62,18 +76,22 @@ public static class PostingWorkflow
                 Outputs = [Out("validated"), Out("passed"), Out("resumeValidation"), Out("coverValidation"), Out("resumePdf"), Out("coverPdf")],
             },
         };
-        var wires = new List<VisualWorkflowConnection>
-        {
+        List<VisualWorkflowConnection> wires =
+        [
             Wire("posting-ref", "data", "get", "posting"), Wire("employer", "data", "get", "employer"),
             Wire("get", "signal", "screen", "signal"), Wire("get", "posting", "screen", "posting"), Wire("candidate", "data", "screen", "candidate"),
-            Wire("screen", "draft", "tailor", "proceed"), Wire("get", "posting", "tailor", "posting"), Wire("screen", "assessment", "tailor", "assessment"),
+            .. ScreenBrick.DecisionPorts.Select(p => Wire("screen", p, "recommend", p)),
+            Wire("screen", "screened", "decide", "screened"), Wire("screen", "assessment", "decide", "assessment"),
+            Wire("recommend", "recommendation", "decide", "recommendation"), Wire("recommend", "reason", "decide", "reason"),
+            Wire("get", "posting", "decide", "posting"), Wire("candidate", "data", "decide", "candidate"),
+            Wire("decide", "draft", "tailor", "proceed"), Wire("get", "posting", "tailor", "posting"), Wire("decide", "assessment", "tailor", "assessment"),
             Wire("candidate", "data", "tailor", "candidate"),
             Wire("tailor", "drafted", "validate", "drafted"), Wire("tailor", "resume", "validate", "resume"), Wire("tailor", "coverLetter", "validate", "coverLetter"),
-            Wire("get", "posting", "validate", "posting"), Wire("screen", "assessment", "validate", "assessment"), Wire("candidate", "data", "validate", "candidate"),
-        };
+            Wire("get", "posting", "validate", "posting"), Wire("decide", "assessment", "validate", "assessment"), Wire("candidate", "data", "validate", "candidate"),
+        ];
         return new WorkflowDefinition
         {
-            Id = $"jobsearch.posting:{postingKey}", Name = "jobsearch: read, screen, draft, validate one posting",
+            Id = $"jobsearch.posting:{postingKey}", Name = "jobsearch: read, screen, decide (certified), draft, validate one posting",
             Description = "Per-posting pipeline of the job-search app (apps/job-search).", Nodes = nodes, Connections = wires,
         };
     }
@@ -94,10 +112,10 @@ public static class PostingWorkflow
 
         return new PostingOutcome(
             Out<string>("get", "signal") ?? "error", Out<bool>("get", "provesOpen"), Out<string>("get", "detail") ?? "",
-            Out<JobPosting>("get", "posting"), Out<Assessment>("screen", "assessment"),
+            Out<JobPosting>("get", "posting"), Out<Assessment>("decide", "assessment"),
             Out<bool>("tailor", "drafted"), Out<Draft>("tailor", "resume"), Out<Draft>("tailor", "coverLetter"),
             Out<ValidationRecord>("validate", "resumeValidation"), Out<ValidationRecord>("validate", "coverValidation"),
-            Out<byte[]>("validate", "resumePdf"), Out<byte[]>("validate", "coverPdf"), log);
+            Out<byte[]>("validate", "resumePdf"), Out<byte[]>("validate", "coverPdf"), log, Out<string>("tailor", "coverLetterOrigin"));
     }
 
     private static string Describe(Dictionary<string, object> outputs) =>

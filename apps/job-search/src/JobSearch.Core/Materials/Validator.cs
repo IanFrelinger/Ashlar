@@ -24,6 +24,10 @@ public sealed record ValidationRecord
     public List<string> MissingRequirements { get; init; } = [];
     /// <summary>What only the user can supply or confirm before using the draft.</summary>
     public List<string> NeedsConfirmation { get; init; } = [];
+    /// <summary>The certified claims check (jobsearch.claims-check) on the same draft; <see cref="Passed"/> requires it.</summary>
+    public Certified.CertifiedCheck? Certified { get; init; }
+    /// <summary>Who worded the draft: template, or model (then a person must read it before it is used).</summary>
+    public string Origin { get; init; } = "template";
     /// <summary>Result of reading the PDF back, when one was rendered.</summary>
     public PdfCheck? Pdf { get; init; }
     /// <summary>Always present: no applicant-tracking outcome is predicted or guaranteed.</summary>
@@ -37,6 +41,15 @@ public sealed record PdfCheck(bool Passed, double Ratio, int Pages, int Expected
 public static class Validator
 {
     private static readonly TimeSpan B = TimeSpan.FromSeconds(1);
+
+    /// <summary>The record with the certified claims check folded in: it passes only if both pass.</summary>
+    public static ValidationRecord WithCertified(ValidationRecord v, Certified.CertifiedCheck check) =>
+        v with
+        {
+            Certified = check,
+            Passed = v.Passed && check.Passed,
+            Unsupported = [.. v.Unsupported, .. check.Unsupported.Select(u => new ClaimCheck(u, "unsupported", $"certified {check.BrickId}"))],
+        };
 
     /// <summary>Validates <paramref name="draft"/>.</summary>
     public static ValidationRecord Validate(Draft draft, CandidateProfile p, JobPosting posting, Assessment a, PdfCheck? pdf = null)
@@ -114,6 +127,8 @@ public static class Validator
         if (Regex.IsMatch(draftLow, @"\b(ts/sci|top secret|secret|public trust)\b", RegexOptions.None, B))
             Check("clearance", p.ConfirmedText("clearance_status") is { } cs && draft.Text.Contains(cs, StringComparison.Ordinal) ? "user-confirmed clearance status" : null);
 
+        if (draft.Origin == "model")
+            needs.Add("A model worded this draft from your résumé. Every claim was checked against the résumé, but read it before you use it.");
         needs.AddRange(a.Unknowns.Select(u => $"{u.Requirement}: {u.Detail}"));
         if (p.Field("name").Status != "confirmed")
             needs.Add("Confirm the name and contact details derived from the résumé.");
@@ -126,6 +141,7 @@ public static class Validator
             Unsupported = unsupported,
             MissingRequirements = a.Gaps.Where(g => g.Kind == "requirement").Select(g => g.Requirement).ToList(),
             NeedsConfirmation = needs,
+            Origin = draft.Origin,
             Pdf = pdf,
         };
     }

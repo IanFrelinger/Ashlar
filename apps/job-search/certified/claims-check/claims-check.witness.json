@@ -1,0 +1,299 @@
+{
+  "brickId": "jobsearch.claims-check",
+  "cases": [
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "Jordan Rivera\n- Built Airflow pipelines in Python\nI have used Python and SQL since 2017.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": true,
+        "unsupportedCount": 0,
+        "unsupported": ""
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "- Built Airflow pipelines in Python and Rust",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "bullet not in the résumé: Built Airflow pipelines in Python and Rust"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I ran Kubernetes clusters.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "skill not in the résumé: kubernetes"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "Re: Kubernetes Engineer",
+        "confirmedClearance": "",
+        "allowedText": "Kubernetes Engineer at Acme",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": true,
+        "unsupportedCount": 0,
+        "unsupported": ""
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I led a team of 20.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "number without a source: 20"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "November 8, 2026",
+        "confirmedClearance": "",
+        "allowedText": "November 8, 2026",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": true,
+        "unsupportedCount": 0,
+        "unsupported": ""
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I shipped 17 projects.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "number without a source: 17"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I processed 2,000 files a day across 9.4 years.",
+        "confirmedClearance": "",
+        "allowedText": "9.4 years",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": true,
+        "unsupportedCount": 0,
+        "unsupported": ""
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I hold an active Secret clearance.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "clearance mentioned but not as the user confirmed it"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "Clearance: active Secret",
+        "confirmedClearance": "active Secret",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": true,
+        "unsupportedCount": 0,
+        "unsupported": ""
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I hold a Top Secret clearance.",
+        "confirmedClearance": "active Secret",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "clearance mentioned but not as the user confirmed it"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I know C++ and PostgreSQL.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "skill not in the résumé: c++"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "- Invented step\nI cut costs by 45%.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 2,
+        "unsupported": "bullet not in the résumé: Invented step\nnumber without a source: 45"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "- Cut runtime from 6 hours to 90 minutes\nIt took 6 hours.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": true,
+        "unsupportedCount": 0,
+        "unsupported": ""
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I have shipped Go services.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\ngo"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "skill not in the résumé: go"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "Cleared at TS/SCI.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "clearance mentioned but not as the user confirmed it"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "Eligible for Public Trust.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "clearance mentioned but not as the user confirmed it"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "Eligible for Public Trust.",
+        "confirmedClearance": "Public Trust",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": true,
+        "unsupportedCount": 0,
+        "unsupported": ""
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I have 5 years of experience.",
+        "confirmedClearance": "",
+        "allowedText": "9.5",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "number without a source: 5"
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I have 9.5 years of experience.",
+        "confirmedClearance": "",
+        "allowedText": "9.5",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": true,
+        "unsupportedCount": 0,
+        "unsupported": ""
+      }
+    },
+    {
+      "input": {
+        "resume": "Jordan Rivera\n- Built Airflow pipelines in Python\n- Cut runtime from 6 hours to 90 minutes\nSkills: Python, SQL\nData Engineer | 2017-06 – 2020-02\nProcessed 2,000 files a day",
+        "draft": "I processed 2000 files a day.",
+        "confirmedClearance": "",
+        "allowedText": "",
+        "skillTerms": "python\nsql\nkubernetes\nc++"
+      },
+      "expectedOutput": {
+        "passed": false,
+        "unsupportedCount": 1,
+        "unsupported": "number without a source: 2000"
+      }
+    }
+  ]
+}

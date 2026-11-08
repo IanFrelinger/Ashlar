@@ -10,7 +10,8 @@
                           │   │      import edits first; write system columns; conflicts                       │ │
                           │   ├─► jobs.list-board brick ──┐                                                    │ │
                           │   ├─► Ashlar WorkflowExecutor, one workflow per posting:                           │ │
-                          │   │     jobs.get-posting → jobsearch.screen → jobsearch.tailor → jobsearch.validate │ │
+                          │   │     jobs.get-posting → jobsearch.screen → jobsearch.recommendation* →          │ │
+                          │   │     jobsearch.decide → jobsearch.tailor (→ generative-artifact) → .validate*   │ │
                           │   │           │                                                                     │ │
                           │   ├─► drafts → user's Google Drive (Docs + PDFs, app keys) ─────────────────────────┤ │
                           │   ├─► staleness, cleanup (move to Archive), freeze Submitted                        │ │
@@ -22,7 +23,9 @@
 
 Everything the brief calls an automation runs on Ashlar:
 
-- **Bricks.** `web.call`, `web.learn`, `jobs.list-board` and `jobs.get-posting` live in `src/Ashlar.WebOperations`, Ashlar's native web-operations capability (declared, versioned site specs run over plain HTTP, with learning and repair). `jobsearch.screen`, `jobsearch.tailor` and `jobsearch.validate-materials` live in the app. All seven are registered through `AddAshlarSdk(...RegisterBrick<T>())` into the real `AddAshlar()` host, and the host refuses to start if any is missing.
+- **Bricks.** `web.call`, `web.learn`, `jobs.list-board` and `jobs.get-posting` live in `src/Ashlar.WebOperations`, Ashlar's native web-operations capability (declared, versioned site specs run over plain HTTP, with learning and repair). `jobsearch.screen`, `jobsearch.decide`, `jobsearch.tailor` and `jobsearch.validate-materials` live in the app and are registered through `AddAshlarSdk(...RegisterBrick<T>())` into the real `AddAshlar()` host; `generative-artifact` comes from `AddAshlarGenerativeAgents()` with the app's `jobsearch.cover-letter` agent profile. The host refuses to start if any is missing.
+- **Certified bricks** (`*` above). `jobsearch.recommendation` and `jobsearch.claims-check` are not compiled by the app. `certified/` holds each one's source, witness, signed certification record and gate-emitted DLL; `CertifiedBricks` verifies the record against the pinned Ed25519 key and loads that DLL, and `CertifiedOverlayRegistry` puts the instances in front of the executor (F10). Screening only counts; the certified rule decides, and the assessment records its content hash. The claims check judges every draft in `jobsearch.validate-materials`, every model draft in the generative repair loop, and every refreshed PDF.
+- **Generation.** With the user's opt-in, `jobsearch.tailor` asks the `generative-artifact` brick for a cover-letter body. It is called from the tailor brick, not placed as a node, because it declares no implementation (F9). The profile's post-validator is the certified claims check; a model draft is used only if the pipeline marks it verified, and it always requires the user's review.
 - **Workflow.** Each posting is a `WorkflowDefinition` executed by Ashlar's `WorkflowExecutor` in a per-run DI scope (`Runs/PostingWorkflow.cs`). The executor's node events are written into the run summary and the user's activity log.
 - **Egress.** Web operations go through `EgressHttp`, and each request's own host is evaluated before it is sent (EG-HTTP-09). The Google client is an `EgressHttp` client too.
 

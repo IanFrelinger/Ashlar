@@ -51,8 +51,14 @@ public sealed record Requirements
 /// <summary>The fit assessment for one posting and one candidate.</summary>
 public sealed record Assessment
 {
-    /// <summary>strong_fit | conditional_fit | stretch | not_currently_eligible.</summary>
+    /// <summary>strong_fit | conditional_fit | stretch | not_currently_eligible; empty until the certified rule decides.</summary>
     public string Recommendation { get; init; } = "";
+    /// <summary>The certified rule's reason for <see cref="Recommendation"/>.</summary>
+    public string RecommendationReason { get; init; } = "";
+    /// <summary>Which rule decided: the certified brick's id and content hash.</summary>
+    public string DecidedBy { get; init; } = "";
+    /// <summary>The counts the certified rule decides from.</summary>
+    public DecisionInputs Decision { get; init; } = new();
     /// <summary>For ordering; not a probability.</summary>
     public double Score { get; init; }
     /// <summary>Share of required skills with résumé evidence; null when none could be extracted.</summary>
@@ -73,6 +79,45 @@ public sealed record Assessment
     public List<string> MatchedSkills { get; init; } = [];
     /// <summary>Preferred skills matched.</summary>
     public List<string> PreferredMatched { get; init; } = [];
+}
+
+/// <summary>
+/// The inputs of the certified brick jobsearch.recommendation, named as its input ports. Percentages and years are
+/// integers (years in tenths) so the certified rule compares exactly; -1 means the posting or résumé does not say.
+/// </summary>
+public sealed record DecisionInputs
+{
+    /// <summary>Skills the posting requires.</summary>
+    public int RequiredSkills { get; init; }
+    /// <summary>Required skills the résumé shows.</summary>
+    public int MatchedSkills { get; init; }
+    /// <summary>Minimum years; -1 when none stated.</summary>
+    public int YearsRequired { get; init; } = -1;
+    /// <summary>Years x 10 from résumé dates; -1 when unknown.</summary>
+    public int YearsHaveTenths { get; init; } = -1;
+    /// <summary>User-confirmed facts that rule the job out.</summary>
+    public int Blockers { get; init; }
+    /// <summary>Requirements awaiting the user.</summary>
+    public int Unknowns { get; init; }
+    /// <summary>Conflicts with stated preferences.</summary>
+    public int PreferenceMismatches { get; init; }
+    /// <summary>The stated deadline has passed.</summary>
+    public bool DeadlinePassed { get; init; }
+    /// <summary>Coverage % for a strong fit.</summary>
+    public int StrongPercent { get; init; } = 70;
+    /// <summary>Coverage % for a conditional fit.</summary>
+    public int ConditionalPercent { get; init; } = 40;
+    /// <summary>Years short (x 10) still conditional.</summary>
+    public int MaxYearsShortTenths { get; init; } = 20;
+
+    /// <summary>The values keyed by the certified brick's input names.</summary>
+    public Dictionary<string, object> ToPorts() => new(StringComparer.Ordinal)
+    {
+        ["requiredSkills"] = RequiredSkills, ["matchedSkills"] = MatchedSkills, ["yearsRequired"] = YearsRequired,
+        ["yearsHaveTenths"] = YearsHaveTenths, ["blockers"] = Blockers, ["unknowns"] = Unknowns,
+        ["preferenceMismatches"] = PreferenceMismatches, ["deadlinePassed"] = DeadlinePassed, ["strongPercent"] = StrongPercent,
+        ["conditionalPercent"] = ConditionalPercent, ["maxYearsShortTenths"] = MaxYearsShortTenths,
+    };
 }
 
 /// <summary>Requirement extraction and screening. Deterministic: same posting, profile and rules, same answer.</summary>
@@ -461,27 +506,39 @@ public static class Screener
             notes.Add($"The stated application deadline {req.Deadline} has passed.");
         notes.AddRange(prefs.OtherRequirements.Select(r => $"User requirement to check by hand: {r}"));
 
-        string rec;
-        if (blockers.Count > 0) rec = "not_currently_eligible";
-        else if (coverage is null)
-        {
-            rec = "conditional_fit";
+        // The recommendation itself is not decided here. Screening produces the counts; the certified brick
+        // jobsearch.recommendation (apps/job-search/certified/recommendation) turns them into the recommendation, so the
+        // rule that decides is the exact source Ashlar's certification gate admitted. See DecisionInputs.
+        if (coverage is null)
             notes.Add("No skill requirements could be extracted from the posting; review it by hand.");
-        }
-        else if (coverage >= rules.StrongThreshold && yearsShort == 0) rec = "strong_fit";
-        else if (coverage >= rules.ConditionalThreshold && yearsShort <= rules.MaxYearsShort) rec = "conditional_fit";
-        else rec = "stretch";
-        if (rec == "strong_fit" && (unknowns.Count > 0 || mismatch.Count > 0))
-            rec = "conditional_fit";
-        if (rec != "not_currently_eligible" && pastDeadline)
-            rec = "stretch";
+        var yearsHave = profile.Number("years_experience");
+        var decision = new DecisionInputs
+        {
+            RequiredSkills = req.SkillsRequired.Count,
+            MatchedSkills = matched.Count,
+            YearsRequired = req.YearsMin ?? -1,
+            YearsHaveTenths = yearsHave is { } y ? (int)Math.Round(y * 10, MidpointRounding.AwayFromZero) : -1,
+            Blockers = blockers.Count,
+            Unknowns = unknowns.Count,
+            PreferenceMismatches = mismatch.Count,
+            DeadlinePassed = pastDeadline,
+            StrongPercent = Percent(rules.StrongThreshold),
+            ConditionalPercent = Percent(rules.ConditionalThreshold),
+            MaxYearsShortTenths = (int)Math.Round(rules.MaxYearsShort * 10, MidpointRounding.AwayFromZero),
+        };
 
         var score = Math.Round((coverage ?? 0.5) - 0.1 * unknowns.Count - 0.15 * mismatch.Count - 0.05 * yearsShort + 0.02 * preferredMatched.Count, 3);
         return new Assessment
         {
-            Recommendation = rec, Score = score, Coverage = coverage, Requirements = req, Evidence = evidence,
+            Score = score, Coverage = coverage, Requirements = req, Evidence = evidence, Decision = decision,
             Gaps = [.. gaps, .. mismatch], Unknowns = unknowns, Blockers = blockers, Notes = notes,
             MatchedSkills = matched, PreferredMatched = preferredMatched,
         };
     }
+
+    private static int Percent(double share) => (int)Math.Round(share * 100, MidpointRounding.AwayFromZero);
+
+    /// <summary>The assessment with the certified rule's recommendation and reason applied.</summary>
+    public static Assessment WithDecision(Assessment a, string recommendation, string reason, string decidedBy) =>
+        a with { Recommendation = recommendation, RecommendationReason = reason, DecidedBy = decidedBy };
 }

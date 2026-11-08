@@ -299,7 +299,8 @@ public sealed class EndToEndTests
         var posting = new Ashlar.WebOperations.Jobs.JobPosting("Civic Ledger", "Data Engineer (Cleared)", "Arlington, VA", null, null, "onsite", null, null, null, null,
             "Requirements\n- Active Secret clearance required\n- Python and SQL", null, new("ashby", "getJob", new Dictionary<string, string>()), true);
         var blocked = Screening.Screener.Assess(posting, h.App.Profiles.Load(jordan)!, h.App.Accounts.GetPreferences(jordan), DateOnly.FromDateTime(DateTime.UtcNow));
-        blocked.Recommendation.Should().Be("not_currently_eligible");
+        blocked.Recommendation.Should().BeEmpty("screening counts; only the certified rule decides");
+        (await CertifiedTests.DecideAsync(h, blocked)).Should().Be("not_currently_eligible");
         blocked.Blockers.Should().ContainSingle(b => b.Detail.Contains("none"));
     }
 

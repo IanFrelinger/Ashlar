@@ -10,6 +10,9 @@ artifacts/
 src/Ashlar.Tests.Infrastructure/scripts/bin/
 src/Ashlar.Tests.Infrastructure/scripts/obj/
 *.dll
+# The job-search app's certified bricks ship the gate-emitted assembly their certification record covers; the app
+# loads exactly those bytes after verifying the record, so they are source, not build output.
+!apps/job-search/certified/*/gate-emitted-brick.dll
 *.pdb
 *.exe
 *.cache

@@ -11,6 +11,9 @@ namespace JobSearch.Materials;
 /// <summary>A drafted document as styled lines: h = heading, b = bold line, p = paragraph, li = bullet.</summary>
 public sealed record Draft(string Kind, IReadOnlyList<(string Style, string Text)> Lines)
 {
+    /// <summary>template (assembled from résumé facts) or model (worded by a model, then checked).</summary>
+    public string Origin { get; init; } = "template";
+
     /// <summary>Plain text, the form validated, hashed and compared for staleness.</summary>
     public string Text => string.Join("\n", Lines.Select(l => l.Style == "li" ? "- " + l.Text : l.Text));
 
@@ -103,7 +106,14 @@ public static class Tailor
     }
 
     /// <summary>The cover letter.</summary>
-    public static Draft CoverLetter(CandidateProfile p, JobPosting posting, Assessment a, DateOnly today)
+    public static Draft CoverLetter(CandidateProfile p, JobPosting posting, Assessment a, DateOnly today) =>
+        CoverLetterWith(p, posting, today, CoverLetterBody(p, posting, a));
+
+    /// <summary>
+    /// A cover letter around <paramref name="body"/>: the header (name, contact, date, addressee, salutation) and the
+    /// sign-off are assembled here from the profile and the posting, whoever wrote the body.
+    /// </summary>
+    public static Draft CoverLetterWith(CandidateProfile p, JobPosting posting, DateOnly today, IEnumerable<(string Style, string Text)> body, string origin = "template")
     {
         var f = p.Facts;
         var lines = new List<(string, string)>();
@@ -117,7 +127,21 @@ public static class Tailor
         lines.Add(("p", $"Re: {posting.Title}{(posting.RequisitionId is { } r ? $" (Req. {r})" : "")}"));
         lines.Add(("p", ""));
         lines.Add(("p", "Dear Hiring Team,"));
-        lines.Add(("p", $"I am applying for the {posting.Title} position at {posting.Employer}. {ConfirmMarker} one or two sentences, in your own words, on why this role and team interest you.]"));
+        lines.AddRange(body);
+        lines.Add(("p", ""));
+        lines.Add(("p", "Sincerely,"));
+        lines.Add(("p", name));
+        return new Draft("cover_letter", lines) { Origin = origin };
+    }
+
+    /// <summary>The template body: the résumé's facts, in fixed sentences.</summary>
+    public static List<(string Style, string Text)> CoverLetterBody(CandidateProfile p, JobPosting posting, Assessment a)
+    {
+        var f = p.Facts;
+        var lines = new List<(string, string)>
+        {
+            ("p", $"I am applying for the {posting.Title} position at {posting.Employer}. {ConfirmMarker} one or two sentences, in your own words, on why this role and team interest you.]"),
+        };
 
         // The most relevant employment entry, quoted through its own top bullets.
         var keywords = a.MatchedSkills;
@@ -140,10 +164,7 @@ public static class Tailor
         if (p.Number("years_experience") is { } years && years > 0)
             lines.Add(("p", $"My résumé covers {years:0.#} years of professional experience."));
         lines.Add(("p", "I would welcome the chance to discuss the role. Thank you for your consideration."));
-        lines.Add(("p", ""));
-        lines.Add(("p", "Sincerely,"));
-        lines.Add(("p", name));
-        return new Draft("cover_letter", lines);
+        return lines;
     }
 
     /// <summary>The term as the résumé spells it ("Epic", "EHR"), not the lexicon's lowercase.</summary>

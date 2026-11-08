@@ -14,6 +14,12 @@ framework in this change; the app works around each one, and the workaround is n
 | F6 | No deterministic, per-tenant scheduling; cron has no time zone | Medium |
 | F7 | No durable state, idempotency or resume for workflow runs; no general audit sink | Medium |
 | F8 | `BrickOutput.Summary` is dropped from workflow results | Low |
+| F9 | Ashlar's own `generative-artifact` brick declares no implementation, so F1 makes it unrunnable as a workflow node | Medium |
+| F10 | An application cannot put a brick it verified itself into the registry: `CertifiedBrickRegistry.TryAdmit` is internal | Medium |
+| F11 | The gate's compile is not deterministic: re-certifying unchanged source gives the same content hash but new artifact bytes | Low |
+
+F1–F8 were found at commit `d38d825`; F9–F11 at `a4efecf`, while adding the certified rules and model-worded cover
+letters.
 
 ## F1: an undeclared implementation makes a brick unrunnable in a workflow
 
@@ -104,6 +110,43 @@ human-readable summary every brick is asked to set (`docs/AuthoringBricks.md`) i
 
 - **Fix:** carry `Summary` on `NodeResult`.
 
+## F9: the generative brick cannot be a workflow node
+
+`GenerativeArtifactBrick` (`src/Ashlar.Core.Application/Generation/GenerativeArtifactBrick.cs:46`) sets no
+`Implementations`, so `ImplementationChainResolver.DeclaredOnly` gives it an empty chain and the workflow executor
+throws exactly as in F1. Ashlar's first-party generative pipeline therefore cannot be placed in a workflow.
+
+- **Cost here:** `jobsearch.tailor` holds the generative brick (constructor injection) and calls its `ExecuteAsync`
+  directly for the model-worded cover letter, so the generation is not a node and its events are not in the run's
+  node log. `GenerativeBrickFinding` in the app's tests pins the fact.
+- **Fix:** declare an agentic implementation on `GenerativeArtifactBrick` (and a deterministic one when the resolved
+  profile supports it), or have the resolver treat `GenerativeBrick` as self-describing.
+
+## F10: no public way to admit a verified brick
+
+Ashlar's certified registry admits bricks through `CertifiedBrickRegistry.TryAdmit`
+(`src/Ashlar.Infrastructure/Certification/CertifiedBrickRegistry.cs:53`), which is `internal`, and `IBrickRegistry` is
+read-only. The verified-consumer sample (`samples/verified-brick-consumer`) loads and verifies a deployed brick but can
+only call it, not register it.
+
+- **Cost here:** the app repeats the sample's verify-then-load sequence (`JobSearch.Host/CertifiedBricks.cs`) and puts
+  the instances in front of the executor with its own decorator (`CertifiedOverlayRegistry`), replacing the
+  `IBrickRegistry` registration by hand.
+- **Fix:** a public `AddAshlarCertifiedBricks(directory, trustPolicy)` that verifies at start-up, fails closed, and
+  registers the instances.
+
+## F11: gate-emitted bytes are not reproducible
+
+`BrickCompileOptions.CompilationOptions` (`src/Ashlar.Infrastructure/Certification/BrickCompileOptions.cs:27`) does
+not set `deterministic: true`, so each compile gets a new module version id. Certifying the unchanged
+`jobsearch.recommendation` source four times gave the same content hash and four different artifact hashes.
+
+- **Cost here:** the record binds one particular DLL, so the DLL is committed with the record (`.gitignore` excepts
+  `apps/job-search/certified/*/gate-emitted-brick.dll`), and the re-certification test compares content hashes only.
+  Anyone re-certifying cannot reproduce the committed artifact and must replace it.
+- **Fix:** compile with `deterministic: true`, which would let a consumer rebuild the artifact from source and compare.
+  The emitted bytes are pinned by golden corpora, so this is its own change.
+
 ## What worked well
 
 - `AddAshlarSdk` + `AddAshlar()` composed with no configuration in a console host and in tests.
@@ -111,3 +154,10 @@ human-readable summary every brick is asked to set (`docs/AuthoringBricks.md`) i
 - The egress inventory gate caught the new outbound path immediately and printed the exact row to pin.
 - `EgressGuard("air-gapped", "enforce")` made the refusal path trivially testable.
 - QuestPDF (already used by Ashlar's workflow PDF exporter) produced extractable PDFs once ligatures were turned off.
+- The certification gate earned its keep. Its mutation testing refused both rule bricks until the witnesses pinned
+  every boundary (for example a requirement count of 1 or 2, and `TS/SCI` mentioned alone), and its IL import fence
+  refused `foreach` over a `List<T>` (the nested `Enumerator` type has no namespace). Writing the app's own test of the
+  model letter then found a real hole in the claims rule, which the witness had not covered: "5 years" passed because
+  "9.5" was in the context. The rule now compares whole numbers, a witness case pins it, and it was re-certified.
+- The generative pipeline's repair loop needed nothing from the app beyond a post-validator: refusal reasons went back
+  to the drafter, and the provenance said whether the final draft was verified.

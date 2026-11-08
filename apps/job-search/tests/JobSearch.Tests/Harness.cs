@@ -17,7 +17,7 @@ public sealed class Harness : IDisposable
     public App App { get; }
     public List<TimeSpan> Waits { get; } = [];
 
-    public Harness(IEgressGuard? apiGuard = null)
+    public Harness(IEgressGuard? apiGuard = null, Ashlar.Abstractions.IModel? model = null, string? certifiedDir = null)
     {
         var client = new WebOperationClient(new SpecStore(Path.Combine(Dir, "specs")), apiGuard ?? new EgressGuard("full", "report"), Boards,
             new WebOperationsOptions { PerHostInterval = TimeSpan.Zero }, now: () => Clock.Now);
@@ -25,6 +25,7 @@ public sealed class Harness : IDisposable
         {
             DataDir = Dir, GoogleMode = "fake", Fake = Google, Web = client,
             Delay = (d, _) => { lock (Waits) Waits.Add(d); return Task.CompletedTask; },
+            Model = model, CertifiedDir = certifiedDir,
         });
     }
 

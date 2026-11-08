@@ -20,6 +20,9 @@ public interface IAshlarRuntime
 {
     /// <summary>A new scope. Each run gets its own, so event streams never mix between users.</summary>
     AshlarScope CreateScope();
+
+    /// <summary>The verified certified bricks.</summary>
+    Certified.ICertifiedRules Certified { get; }
 }
 
 /// <summary>An Ashlar DI scope with what a run needs.</summary>
@@ -494,7 +497,7 @@ public sealed class RunEngine(
                     INSERT INTO documents (id, user_id, job_id, kind, format, idempotency_key, drive_file_id, content_sha, source_doc_id, source_content_sha, resume_sha, status, validation_json, created_at, updated_at)
                     VALUES (@id,@userId,@jobId,@kind,'pdf',@pdfKey,@pdfFile,@pdfSha,@docId,@docSha,@resumeSha,'draft',@vj,@now,@now) ON CONFLICT(idempotency_key) DO NOTHING
                     """, new { id = Ids.New("doc"), userId, jobId, kind, pdfKey, pdfFile, pdfSha, docId, docSha, resumeSha, vj = Json.Write(validation.Pdf), now = Clock.Iso() }, tx);
-                Db.Log(c, tx, userId, "system", "materials.draft", jobId, new { kind, docFile, pdfFile, passed = validation.Passed, pdfText = validation.Pdf?.Ratio, needsConfirmation = validation.NeedsConfirmation.Count });
+                Db.Log(c, tx, userId, "system", "materials.draft", jobId, new { kind, docFile, pdfFile, passed = validation.Passed, origin = validation.Origin, certified = validation.Certified?.Passed, pdfText = validation.Pdf?.Ratio, needsConfirmation = validation.NeedsConfirmation.Count });
             });
         }
     }
@@ -548,7 +551,8 @@ public sealed class RunEngine(
             var text = await g.ReadTextAsync(editable.DriveFileId, ct).ConfigureAwait(false);
             var draft = new Draft(pdf.Kind, text.Split('\n').Select(l => l.StartsWith("- ", StringComparison.Ordinal) ? ("li", l[2..]) : ("p", l)).ToList());
             var bytes = Pdf.Render(draft, $"{pdf.Kind} — {job.Employer} — {job.Title}");
-            var validation = Validator.Validate(draft, profile, posting, assessment, Pdf.CheckExtractable(bytes, draft.Text));
+            var validation = Validator.WithCertified(Validator.Validate(draft, profile, posting, assessment, Pdf.CheckExtractable(bytes, draft.Text)),
+                await Certified.CertifiedClaims.CheckAsync(ashlar.Certified, draft, profile, posting, ct).ConfigureAwait(false));
             await g.UpdateFileAsync(pdf.DriveFileId, bytes, "application/pdf", ct).ConfigureAwait(false);
             var sha = ResumeParser.Sha256(text);
             db.Write((c, tx) =>

@@ -71,6 +71,11 @@ public sealed record MaterialRules
     public List<string> DraftFor { get; init; } = ["strong_fit", "conditional_fit"];
     /// <summary>New job-specific drafts per run.</summary>
     public int MaxNewDraftsPerRun { get; init; } = 3;
+    /// <summary>
+    /// When true, a model words the cover letter's body through Ashlar's generative pipeline; the letter is used only if
+    /// the certified claims check passes it, and it always needs the user's review. Off by default.
+    /// </summary>
+    public bool ModelCoverLetter { get; init; }
 }
 
 /// <summary>A user row.</summary>

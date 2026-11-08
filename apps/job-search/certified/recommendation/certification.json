@@ -1,0 +1,106 @@
+{
+  "status": "PASS",
+  "stage": "S0-S2",
+  "admitted": true,
+  "signed": true,
+  "timestamp": "2026-11-08T20:14:33.30105+00:00",
+  "brickId": "jobsearch.recommendation",
+  "contentHash": "/n7ZAZLWrPoXXu1rRf816stzjrPzQYshB8FzAVVStfM=",
+  "escapeRate": 0,
+  "totalMutants": 24,
+  "survivingMutants": 0,
+  "killedMutants": [
+    "flip-binary-op-66",
+    "flip-binary-op-67",
+    "flip-binary-op-67#2",
+    "flip-binary-op-71",
+    "negate-condition-71",
+    "negate-condition-76",
+    "negate-condition-81",
+    "negate-condition-86",
+    "mutate-int-literal-66",
+    "mutate-int-literal-66#2",
+    "mutate-int-literal-66#3",
+    "mutate-int-literal-67",
+    "mutate-string-literal-54",
+    "mutate-string-literal-55",
+    "mutate-string-literal-56",
+    "mutate-string-literal-57",
+    "remove-statement-54",
+    "remove-statement-73",
+    "remove-statement-78",
+    "remove-statement-83",
+    "swap-logical-op-67",
+    "swap-logical-op-81",
+    "swap-logical-op-86",
+    "swap-logical-op-97"
+  ],
+  "survivingMutantIds": [],
+  "signature": "vSIbR1bVlIdiGCa5iXmkF8xc1ttMiZN7zSWWjgqezvs=",
+  "reason": null,
+  "gate": "Ashlar.Infrastructure.Certification.CertificationGate",
+  "schemaVersion": 2,
+  "gatesPassed": [
+    {
+      "name": "analyzer-gate",
+      "version": "1",
+      "configuration": "analyzerAssemblyVersion=0.4.2.0;severityFloor=Warning;diagnosticsEvaluated=0;manifestRules=none;touchSet=none"
+    },
+    {
+      "name": "correctness-witness",
+      "version": "1",
+      "configuration": null
+    },
+    {
+      "name": "mutation-gate",
+      "version": "1",
+      "configuration": "escapeRateThreshold=0"
+    },
+    {
+      "name": "determinism",
+      "version": "1",
+      "configuration": null
+    },
+    {
+      "name": "dependency-graph",
+      "version": "1",
+      "configuration": null
+    }
+  ],
+  "inputs": [
+    {
+      "kind": "witness",
+      "id": "jobsearch.recommendation",
+      "hash": "tmd7v3w6v\u002BCyA2Gn43iEyjNkKbafmw7jcDUbWQz\u002BGeQ="
+    },
+    {
+      "kind": "certifier-identity",
+      "id": "Ashlar.Infrastructure.Certification.CertificationGate",
+      "hash": "mFMA9tbolTBPMch\u002BIpjU70/\u002BWgkXAeWv5n7UaaNQpoQ="
+    },
+    {
+      "kind": "compile-options",
+      "id": "CSharp12",
+      "hash": "dObCeJGRAh8N9CqeHJA65f1AR9PysNfEB15OGgu7Gm0="
+    },
+    {
+      "kind": "gate-emitted-artifact",
+      "id": "JobSearch.Certified.RecommendationBrick",
+      "hash": "HiGcTJGN6iySuWmORZF1\u002Bxj\u002B1bnOxkBAdEeW7Pe7xrg="
+    },
+    {
+      "kind": "il-import-fence",
+      "id": "allowlist-v3",
+      "hash": "oGKfNWYKwH61B7ive9SZN3hlY7rIQpvGR/5FQXxnH7A="
+    },
+    {
+      "kind": "execution-mode",
+      "id": "gate-emitted",
+      "hash": "btTcxZbJtkUqc0VLFd8HX/KO0FqN4IftIBkKnVFk\u002B3I="
+    }
+  ],
+  "proposer": null,
+  "attempts": [],
+  "ed25519Signature": "LpSUogYiXkqELnJ1lbiOOebzztEnxLaISpRcjMKMycm6bKNcpAWxkuHxWPgr68johxrl6webN4c//XQuFwhrDQ==",
+  "ed25519PublicKey": "lX4OGtWmOabfxDlmEZkuNPIsUHYB4m9NQ\u002BIWj5I3AqA="
+}

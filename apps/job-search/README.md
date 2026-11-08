@@ -4,7 +4,10 @@ A multi-user job-search and application tracker, built on Ashlar as a dogfooding
 Google Drive. That Drive holds their tracker, master résumé, tailored drafts, attachment-ready PDFs, archive and
 activity log. Discovery reads employer applicant-tracking boards and career pages through
 [`Ashlar.WebOperations`](../../src/Ashlar.WebOperations/README.md), Ashlar's native capability for calling a website's
-own data requests as declared operations. Each posting runs through an Ashlar workflow: read, screen, draft, validate.
+own data requests as declared operations. Each posting runs through an Ashlar workflow: read, screen, decide, draft,
+validate. The two rules that decide (the recommendation, and whether a draft claims anything the résumé does not
+support) are **certified bricks**: the app runs the exact assemblies Ashlar's certification gate admitted, and refuses
+to start if their signed records do not verify.
 
 - Architecture, data model, what is authoritative where, and how sheet edits are reconciled:
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -20,9 +23,11 @@ own data requests as declared operations. Each posting runs through an Ashlar wo
 | Discovery | The user lists employer boards (`greenhouse:<slug>`, `lever:<slug>`, `ashby:<slug>`) and pastes single postings (a board posting URL, or any https career page that publishes schema.org `JobPosting` data). Titles are matched to the user's target roles; reads are capped per run. Source and check date are recorded for every listing. |
 | Deduplication | Same source posting; else same employer + requisition number; else same canonical URL; else same employer + title + location. |
 | Listing status | `open`: the employer's own source returned it today. `unverified`: the source stopped returning it once, or it could not be read. `closed`: the source stopped returning it **and** it is absent from the board listing, or two checks in a row. `stale`: not verified open for 7 days (configurable). |
-| Screening | Required/preferred skills, years, degree, clearance (active vs. obtainable), citizenship, visa sponsorship, travel, pay, deadline, remote restrictions, seniority, each with the quote it came from. The candidate side carries evidence by résumé line. Recommendation: `strong_fit`, `conditional_fit`, `stretch` or `not_currently_eligible`, with thresholds per user. It never states that a role is remote from every state or that the employer sponsors a clearance unless the posting says so. |
+| Screening | Required/preferred skills, years, degree, clearance (active vs. obtainable), citizenship, visa sponsorship, travel, pay, deadline, remote restrictions, seniority, each with the quote it came from. The candidate side carries evidence by résumé line. It never states that a role is remote from every state or that the employer sponsors a clearance unless the posting says so. |
+| Recommendation | `strong_fit`, `conditional_fit`, `stretch` or `not_currently_eligible`, with its reason, decided by the certified `jobsearch.recommendation` brick from the screening's counts and the user's thresholds. The assessment records the certificate's content hash. |
 | Materials | For qualifying, verified-open jobs only (at most N new per run), the user gets an editable résumé (their own bullets, verbatim, reordered by relevance) and a cover letter (only facts with résumé evidence, plus `[CONFIRM: …]` placeholders), both as Google Docs, with matching PDFs. |
-| Validation | Every bullet, date line, employer, skill, years figure and clearance mention is traced to the résumé or the user's confirmed profile. Missing requirements and items needing confirmation are listed. Each PDF is read back to prove its text is extractable. The record is stored with the document and summarized in the tracker. No applicant-tracking outcome is predicted. |
+| Model-worded cover letters (opt-in) | With `materials.modelCoverLetter` on, a model words the letter's body through Ashlar's generative pipeline. Every draft is judged by the certified claims check; refused drafts go back to the model with the reasons (three attempts). The letter is used only if a draft passed; otherwise the template letter is used and the reason recorded. A model-worded letter is marked `origin: model` and lists a review item for the user. Off by default. |
+| Validation | Every bullet, date line, employer, skill, years figure and clearance mention is traced to the résumé or the user's confirmed profile, and the certified `jobsearch.claims-check` brick judges the same draft (bullets are résumé lines, skills are named in the résumé, every number is one the résumé or job context has, clearance only as the user confirmed it); the draft passes only if both do. Missing requirements and items needing confirmation are listed. Each PDF is read back to prove its text is extractable. The record is stored with the document and summarized in the tracker. No applicant-tracking outcome is predicted. |
 | Staleness | Editing a draft makes its PDF stale; `refresh-pdf` re-renders it from the user's text and re-validates (a new unsupported claim is flagged, not removed). Review (`approve`) is refused while a PDF is stale. |
 | Application tracking | Status (`not_applied` … `offer`), applied date, next steps and notes are the user's, editable in the sheet or the CLI. `applied`, `interviewing`, `offer` and `rejected` need the user's own statement. When a job becomes `applied`, the materials then in the workspace are copied to `Submitted`, the PDF revision is kept forever, and hashes and warnings (stale, unreviewed) are recorded. The system never submits anything. |
 | Cleanup | Closed listings without an application are archived and their unsubmitted drafts moved to `Archive`. Drafts from a replaced résumé or for a no-longer-eligible job are archived too. Nothing is deleted. |
@@ -71,24 +76,63 @@ and the egress check. Drive and Sheets are simulated.
    jobsearch --google google dispatch                                              # every 15 min: runs whoever is due
    ```
 
+## Certified rules
+
+`certified/` holds two bricks, each as the certifier wants it: one source file, a witness (the cases the gate runs and
+mutates against), a csproj for the gate's dependency fence, and what the gate produced: `certification.json` (the
+signed record) and `gate-emitted-brick.dll` (the assembly the record covers). `trusted-signer.ed25519.pub` pins the key
+that signed both records; its private half was generated for one export and discarded.
+
+| Brick | Decides | Witness | Mutants |
+|---|---|---|---|
+| `jobsearch.recommendation` | the recommendation and its reason, from counts and thresholds | 20 cases | 24, all killed |
+| `jobsearch.claims-check` | whether a draft claims what the résumé and confirmed profile do not support | 21 cases | 24, all killed |
+
+At start-up `JobSearch.Host.CertifiedBricks` verifies each record strictly (content hash, artifact hash, HMAC, and the
+Ed25519 signature against the pinned key), runs the IL import fence over the DLL, then loads those bytes into a
+collectible context. Any failure stops the app. The recommendation brick is a node in every posting's workflow; the
+claims check runs inside validation, inside the model letter's repair loop, and on a refreshed PDF.
+
+To change a rule: edit its source and witness, then re-certify both bricks with a new one-time key (the export prints
+the record and DLL; replace them and the public key):
+
+```bash
+export ASHLAR_CERT_ED25519_KEY=$(openssl rand -base64 32)
+dotnet run --project tools/Ashlar.ExportCertifiedBrick -- apps/job-search/certified/<brick>/certification.json \
+  apps/job-search/certified/<brick> apps/job-search/certified/<brick>/<brick>.witness.json
+unset ASHLAR_CERT_ED25519_KEY
+```
+
+`RecertificationTests` fails while a committed record does not cover the committed source and witness.
+
 ## What is verified, and what is not
 
 Verified in this repository (container, .NET 10), by tests that fail when the behaviour breaks
 (see the mutation checks in the PR):
 
-- 19 app tests: isolation of two concurrent users (database rows, Drive files, and a cross-account read refused);
+- 39 app tests: isolation of two concurrent users (database rows, Drive files, and a cross-account read refused);
   concurrent and repeated runs for one user without duplicate jobs, files, documents or rows; an interrupted run
   resumed without duplicating its orphaned upload; sheet edits imported, edited system cells kept, both-sides
   conflicts kept, deleted rows restored; evidence required for application statuses and never delegated; screening
   evidence, gaps, unknowns and blockers; drafts free of unsupported claims, with PDFs that extract at ≥ 95 %; stale-PDF
   detection and re-validation; closed / unverified / stale transitions and archiving; expired access, Google rate
   limits, a site's `rate`, and refused egress; per-user time zones; snapshots with no secrets.
-- The real Ashlar composition root (`AddAshlarSdk` + `AddAshlar`) hosting all six bricks, and the real
-  `WorkflowExecutor` running every posting.
+- The certified rules: both deployed bricks verify and run from the gate-emitted bytes; a changed source, a changed
+  DLL, an unpinned signer and a missing key each stop the app; the workflow's recommendation is the certified verdict
+  for every assessment; re-certifying the committed source is admitted with the committed content hash.
+- Model-worded cover letters with a scripted model: a verified draft is used and flagged for review; a refused draft
+  goes back with the certified reasons; all-refused and a failing model fall back to the template; without the
+  user's opt-in no model is asked.
+- The real Ashlar composition root (`AddAshlarSdk` + `AddAshlar` + `AddAshlarGenerativeAgents`) hosting every brick,
+  and the real `WorkflowExecutor` running every posting.
 - `Ashlar.WebOperations` (engine, learning, repair, write guard, bundled job specs) against a stub transport, behind
   the real egress guard (`WebOperationsTests`, in the cert-gate suite).
 
 **Not verified against real services** (none was reachable or authorized from this environment):
+
+- **A real model.** Model-worded letters were tested with a scripted model only. In production the profile asks for
+  Ashlar's `IModel`, which the host configuration must point at a provider; with none configured the app falls back to
+  the template letter and records why.
 
 - **The bundled job specs, live.** They are written from each vendor's public API documentation, and the board hosts
   are blocked by this environment's network policy, so no live call has been made. The stand-in answers in the

@@ -1,4 +1,6 @@
+using Ashlar.Abstractions;
 using Ashlar.Abstractions.Security.Egress;
+using Ashlar.Authoring;
 using Ashlar.WebOperations;
 using Ashlar.WebOperations.Bricks;
 using Ashlar.Core.Application.Workflows;
@@ -7,6 +9,8 @@ using Ashlar.Hosting;
 using Ashlar.Hosting.Sdk.Extensions;
 using JobSearch.Accounts;
 using JobSearch.Bricks;
+using JobSearch.Certified;
+using JobSearch.Materials;
 using JobSearch.Profile;
 using JobSearch.Runs;
 using JobSearch.Store;
@@ -36,6 +40,10 @@ public sealed record AppOptions
     public IEgressGuard? Guard { get; init; }
     /// <summary>Wait used for retries; tests pass a no-op.</summary>
     public Func<TimeSpan, CancellationToken, Task>? Delay { get; init; }
+    /// <summary>Where the certified bricks are deployed; null for the copy next to the app.</summary>
+    public string? CertifiedDir { get; init; }
+    /// <summary>The model for model-worded cover letters; null for the model Ashlar's host configuration provides.</summary>
+    public IModel? Model { get; init; }
 }
 
 /// <summary>Ashlar's real composition root (AddAshlarSdk + AddAshlar) with the app's bricks registered.</summary>
@@ -43,25 +51,39 @@ public sealed class AshlarRuntime : IAshlarRuntime, IDisposable
 {
     /// <summary>The bricks the app registers and requires.</summary>
     public static readonly string[] RequiredBricks =
-        ["web.call", "web.learn", "jobs.list-board", "jobs.get-posting", "jobsearch.screen", "jobsearch.tailor", "jobsearch.validate-materials"];
+    [
+        "web.call", "web.learn", "jobs.list-board", "jobs.get-posting", "jobsearch.screen", "jobsearch.decide", "jobsearch.tailor",
+        "jobsearch.validate-materials", "generative-artifact", .. CertifiedIds.All,
+    ];
 
     private readonly ServiceProvider _provider;
+    private readonly CertifiedBricks _certified;
+    private readonly bool _ownsCertified;
 
-    /// <summary>Builds the Ashlar host.</summary>
-    public AshlarRuntime(WebOperationClient web)
+    /// <summary>Builds the Ashlar host. <paramref name="certified"/> null loads (and owns) the deployed certified bricks.</summary>
+    public AshlarRuntime(WebOperationClient web, CertifiedBricks? certified = null, IModel? model = null)
     {
+        _ownsCertified = certified is null;
+        _certified = certified ?? CertifiedBricks.Load(CertifiedBricks.DefaultDirectory);
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(web); // the web-operation bricks take it through their constructor
+        services.AddSingleton<ICertifiedRules>(_certified);
         services.AddAshlarSdk(sdk => sdk
             .RegisterBrick<WebCallBrick>()
             .RegisterBrick<WebLearnBrick>()
             .RegisterBrick<JobBoardBrick>()
             .RegisterBrick<JobPostingBrick>()
             .RegisterBrick<ScreenBrick>()
+            .RegisterBrick<DecideBrick>()
             .RegisterBrick<TailorBrick>()
             .RegisterBrick<ValidateMaterialsBrick>());
+        services.AddAshlarGenerativeAgents();
+        services.AddAshlarAgentProfile<CoverLetterProfile>();
         services.AddAshlar(o => o.RegisterBackgroundAgentHostedService = false);
+        if (model is not null)
+            services.AddSingleton(model);
+        OverlayCertified(services, _certified);
         _provider = services.BuildServiceProvider();
 
         // The registry skips a brick it cannot construct without saying so; fail here, loudly, instead.
@@ -71,6 +93,26 @@ public sealed class AshlarRuntime : IAshlarRuntime, IDisposable
             throw new InvalidOperationException($"Ashlar's brick registry ({registry.GetType().Name}) does not hold: {string.Join(", ", missing)}");
     }
 
+    /// <summary>
+    /// Replaces the last IBrickRegistry registration with the same one behind <see cref="CertifiedOverlayRegistry"/>, keeping
+    /// its lifetime, so the workflow executor resolves the certified bricks to the verified instances.
+    /// </summary>
+    private static void OverlayCertified(IServiceCollection services, CertifiedBricks certified)
+    {
+        var original = services.Last(d => d.ServiceType == typeof(IBrickRegistry) && !d.IsKeyedService);
+        services.Remove(original);
+        services.Add(new ServiceDescriptor(typeof(IBrickRegistry), sp =>
+        {
+            var inner = original.ImplementationInstance as IBrickRegistry
+                ?? original.ImplementationFactory?.Invoke(sp) as IBrickRegistry
+                ?? (IBrickRegistry)ActivatorUtilities.CreateInstance(sp, original.ImplementationType!);
+            return new CertifiedOverlayRegistry(inner, certified);
+        }, original.Lifetime));
+    }
+
+    /// <inheritdoc />
+    public ICertifiedRules Certified => _certified;
+
     /// <inheritdoc />
     public AshlarScope CreateScope()
     {
@@ -79,7 +121,12 @@ public sealed class AshlarRuntime : IAshlarRuntime, IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose() => _provider.Dispose();
+    public void Dispose()
+    {
+        _provider.Dispose();
+        if (_ownsCertified)
+            _certified.Dispose();
+    }
 }
 
 /// <summary>Everything the CLI, the dispatcher and the tests use, wired once.</summary>
@@ -109,6 +156,8 @@ public sealed class App : IDisposable
     public SecretStore Secrets { get; }
     /// <summary>The Ashlar runtime.</summary>
     public AshlarRuntime Ashlar { get; }
+    /// <summary>The verified certified bricks.</summary>
+    public CertifiedBricks Certified { get; }
 
     /// <summary>Wires the app.</summary>
     public App(AppOptions o)
@@ -128,7 +177,8 @@ public sealed class App : IDisposable
             : conn => new GoogleRestWorkspace(Secrets, conn.TokenRef,
                 o.GoogleClientId ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID is not set"),
                 o.GoogleClientSecret, o.Guard); // null: the environment's credential for oauth2.googleapis.com authenticates the client
-        Ashlar = new AshlarRuntime(o.Web ?? new WebOperationClient(new SpecStore(Path.Combine(o.DataDir, "specs")), o.Guard, now: () => Clock.Now));
+        Certified = CertifiedBricks.Load(o.CertifiedDir ?? CertifiedBricks.DefaultDirectory);
+        Ashlar = new AshlarRuntime(o.Web ?? new WebOperationClient(new SpecStore(Path.Combine(o.DataDir, "specs")), o.Guard, now: () => Clock.Now), Certified, o.Model);
         Engine = new RunEngine(Db, Accounts, Profiles, Tracker, new WorkspaceFactory(Accounts, build), Ashlar, o.Delay);
         Dispatcher = new Dispatcher(Db, Accounts, Engine);
         Snapshots = new Snapshots(Db, Applications);
@@ -145,5 +195,9 @@ public sealed class App : IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose() => Ashlar.Dispose();
+    public void Dispose()
+    {
+        Ashlar.Dispose();
+        Certified.Dispose();
+    }
 }

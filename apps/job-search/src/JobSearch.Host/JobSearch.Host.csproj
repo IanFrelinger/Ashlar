@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\JobSearch.Core\JobSearch.Core.csproj" />
     <ProjectReference Include="..\..\..\..\src\Ashlar.Hosting\Ashlar.Hosting.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Ashlar.Authoring\Ashlar.Authoring.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,6 +20,10 @@
 
   <ItemGroup>
     <None Include="..\..\fixtures\**\*" LinkBase="fixtures" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The certified bricks as deployed: record, the source it covers, the gate-emitted assembly, and the pinned signer
+         key. CertifiedBricks verifies all of it at start-up; the witnesses and csproj files are the certifier's, not the app's. -->
+    <None Include="..\..\certified\**\certification.json;..\..\certified\**\*.cs;..\..\certified\**\gate-emitted-brick.dll;..\..\certified\trusted-signer.ed25519.pub"
+          LinkBase="certified" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,405 @@
+{
+  "brickId": "jobsearch.recommendation",
+  "cases": [
+    {
+      "input": {
+        "requiredSkills": 5,
+        "matchedSkills": 5,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 1,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "not_currently_eligible",
+        "coveragePercent": 100,
+        "reason": "a fact the user confirmed rules this job out"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 0,
+        "matchedSkills": 0,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "conditional_fit",
+        "coveragePercent": -1,
+        "reason": "no skill requirements could be read; review by hand"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 10,
+        "matchedSkills": 7,
+        "yearsRequired": 5,
+        "yearsHaveTenths": 94,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "strong_fit",
+        "coveragePercent": 70,
+        "reason": "skills and experience meet the posting"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 100,
+        "matchedSkills": 69,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "conditional_fit",
+        "coveragePercent": 69,
+        "reason": "most requirements are met"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 10,
+        "matchedSkills": 4,
+        "yearsRequired": 5,
+        "yearsHaveTenths": 30,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "conditional_fit",
+        "coveragePercent": 40,
+        "reason": "most requirements are met"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 10,
+        "matchedSkills": 4,
+        "yearsRequired": 5,
+        "yearsHaveTenths": 29,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "stretch",
+        "coveragePercent": 40,
+        "reason": "too many requirements are not shown"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 100,
+        "matchedSkills": 39,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "stretch",
+        "coveragePercent": 39,
+        "reason": "too many requirements are not shown"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 5,
+        "matchedSkills": 5,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 1,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "conditional_fit",
+        "coveragePercent": 100,
+        "reason": "a strong match with questions for the user"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 5,
+        "matchedSkills": 5,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 1,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "conditional_fit",
+        "coveragePercent": 100,
+        "reason": "a strong match that conflicts with a preference"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 5,
+        "matchedSkills": 5,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 2,
+        "preferenceMismatches": 1,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "conditional_fit",
+        "coveragePercent": 100,
+        "reason": "a strong match with questions for the user"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 5,
+        "matchedSkills": 5,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": true,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "stretch",
+        "coveragePercent": 100,
+        "reason": "the stated deadline has passed"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 5,
+        "matchedSkills": 5,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 1,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": true,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "not_currently_eligible",
+        "coveragePercent": 100,
+        "reason": "a fact the user confirmed rules this job out"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 4,
+        "matchedSkills": 4,
+        "yearsRequired": -1,
+        "yearsHaveTenths": 10,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "strong_fit",
+        "coveragePercent": 100,
+        "reason": "skills and experience meet the posting"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 4,
+        "matchedSkills": 4,
+        "yearsRequired": 5,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "strong_fit",
+        "coveragePercent": 100,
+        "reason": "skills and experience meet the posting"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 10,
+        "matchedSkills": 7,
+        "yearsRequired": 5,
+        "yearsHaveTenths": 49,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "conditional_fit",
+        "coveragePercent": 70,
+        "reason": "most requirements are met"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 10,
+        "matchedSkills": 7,
+        "yearsRequired": 0,
+        "yearsHaveTenths": 0,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "strong_fit",
+        "coveragePercent": 70,
+        "reason": "skills and experience meet the posting"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 1,
+        "matchedSkills": 1,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "strong_fit",
+        "coveragePercent": 100,
+        "reason": "skills and experience meet the posting"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 2,
+        "matchedSkills": 1,
+        "yearsRequired": -1,
+        "yearsHaveTenths": -1,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "conditional_fit",
+        "coveragePercent": 50,
+        "reason": "most requirements are met"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 5,
+        "matchedSkills": 5,
+        "yearsRequired": 1,
+        "yearsHaveTenths": 5,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "conditional_fit",
+        "coveragePercent": 100,
+        "reason": "most requirements are met"
+      }
+    },
+    {
+      "input": {
+        "requiredSkills": 5,
+        "matchedSkills": 5,
+        "yearsRequired": 3,
+        "yearsHaveTenths": 1,
+        "blockers": 0,
+        "unknowns": 0,
+        "preferenceMismatches": 0,
+        "deadlinePassed": false,
+        "strongPercent": 70,
+        "conditionalPercent": 40,
+        "maxYearsShortTenths": 20
+      },
+      "expectedOutput": {
+        "recommendation": "stretch",
+        "coveragePercent": 100,
+        "reason": "too many requirements are not shown"
+      }
+    }
+  ]
+}
