@@ -20,15 +20,15 @@ jobs:
       - name: Check out exact fix candidate
         uses: actions/checkout@v7
         with:
-          ref: 508745cad9204f6249a8cf0cafde0997ba1637b5
+          ref: d03a47fdf2b165d81bb676d22ed47ba98159e3d2
           fetch-depth: 0
 
       - name: Confirm source identity
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "508745cad9204f6249a8cf0cafde0997ba1637b5"
-          test "$(git rev-parse HEAD^{tree})" = "eaf95705db6b313d2fcf8cf51c9a0a474dbd1217"
+          test "$(git rev-parse HEAD)" = "d03a47fdf2b165d81bb676d22ed47ba98159e3d2"
+          test "$(git rev-parse HEAD^{tree})" = "15a48c60c0b9d68a3063ec2e7869cc2bf3f353ce"
           test -z "$(git status --porcelain)"
 
       - name: Run real regression and mutation proofs in Linux devtest
@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/test-in-container.sh --repo "$GITHUB_WORKSPACE" \
-            --ref 508745cad9204f6249a8cf0cafde0997ba1637b5 \
+            --ref d03a47fdf2b165d81bb676d22ed47ba98159e3d2 \
             -- 'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/remote-execution-security.json --archive-stdout' \
             2>&1 | tee "$RUNNER_TEMP/security-mutation-evidence.log"
 
@@ -46,4 +46,38 @@ jobs:
         with:
           name: remote-execution-security-evidence
           path: ${{ runner.temp }}/security-mutation-evidence.log
+          if-no-files-found: error
+
+  tls-portability:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26, windows-2025-vs2026]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: d03a47fdf2b165d81bb676d22ed47ba98159e3d2
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.403
+            8.0.427
+      - name: Confirm candidate and run factory regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "d03a47fdf2b165d81bb676d22ed47ba98159e3d2"
+          dotnet test src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj \
+            --framework net8.0 --filter 'FullyQualifiedName~DefaultGrpcChannelFactory' \
+            --nologo -v minimal --logger 'trx;LogFileName=tls.trx' \
+            --results-directory test-results/tls-native
+          bash scripts/ci/zero-test-guard.sh test-results/tls-native/tls.trx
+      - name: Upload native TLS results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tls-${{ runner.os }}
+          path: test-results/tls-native/
           if-no-files-found: error
