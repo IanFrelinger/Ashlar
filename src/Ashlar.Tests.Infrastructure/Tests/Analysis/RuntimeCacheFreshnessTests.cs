@@ -31,7 +31,7 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
             .Callback<string, CancellationToken>((key, _) => _keys.Add(key)).ReturnsAsync((ValidationResult?)null);
     }
 
-    [Fact]
+    [FileFingerprintFact]
     public async Task Analysis_tracks_content_after_the_first_hundred_files_even_if_timestamp_is_preserved()
     {
         for (var i = 0; i < 101; i++) File.WriteAllText(Path.Combine(_root, $"{i:D3}.cs"), "old");
@@ -58,7 +58,7 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
         Assert.NotEqual(_keys[0], _keys[2]);
     }
 
-    [Fact]
+    [FileFingerprintFact]
     public async Task Analysis_tracks_added_and_deleted_files()
     {
         var adapter = AnalysisAdapter();
@@ -94,7 +94,7 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
         Assert.Empty(_keys);
     }
 
-    [Fact]
+    [FileFingerprintFact]
     public async Task Validation_tracks_source_content_and_distinguishes_null_from_literal_none()
     {
         var previous = Directory.GetCurrentDirectory();
@@ -120,7 +120,7 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
         finally { Directory.SetCurrentDirectory(previous); }
     }
 
-    [Fact]
+    [FileFingerprintFact]
     public async Task Validation_ignores_its_own_generated_outputs_but_invalidates_changed_sources()
     {
         var previous = Directory.GetCurrentDirectory();
@@ -159,7 +159,7 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
         finally { Directory.SetCurrentDirectory(previous); }
     }
 
-    [Fact]
+    [FileFingerprintFact]
     public async Task Analysis_still_fingerprints_compiled_outputs_in_bin()
     {
         var bin = Directory.CreateDirectory(Path.Combine(_root, "bin"));
@@ -180,10 +180,9 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
         Assert.Null(await DirectoryFingerprint.TryComputeAsync(new DirectoryInfo(_root), CancellationToken.None));
     }
 
-    [Fact]
+    [LinuxFingerprintFact]
     public async Task Unix_fifo_bypasses_cache_without_waiting_for_a_writer()
     {
-        if (!OperatingSystem.IsLinux()) return;
         var path = Path.Combine(_root, "fifo");
         Assert.Equal(0, MakeFifo(path, 384)); // 0600
         var fingerprint = Task.Run(() => DirectoryFingerprint.TryComputeAsync(new DirectoryInfo(_root), CancellationToken.None));
@@ -203,10 +202,9 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
         }
     }
 
-    [Fact]
+    [FileFingerprintFact]
     public void Fingerprint_file_handle_allows_concurrent_writes_and_atomic_replacement()
     {
-        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux()) return;
         var path = Path.Combine(_root, "replaceable.txt");
         File.WriteAllText(path, "before");
         using var reader = CacheFingerprintFile.Open(path);
@@ -215,6 +213,30 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
         File.WriteAllText(replacement, "replaced");
         File.Move(replacement, path, overwrite: true);
         Assert.Equal("replaced", File.ReadAllText(path));
+    }
+
+    [Fact]
+    public async Task File_input_analysis_returns_the_inner_result_even_without_a_safe_file_backend()
+    {
+        File.WriteAllText(Path.Combine(_root, "input.cs"), "input");
+        var expected = new AnalysisResult { HasViolations = false, Violations = [], TotalViolations = 0 };
+        var inner = new Mock<IAnalysisService>();
+        inner.Setup(s => s.AnalyzeAsync(It.IsAny<DirectoryInfo>(), It.IsAny<IProgress<ProgressReport>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+        var adapter = new CachedAnalysisServiceAdapter(inner.Object, _cache.Object,
+            NullLogger<CachedAnalysisServiceAdapter>.Instance);
+        Assert.Same(expected, await adapter.AnalyzeAsync(new DirectoryInfo(_root)));
+        Assert.Same(expected, await adapter.AnalyzeAsync(new DirectoryInfo(_root)));
+        inner.Verify(s => s.AnalyzeAsync(It.IsAny<DirectoryInfo>(), It.IsAny<IProgress<ProgressReport>?>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
+        {
+            Assert.Empty(_keys);
+            _cache.Verify(c => c.SetAsync(It.IsAny<string>(), It.IsAny<AnalysisResult>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+        else
+        {
+            _keys.Should().HaveCount(2);
+        }
     }
 
     [DllImport("libc", EntryPoint = "mkfifo", SetLastError = true)]
@@ -229,4 +251,26 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
     }
 
     public void Dispose() => Directory.Delete(_root, recursive: true);
+}
+
+/// <summary>Reports an explicit skip where nonempty-file caching intentionally has no safe backend.</summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class FileFingerprintFactAttribute : FactAttribute
+{
+    public FileFingerprintFactAttribute()
+    {
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
+            Skip = "Nonempty-file fingerprints are unavailable on this platform; uncached fallback has separate coverage.";
+    }
+}
+
+/// <summary>The native FIFO regression exercises the Linux-specific safe-open implementation.</summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class LinuxFingerprintFactAttribute : FactAttribute
+{
+    public LinuxFingerprintFactAttribute()
+    {
+        if (!OperatingSystem.IsLinux())
+            Skip = "Exercises Linux nonblocking open/statx and mkfifo.";
+    }
 }
