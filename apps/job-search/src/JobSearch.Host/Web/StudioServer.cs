@@ -103,7 +103,16 @@ public static class StudioServer
         {
             var files = new PhysicalFileProvider(ui);
             web.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
-            web.UseStaticFiles(new StaticFileOptions { FileProvider = files });
+            web.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = files,
+                // The font files carry their version in their name, so a browser may keep them for a year.
+                OnPrepareResponse = ctx =>
+                {
+                    if (ctx.Context.Request.Path.StartsWithSegments("/fonts", StringComparison.Ordinal))
+                        ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+                },
+            });
         }
 
         MapAuth(web, app, options);
@@ -116,7 +125,8 @@ public static class StudioServer
     private static Func<HttpContext, RequestDelegate, Task> SecurityHeaders(bool https) => async (ctx, next) =>
     {
         var h = ctx.Response.Headers;
-        // Self-contained UI: no CDN, no fonts, no analytics; nothing on the page talks to a third party (STUDIO.md I12).
+        // Self-contained UI: no CDN, no fonts or scripts fetched from anyone else, no analytics; nothing on the page talks to a
+        // third party (STUDIO.md I12). The one font it uses is served from this origin.
         h["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; " +
                                        "font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'";
         h["X-Content-Type-Options"] = "nosniff";

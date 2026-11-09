@@ -37,7 +37,7 @@ library every user shares. The next user who wants the same step gets it without
 | I9 | The platform signs every step it certifies with its own Ed25519 key (`JOBSEARCH_SIGNING_KEY`), and loads only steps signed by a pinned key. | The same trust model as the shipped certified bricks. |
 | I10 | Sign-in is Google (OpenID Connect, code flow) and asks for Drive access in the same consent. A persona sign-in (`/auth/dev`) exists only in synthetic mode, which runs only with fake Google. | Users already connect Drive; one consent. |
 | I11 | The store stays SQLite on the instance disk; OAuth refresh tokens are encrypted at rest with AES-GCM under `JOBSEARCH_MASTER_KEY`. | One server (owner decision); backups hold only ciphertext for secrets. |
-| I12 | The web UI is self-contained: no CDN, no web fonts, no analytics, strict Content-Security-Policy. | A privacy product should not tell third parties who uses it. |
+| I12 | The web UI is self-contained: no CDN, no fonts or scripts fetched from anyone else, no analytics, strict Content-Security-Policy. The one font (Inter, OFL) is served from the studio's own origin (`studio-ui/fonts/README.md`). | A privacy product should not tell third parties who uses it; a self-hosted font tells no one. (Reworded 2026-11-09 from "no web fonts" for the redesign; the rule it protects is unchanged.) |
 | I13 | Everything a user types in free text is treated as personal data. | A detector cannot prove free text holds no one's name; routing it privately needs no proof. |
 | I14 | Data-subject rights in the product: export everything (JSON), delete the account and every row about the user, consent records with versions, an age confirmation (16+), retention limits (archived jobs 365 days, runs 180 days, configurable). | GDPR Arts. 7, 8, 15, 17, 20 and CCPA/CPRA rights to know and delete; technical support for them, not legal advice. |
 | I15 | QA runs use the app's synthetic mode: fake Google, stub job boards, seeded personas, and deterministic stand-ins for both model tiers, so a QA run needs no Ollama and no Claude key for the app itself. | Reproducible QA and no personal data on any screen an agent sees. |
@@ -96,7 +96,7 @@ processing to start from.
 ```
 
 Deployment: [`deploy/README.md`](../deploy/README.md) (Docker image, Compose stack, Terraform, rollouts, backups and
-restore).
+restore). The UI's design rules and test contract: [UI-DESIGN.md](UI-DESIGN.md).
 
 ### Step contracts
 

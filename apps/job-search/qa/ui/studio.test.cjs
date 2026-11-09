@@ -84,6 +84,8 @@ test("Jordan adds a library step, sets it, saves, and it is still there after a 
   await item.click();
   await page.click('[data-test="add-step"]');
   const key = await page.locator('[data-test="your-steps"] .step').last().getAttribute("data-key");
+  // The redesign's colour budget: status is a dot beside a word, never a filled pill.
+  assert.equal(await page.locator(".badge").count(), 0, "no .badge pills anywhere on the designer");
   await page.fill(`[data-test="step-setting-${key}-0"]`, "Denver, Boulder");
   await page.click('[data-test="save-workflow"]');
   assert.match(await toast(page, /saved/), /saved/i);
@@ -163,6 +165,31 @@ test("every form control on the main pages has an accessible name", (t) => scree
     assert.equal(await page.locator("h1").count(), 1, `${nav} has one h1`);
   }
 }));
+
+test("on a phone, every page fits the width, keeps one tab bar, and the add-a-step palette is in reach", async (t) => {
+  const context = await lockedContext(browser, { width: 390, height: 844 });
+  const page = await context.newPage();
+  try {
+    await page.goto(STUDIO_URL + "/");
+    await page.waitForSelector('[data-test^="persona-"]');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390, "sign-in fits 390px");
+    await signIn(page, PERSONAS.jordan);
+    for (const nav of ["nav-designer", "nav-tracker", "nav-runs", "nav-profile", "nav-privacy"]) {
+      await page.click(`[data-test="${nav}"]`);
+      await page.waitForSelector("main h1");
+      await page.waitForTimeout(300);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390, `${nav} fits 390px`);
+      const bar = await page.$eval("#nav", (n) => ({ fixed: getComputedStyle(n).position, bottom: Math.round(n.getBoundingClientRect().bottom) }));
+      assert.equal(bar.fixed, "fixed", `${nav}: the navigation is a fixed tab bar on a phone`);
+      assert.ok(bar.bottom >= 840 && bar.bottom <= 844, `${nav}: the tab bar sits at the bottom of the screen (${bar.bottom})`);
+    }
+    await page.click('[data-test="nav-designer"]');
+    await page.waitForSelector('[data-test="pipeline"]');
+    // The palette sits inside stage 4 on a phone, so a person adding a step does not scroll past the rest.
+    assert.ok(await page.$('[data-test="stage-4"] [data-test="library-search"]'), "the library search is inside stage 4 at 390px");
+    assert.ok(await page.$('[data-test="stage-4"] [data-test="forge-request"]'), "the describe box is inside stage 4 at 390px");
+  } finally { await context.close(); }
+});
 
 test("Sam downloads everything, then deletes the account, and is gone", (t) => screen(t, async (page) => {
   await signIn(page, PERSONAS.sam);

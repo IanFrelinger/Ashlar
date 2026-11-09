@@ -22,6 +22,7 @@ to start if their signed records do not verify.
   - AWS deployment: [deploy/README.md](deploy/README.md)
   - releases: [docs/RELEASE.md](docs/RELEASE.md)
   - the record of processing: [docs/PRIVACY.md](docs/PRIVACY.md)
+  - the UI's design rules: [docs/UI-DESIGN.md](docs/UI-DESIGN.md)
   - the QA suites: [qa/README.md](qa/README.md)
 
 ## What it does

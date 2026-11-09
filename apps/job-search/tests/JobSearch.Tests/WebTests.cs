@@ -89,6 +89,12 @@ public sealed class WebTests
         page.Headers.GetValues("X-Content-Type-Options").Single().Should().Be("nosniff");
         var html = await page.Content.ReadAsStringAsync();
         html.Should().NotContainAny("https://", "http://", "cdn", "googleapis.com/css", "analytics");
+        // The one font is the studio's own file: served from this origin, typed, and cacheable for a year.
+        var font = await anon.GetAsync("/fonts/inter-var-4.1-latin.woff2");
+        font.StatusCode.Should().Be(HttpStatusCode.OK);
+        font.Content.Headers.ContentType!.MediaType.Should().Be("font/woff2");
+        font.Headers.CacheControl!.ToString().Should().Contain("immutable");
+        (await anon.GetStringAsync("/app.css")).Should().NotContain("https://", "the stylesheet fetches nothing from anyone else");
     }
 
     [Fact]
