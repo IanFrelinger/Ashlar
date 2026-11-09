@@ -29,4 +29,20 @@ if ( grep() { return 2; }; export -f grep; bash "${GUARD}" "${WORK}/clean" ) >"$
 fi
 grep -q 'scan failed (grep exit 2)' "${WORK}/error.log"
 echo "consumer-path-guard-test: scan-error OK"
-echo "consumer-path-guard-test: 4 controls passed"
+
+# A missing scanner must also fail, rather than acting like a grep no-match result.
+if ( grep() { return 127; }; export -f grep; bash "${GUARD}" "${WORK}/clean" ) >"${WORK}/missing-tool.log" 2>&1; then
+  echo "Guard accepted an unavailable scanner." >&2; exit 1
+fi
+grep -q 'scan failed (grep exit 127)' "${WORK}/missing-tool.log"
+echo "consumer-path-guard-test: missing-scanner OK"
+
+# The standalone developer journey must use the same tested, fail-closed guard.
+JOURNEY="${ROOT}/scripts/verify-standalone-brick-authoring.sh"
+grep -Fq 'bash "${ROOT}/scripts/verify-consumer-repo-paths.sh" "${BRICK_OUT}"' "${JOURNEY}"
+grep -Fq '2>&1 | tee "${RESULTS}/repo-relative-paths.log"' "${JOURNEY}"
+if grep -q 'if rg ' "${JOURNEY}"; then
+  echo 'Standalone journey still has the unchecked ripgrep guard.' >&2; exit 1
+fi
+echo "consumer-path-guard-test: standalone-journey-wiring OK"
+echo "consumer-path-guard-test: 6 controls passed"

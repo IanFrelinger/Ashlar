@@ -42,11 +42,8 @@ dotnet tool install \
   --ashlar-version "${VERSION}" \
   --json
 
-if rg "Ashlar\\.Core\\.Domain\\.csproj|/workspace|src/Ashlar" "${BRICK_OUT}" >/dev/null; then
-  echo "Generated brick contains repo-relative Ashlar paths." >&2
-  rg "Ashlar\\.Core\\.Domain\\.csproj|/workspace|src/Ashlar" "${BRICK_OUT}" >&2
-  exit 1
-fi
+bash "${ROOT}/scripts/verify-consumer-repo-paths.sh" "${BRICK_OUT}" \
+  2>&1 | tee "${RESULTS}/repo-relative-paths.log"
 
 dotnet restore "${BRICK_OUT}/SampleThingBrick.Tests/SampleThingBrick.Tests.csproj" \
   --source "${FEED}" \

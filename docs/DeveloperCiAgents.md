@@ -101,6 +101,9 @@ adjust the limits for a deliberate slow run. Running receipts and partial logs a
 written before completion; a hard runner termination can still prevent upload,
 and a missing artifact means missing evidence, not success. These deadlines cover
 the discovered shell/Python checks, not every .NET test job in the repository.
+The standalone developer journey reuses the tested consumer-path guard and retains
+its log with the TRX receipts. An unavailable scanner or a read error fails the
+journey instead of being treated as a clean path scan.
 
 Run the developer journey through the repository's devtest container:
 
