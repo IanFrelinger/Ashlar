@@ -38,6 +38,50 @@ public sealed class SemanticCacheConcurrencyTests
     }
 
     [Fact]
+    public void Reads_and_writes_share_the_same_synchronization_gate()
+    {
+        var cache = new SemanticCache(NullLogger<SemanticCache>.Instance, 2);
+        // Observe the actual synchronization boundary rather than relying on the scheduler
+        // to overlap tiny dictionary operations. Public cache calls run on dedicated threads.
+        var field = typeof(SemanticCache).GetField("_gate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        Assert.NotNull(field);
+        var gate = field.GetValue(cache)!;
+        using var writerStarted = new ManualResetEventSlim();
+        using var readerStarted = new ManualResetEventSlim();
+        Exception? writeError = null;
+        Exception? readError = null;
+        var writer = new Thread(() =>
+        {
+            writerStarted.Set();
+            try { cache.SetAsync("key", new BrickOutput()).GetAwaiter().GetResult(); }
+            catch (Exception error) { writeError = error; }
+        }) { IsBackground = true };
+        var reader = new Thread(() =>
+        {
+            readerStarted.Set();
+            try { cache.GetAsync("key").GetAwaiter().GetResult(); }
+            catch (Exception error) { readError = error; }
+        }) { IsBackground = true };
+        bool writeCompletedWhileHeld;
+        bool readCompletedWhileHeld;
+        lock (gate)
+        {
+            writer.Start();
+            reader.Start();
+            Assert.True(writerStarted.Wait(TimeSpan.FromSeconds(5)));
+            Assert.True(readerStarted.Wait(TimeSpan.FromSeconds(5)));
+            writeCompletedWhileHeld = writer.Join(TimeSpan.FromMilliseconds(250));
+            readCompletedWhileHeld = reader.Join(TimeSpan.FromMilliseconds(250));
+        }
+        Assert.True(writer.Join(TimeSpan.FromSeconds(5)));
+        Assert.True(reader.Join(TimeSpan.FromSeconds(5)));
+        Assert.Null(writeError);
+        Assert.Null(readError);
+        Assert.False(writeCompletedWhileHeld);
+        Assert.False(readCompletedWhileHeld);
+    }
+
+    [Fact]
     public async Task Cancelled_writes_do_not_change_the_cache()
     {
         var cache = new SemanticCache(NullLogger<SemanticCache>.Instance);

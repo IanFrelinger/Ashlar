@@ -124,11 +124,11 @@
       "file": "src/Ashlar.Infrastructure/Execution/SemanticCache.cs",
       "old": "lock (_gate)\n        {\n            if (_cache.TryGetValue(cacheKey, out var existing))",
       "new": "lock (new object())\n        {\n            if (_cache.TryGetValue(cacheKey, out var existing))",
-      "filter": "FullyQualifiedName~Concurrent_writes_and_reads_remain_bounded",
+      "filter": "FullyQualifiedName~Reads_and_writes_share_the_same_synchronization_gate",
       "framework": "net10.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
-        "Concurrent_writes_and_reads_remain_bounded"
+        "Reads_and_writes_share_the_same_synchronization_gate"
       ],
       "group": "cache-safety"
     },
@@ -203,7 +203,7 @@
       "old": "while (_spans.Count >= _maxRetainedSpans)",
       "new": "while (_spans.Count >= int.MaxValue)",
       "filter": "FullyQualifiedName~Spans_are_bounded_including_unfinished_spans",
-      "framework": "net10.0",
+      "framework": "net8.0",
       "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
       "expected_failures": [
         "Spans_are_bounded_including_unfinished_spans"
@@ -216,7 +216,7 @@
       "old": "Tags = tags is null ? new Dictionary<string, string>() : new Dictionary<string, string>(tags)",
       "new": "Tags = tags ?? new Dictionary<string, string>()",
       "filter": "FullyQualifiedName~Trace_tags_are_copied_at_ingress_and_report_boundaries",
-      "framework": "net10.0",
+      "framework": "net8.0",
       "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
       "expected_failures": [
         "Trace_tags_are_copied_at_ingress_and_report_boundaries"
@@ -229,7 +229,7 @@
       "old": "Tags = new Dictionary<string, string>(s.Tags)",
       "new": "Tags = s.Tags",
       "filter": "FullyQualifiedName~Trace_tags_are_copied_at_ingress_and_report_boundaries",
-      "framework": "net10.0",
+      "framework": "net8.0",
       "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
       "expected_failures": [
         "Trace_tags_are_copied_at_ingress_and_report_boundaries"
@@ -242,7 +242,7 @@
       "old": "[\"requestLength\"] = request.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)\n        });",
       "new": "[\"request\"] = request\n        });",
       "filter": "FullyQualifiedName~Orchestration_telemetry_does_not_retain_the_full_request",
-      "framework": "net10.0",
+      "framework": "net8.0",
       "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
       "expected_failures": [
         "Orchestration_telemetry_does_not_retain_the_full_request"
@@ -255,7 +255,7 @@
       "old": "new Dictionary<string, object> { [\"correlationId\"] = correlationId, [\"requestLength\"] = request.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) }",
       "new": "new Dictionary<string, object> { [\"correlationId\"] = correlationId, [\"request\"] = request }",
       "filter": "FullyQualifiedName~Orchestration_telemetry_does_not_retain_the_full_request",
-      "framework": "net10.0",
+      "framework": "net8.0",
       "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
       "expected_failures": [
         "Orchestration_telemetry_does_not_retain_the_full_request"

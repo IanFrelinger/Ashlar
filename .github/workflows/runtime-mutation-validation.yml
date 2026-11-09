@@ -16,15 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: da246d7420311a0f6220bfd09f2473b66484f36a
+          ref: 01a4b30920d72fdc491d2a823c3e9e88ad1f8f1d
           fetch-depth: 0
           persist-credentials: false
       - name: Verify exact source and container prerequisites
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = da246d7420311a0f6220bfd09f2473b66484f36a
-          test "$(git rev-parse HEAD^{tree})" = 6427f8ffc968c9adcb48fbfc7b6c689d17b69763
+          test "$(git rev-parse HEAD)" = 01a4b30920d72fdc491d2a823c3e9e88ad1f8f1d
+          test "$(git rev-parse HEAD^{tree})" = cd7fc1cea957633385bc374a80936b8dce543fba
           test -z "$(git status --porcelain)"
           command -v docker
           timeout 30 docker info --format '{{.ServerVersion}}'
@@ -39,7 +39,7 @@ jobs:
           ids=$(python3 -c 'import json,os; print(",".join(c["id"] for c in json.load(open("scripts/mutations/runtime-findings.json"))["mutations"] if c["group"]==os.environ["MUTATION_GROUP"]))')
           test -n "$ids"
           set +e
-          bash scripts/test-in-container.sh --repo "$GITHUB_WORKSPACE" --ref da246d7420311a0f6220bfd09f2473b66484f36a -- \
+          bash scripts/test-in-container.sh --repo "$GITHUB_WORKSPACE" --ref 01a4b30920d72fdc491d2a823c3e9e88ad1f8f1d -- \
             "python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/runtime-findings.json --ids '$ids' --archive-stdout --timeout-seconds 600" \
             > "$EVIDENCE_ROOT/container.log" 2>&1
           result=$?
@@ -51,8 +51,8 @@ jobs:
           root = pathlib.Path(os.environ['EVIDENCE_ROOT'])
           summary = json.loads((root / 'evidence/summary.json').read_text())
           selected = [c for c in json.load(open('scripts/mutations/runtime-findings.json'))['mutations'] if c['group'] == os.environ['MUTATION_GROUP']]
-          assert summary['ref'] == 'da246d7420311a0f6220bfd09f2473b66484f36a'
-          assert len(summary['records']) == len(selected) == 5
+          assert summary['ref'] == '01a4b30920d72fdc491d2a823c3e9e88ad1f8f1d'
+          print('Batch status:', summary['verdict'], summary.get('reason', ''))
           lines = []
           for record in summary['records']:
               red, green = record.get('red', {}), record.get('green', {})
@@ -60,7 +60,8 @@ jobs:
               print(line)
               lines.append(line)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as report:
-              report.write('Exact source: da246d7420311a0f6220bfd09f2473b66484f36a\n\n' + '\n'.join('- ' + line for line in lines) + '\n')
+              report.write('Exact source: 01a4b30920d72fdc491d2a823c3e9e88ad1f8f1d\n\n' + '\n'.join('- ' + line for line in lines) + '\n')
+          assert len(summary['records']) == len(selected) == 5, summary
           assert summary['verdict'] == 'KILLED', summary
           assert all(r['verdict'] == 'KILLED' and r.get('restored_clean') and r.get('final_clean') and r['original_sha256'] == r['restored_sha256'] for r in summary['records'])
           PY
