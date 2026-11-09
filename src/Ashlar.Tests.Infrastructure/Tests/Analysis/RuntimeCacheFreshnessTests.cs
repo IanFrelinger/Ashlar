@@ -11,6 +11,7 @@ using Ashlar.Infrastructure.Validation.Adapters;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using FluentAssertions;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Analysis;
 
@@ -114,7 +115,7 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
             File.WriteAllText(source, "new");
             File.SetLastWriteTimeUtc(source, timestamp);
             await adapter.ValidateAsync(null);
-            Assert.Equal(3, _keys.Distinct().Count());
+            _keys.Should().HaveCount(3).And.OnlyHaveUniqueItems();
         }
         finally { Directory.SetCurrentDirectory(previous); }
     }

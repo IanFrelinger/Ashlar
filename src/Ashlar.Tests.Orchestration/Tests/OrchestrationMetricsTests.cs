@@ -171,7 +171,7 @@ public sealed class OrchestrationMetricsTests
         tags["scope"] = "changed";
         _sut.EndSpan(id);
         _sut.GetTraces().Single().Tags["scope"] = "changed again";
-        _sut.GetPerformanceReport().Traces.Single().Tags["scope"] = "changed in report";
+        ((IDictionary<string, string>)_sut.GetPerformanceReport().Traces.Single().Tags)["scope"] = "changed in report";
         _sut.GetTraces().Single().Tags["scope"].Should().Be("original");
     }
 }
