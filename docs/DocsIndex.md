@@ -99,6 +99,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `docs/TailscaleAndAshlar.md` — Tailscale + Ashlar exposure profile, ACL guidance, advisory endpoint.
 - `docs/config/security-exposure.env.example` — `Ashlar__Security__*` env template for operators.
 - `docs/Configuration.md` — environment variables and configuration reference.
+- `docs/DynamicPreflight.md` — modular operation-selected dependency checks, caller policy, and current coverage.
 - `docs/AgentSandboxArchitecture.md` — project-scoped sandbox model for agent file/tool execution and host-app integration (Unity-friendly).
 
 ## API / SDK / Runtime

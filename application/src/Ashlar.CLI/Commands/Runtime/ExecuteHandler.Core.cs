@@ -120,6 +120,8 @@ internal sealed partial class ExecuteHandler
             context,
             fullRepoRoot,
             testFilter,
+            runTests,
+            runPreflight,
             allowVisualCapabilityDegrade,
             ct).ConfigureAwait(false);
 
@@ -184,7 +186,7 @@ internal sealed partial class ExecuteHandler
 
         JsonElement? preflightPayload = null;
         RuntimeSubprocessResult? preflightRun = null;
-        var preflightOkResult = true;
+        var preflightOkResult = false;
         if (runPreflight)
         {
             var preflightArgs = BuildSelfExtendPreflightArgs(
@@ -257,7 +259,7 @@ internal sealed partial class ExecuteHandler
             FailureStage: selfExtendOk ? "none" : "self-extend",
             BootstrapOk: true,
             PreflightRan: runPreflight,
-            PreflightOk: !runPreflight || preflightOkResult,
+            PreflightOk: runPreflight ? preflightOkResult : null,
             SelfExtendRan: true,
             SelfExtendOk: selfExtendOk));
     }
