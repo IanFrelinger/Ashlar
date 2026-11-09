@@ -149,6 +149,8 @@ an AI source/test edit: Kernel must start automatically, readiness must print th
 and `run_heavy=true`, and native jobs must produce AI suite receipts. A workflow-file edit or manual
 dispatch proves execution, but cannot prove that an AI-only diff selected it.
 
+The path-filtered `developer-friction-regression.yml` runs focused sanitization audit tests on net8.0 and net10.0, the HelloBrick sample, the actual RuntimeCommand xUnit bridge row, and four sample/audit mutations in the devtest container. It checks the exact PR head, pins executed counts, and uploads logs and mutation TRX/restore evidence. This is advisory; generated tool-installed template tests remain in Distribution Matrix Gate.
+
 ### Push-only (path-filtered) workflows
 
 All of these also accept `workflow_dispatch`. Branch filters are `master`, `main`, `cursor/**` unless noted.

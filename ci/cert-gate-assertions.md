@@ -102,6 +102,8 @@ away, can see what they would be turning off.
 
 | **The public consumer starter works without a private feed and keeps inline and central versions separate.** Only nuget.org is enabled by default, credential placeholders stay commented, central pins match `ci/published-version`, the documented inline project opts out of central management, and the central-management example is versionless. | `tests/scripts/consumer-starter.test.sh` (required `shell-lint`, discovered by `scripts/ci/run-repo-gates.sh`) | XML/source contract only; actual package restore and C# execution still require the standalone authoring container check. |
 
+| **The developer-friction lane selects the audit suites on both frameworks, the sample and the real CLI bridge row, and refuses missing/skipped cases.** Four current mutation targets have explicit expected failures. | `tests/scripts/developer-friction-regression.test.sh` (required `shell-lint`, discovered by `scripts/ci/run-repo-gates.sh`) | A stubbed-process wiring check, not .NET evidence. The advisory Developer friction regression workflow runs the actual tests and mutation runner in the devtest container. |
+
 The gate also carries the certification gate's own teeth, the hot-swap host, the adversarial
 campaigns, the analyzer fence, sandbox-escape tests and the dogfood suites — 155 `.cs` files in
 `src/Ashlar.Tests.Infrastructure/Tests/Certification/` as of 2026-10-14, with #801 (158 entries in all; the

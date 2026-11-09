@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "note": "Pending execution. This manifest asserts sample default/output and both audit adapter regressions; generated template execution is separately covered by Distribution Matrix Gate.",
+  "mutations": [
+    {
+      "id": "hello-missing-default",
+      "file": "samples/hello-brick/HelloBrick/HelloBrick.cs",
+      "old": "input.Get<string>(\"name\", \"world\")",
+      "new": "input.Get<string>(\"name\")",
+      "project": "samples/hello-brick/HelloBrick.Tests/HelloBrick.Tests.csproj",
+      "filter": "FullyQualifiedName~HelloBrickTests",
+      "expected_failures": [
+        "ExecuteAsync_uses_declared_default_when_name_is_omitted"
+      ],
+      "framework": "net8.0"
+    },
+    {
+      "id": "hello-undeclared-output",
+      "file": "samples/hello-brick/HelloBrick/HelloBrick.cs",
+      "old": ",\n                new BrickOutputDefinition(\"implementation\", \"string\", \"Execution implementation\")",
+      "new": "",
+      "project": "samples/hello-brick/HelloBrick.Tests/HelloBrick.Tests.csproj",
+      "filter": "FullyQualifiedName~HelloBrickTests",
+      "expected_failures": [
+        "ExecuteAsync_returns_exactly_the_declared_outputs"
+      ],
+      "framework": "net8.0"
+    },
+    {
+      "id": "litedb-audit-overfetch",
+      "file": "src/Ashlar.BackgroundAgents/Trust/LiteDbDataDecisionAuditLog.cs",
+      "old": "GetRecent(maxCount, since, null, \"Sanitization\")",
+      "new": "GetRecent(maxCount * 3, since, null, \"Sanitization\")",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "filter": "FullyQualifiedName~SanitizationAuditLogContractTests",
+      "expected_failures": [
+        "GetRecent_limits_matching_entries_and_orders_newest_first",
+        "GetRecent_large_limits_do_not_overflow"
+      ],
+      "framework": "net8.0"
+    },
+    {
+      "id": "memory-audit-overflow",
+      "file": "src/Ashlar.BackgroundAgents/Trust/DataDecisionAuditLog.cs",
+      "old": "GetRecentInternal(maxCount, since, null, \"Sanitization\")",
+      "new": "GetRecentInternal(maxCount * 3, since, null, \"Sanitization\")",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "filter": "FullyQualifiedName~SanitizationAuditLogContractTests",
+      "expected_failures": [
+        "GetRecent_large_limits_do_not_overflow"
+      ],
+      "framework": "net8.0"
+    }
+  ]
+}
