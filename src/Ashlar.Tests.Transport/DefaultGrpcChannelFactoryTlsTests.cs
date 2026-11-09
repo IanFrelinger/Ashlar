@@ -81,20 +81,25 @@ public sealed class DefaultGrpcChannelFactoryTlsTests
             clientStream.Dispose();
             var serverError = await serverHandshake;
 
-            observedErrors.Should().NotBeNull("the real TLS validation callback must run");
+            observedErrors.Should().NotBeNull(
+                "the real TLS validation callback must run; client handshake error: {0}; server handshake error: {1}",
+                clientError, serverError);
             observedErrors!.Value.HasFlag(SslPolicyErrors.RemoteCertificateChainErrors).Should().BeTrue(
                 "the ephemeral CA is not in the operating system trust store");
             observedErrors.Value.HasFlag(SslPolicyErrors.RemoteCertificateNameMismatch).Should()
                 .Be(certificateHost != "server.test");
             if (shouldAccept)
             {
-                clientError.Should().BeNull("a matching hostname signed by the configured CA is trusted");
-                serverError.Should().BeNull();
+                clientError.Should().BeNull(
+                    "a matching hostname signed by the configured CA is trusted; server handshake error: {0}",
+                    serverError);
+                serverError.Should().BeNull("the client handshake succeeded");
             }
             else
             {
                 clientError.Should().BeOfType<AuthenticationException>(
-                    "a wrong hostname or an untrusted issuer must fail TLS authentication");
+                    "a wrong hostname or an untrusted issuer must fail TLS authentication; server handshake error: {0}",
+                    serverError);
             }
         }
         finally
@@ -125,6 +130,11 @@ public sealed class DefaultGrpcChannelFactoryTlsTests
             new OidCollection { new Oid("1.3.6.1.5.5.7.3.1") }, true));
         using var certificate = request.Create(issuer, DateTimeOffset.UtcNow.AddHours(-1),
             DateTimeOffset.UtcNow.AddHours(1), RandomNumberGenerator.GetBytes(16));
-        return certificate.CopyWithPrivateKey(key);
+        using var certificateWithKey = certificate.CopyWithPrivateKey(key);
+        // Schannel cannot use the ephemeral key attached by CopyWithPrivateKey. Reimporting
+        // a PFX with default storage gives Windows a named key that is deleted on Dispose.
+        // Do not use EphemeralKeySet (breaks Schannel) or PersistKeySet (leaks test keys).
+        return new X509Certificate2(certificateWithKey.Export(X509ContentType.Pfx),
+            (string?)null, X509KeyStorageFlags.DefaultKeySet);
     }
 }
