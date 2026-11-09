@@ -1,0 +1,99 @@
+name: Disposable preflight mutation evidence
+'on':
+  push:
+    branches:
+    - cursor/preflight-mutation-validation
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  mutation-evidence:
+    name: Preflight mutations (${{ matrix.group }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+        - core
+        - visual
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        ref: da20b476fff5d7294c3f9b84094f5e7de111a2b3
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Verify supported container prerequisites
+      shell: bash
+      run: |
+        set -euo pipefail
+        command -v docker
+        timeout 30 docker info --format '{{.ServerVersion}}'
+    - name: Run exact-source mutation checks
+      shell: bash
+      env:
+        MUTATION_GROUP: ${{ matrix.group }}
+      run: |
+        python3 - <<'PY'
+        import json, os, pathlib, shutil, subprocess, sys
+        source = 'da20b476fff5d7294c3f9b84094f5e7de111a2b3'
+        expected_tree = "dbffbeb90e27ffff3c7432c5f536024c6759c0ef"
+        assert subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip() == source
+        assert subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip() == expected_tree
+        root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "preflight-mutations"
+        proof = root / "proof" / os.environ["MUTATION_GROUP"]
+        proof.mkdir(parents=True, exist_ok=True)
+        mutations = [{'id': 'required-availability', 'group': 'core', 'file': 'src/Ashlar.Infrastructure/Preflight/DependencyPreflight.cs', 'old': 'public bool RequiredAvailable => Ran && Checks.All(check => !check.Required || check.Available);', 'new': 'public bool RequiredAvailable => true;'}, {'id': 'disabled-probes', 'group': 'core', 'file': 'src/Ashlar.Infrastructure/Preflight/DependencyPreflight.cs', 'old': '            if (!enabled)\n', 'new': '            if (!enabled && selected.Count < 0)\n'}, {'id': 'required-deduplication', 'group': 'core', 'file': 'src/Ashlar.Infrastructure/Preflight/DependencyPreflight.cs', 'old': 'selected[requirement.Id] = requirement.Required || selected.GetValueOrDefault(requirement.Id);', 'new': 'selected[requirement.Id] = requirement.Required;'}, {'id': 'adapter-deadline-classification', 'group': 'core', 'file': 'src/Ashlar.Infrastructure/Preflight/DependencyPreflight.cs', 'old': '            return (observation, false);', 'new': '            return (observation, true);'}, {'id': 'mandatory-egress-propagation', 'group': 'visual', 'file': 'application/src/Ashlar.CLI/Runtime/VisualDependencyPreflight.cs', 'old': '        catch (Win32Exception)\n', 'new': '        catch (Exception)\n'}, {'id': 'inactive-visual-selection', 'group': 'visual', 'file': 'application/src/Ashlar.CLI/Commands/Runtime/ExecuteHandler.cs', 'old': '            !context.Plan.RunVisualQa || !context.Plan.RunAestheticQa ||\n            string.Equals(context.Plan.Focus, "functional", StringComparison.OrdinalIgnoreCase) ||\n', 'new': '            !context.Plan.RunVisualQa ||\n'}, {'id': 'skipped-output-evidence', 'group': 'visual', 'file': 'application/src/Ashlar.CLI/Commands/Runtime/RuntimeOutputWriter.cs', 'old': '                    preflightOk = result.PreflightRan == true ? result.PreflightOk : null,', 'new': '                    preflightOk = result.PreflightOk,'}]
+        reports = []
+        for mutation in mutations:
+            if mutation["group"] != os.environ["MUTATION_GROUP"]:
+                continue
+            name = mutation["id"]
+            directory = root / "work" / name
+            output = proof / name
+            output.mkdir(parents=True, exist_ok=True)
+            project = "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj" if mutation["group"] == "core" else "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj"
+            framework = "net8.0" if mutation["group"] == "core" else "net10.0"
+            selection = "FullyQualifiedName~DependencyPreflightTests" if mutation["group"] == "core" else "FullyQualifiedName~VisualDependencyPreflightTests"
+            command = ["bash", "scripts/mutation-check.sh", "--repo", os.getcwd(), "--ref", source,
+                       "--id", name, "--file", mutation["file"], "--old", mutation["old"], "--new", mutation["new"],
+                       "--framework", framework, "--project", project, "--filter", selection,
+                       "--work-dir", str(directory), "--keep"]
+            environment = dict(os.environ)
+            environment.pop("ASHLAR_MUTATION_RUNNER", None)
+            print("Running " + name + " against " + source, flush=True)
+            with (output / "run.log").open("w") as log:
+                result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, env=environment, check=False)
+            for log_name in ("red.log", "green.log"):
+                if (directory / log_name).is_file():
+                    shutil.copyfile(directory / log_name, output / log_name)
+            lines = (output / "run.log").read_text().splitlines()
+            summaries = [line for line in lines if line.startswith("mutation " + name + ":")]
+            summary = summaries[-1] if summaries else "No mutation verdict produced."
+            clean = None
+            if (directory / "repo/.git").is_dir():
+                if result.returncode:
+                    # A failed harness may stop before restoration. Restore only the single known mutation
+                    # in this disposable clone. This cleanup never supplies missing red/green evidence.
+                    subprocess.run(["git", "-C", str(directory / "repo"), "restore", "--source=HEAD", "--", mutation["file"]], check=True)
+                clean = not subprocess.check_output(["git", "-C", str(directory / "repo"), "status", "--porcelain"], text=True).strip()
+            passed = result.returncode == 0 and ": KILLED " in summary and clean is True
+            report = dict(id=name, source_sha=source, source_tree=expected_tree, returncode=result.returncode,
+                          summary=summary, restored_clean=clean, verified=passed)
+            reports.append(report)
+            (output / "receipt.json").write_text(json.dumps(report, indent=2) + "\n")
+            print("\n".join(lines[-18:]), flush=True)
+        (proof / "report.json").write_text(json.dumps(reports, indent=2) + "\n")
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary_file:
+            summary_file.write("Source commit: " + source + "\n\n")
+            for report in reports:
+                summary_file.write("- " + report["summary"] + "\n")
+        sys.exit(0 if reports and all(report["verified"] for report in reports) else 1)
+        PY
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: preflight-mutation-evidence-${{ matrix.group }}
+        path: ${{ runner.temp }}/preflight-mutations/proof/
+        if-no-files-found: error
+        retention-days: 30
