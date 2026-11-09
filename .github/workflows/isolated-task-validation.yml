@@ -1,0 +1,428 @@
+name: Isolated task execution proof
+
+# Publish only on a separate validation branch; the feature PR stays unchanged.
+# The tested source is the literal PR head below, never the validation branch.
+on:
+  push:
+    branches: [codex/isolated-task-validation]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-task-proof-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SOURCE_SHA: 7ee90d6b666aadb09105a630b95e8f48311a2b41
+  DOTNET_NOLOGO: '1'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+jobs:
+  docker-smoke:
+    name: Focused tests and real Docker smoke (net8 and net10)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Check out exact feature commit
+        uses: actions/checkout@v7
+        with:
+          ref: 7ee90d6b666aadb09105a630b95e8f48311a2b41
+          path: source
+          persist-credentials: false
+      - name: Install repository CI SDKs
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.403
+            8.0.427
+      - name: Record source and preload smoke image
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/proof"
+          test "$(git -C source rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git -C source status --porcelain --untracked-files=all)"
+          git -C source rev-parse HEAD HEAD^{tree} > proof/source.txt
+          dotnet --info > proof/dotnet-info.txt
+          docker version > proof/docker-version.txt
+          docker info > proof/docker-info.txt
+          docker pull busybox:1.36.1 2>&1 | tee proof/image-pull.log
+          docker image inspect busybox:1.36.1 > proof/smoke-image.json
+          # Test the already-loaded immutable content ID, not a mutable tag.
+          smoke_image_id="$(docker image inspect --format '{{.Id}}' busybox:1.36.1)"
+          [[ "$smoke_image_id" =~ ^sha256:[0-9a-f]{64}$ ]]
+          printf 'ASHLAR_ISOLATED_TASK_TEST_IMAGE=%s\n' "$smoke_image_id" >> "$GITHUB_ENV"
+      - name: Run focused task, session, process, contract and egress tests on both frameworks
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+          for framework in net8.0 net10.0; do
+            for suite in tasks sessions processes contracts egress; do
+              project=src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj
+              case "$suite" in
+                tasks) filter='FullyQualifiedName~IsolatedTaskRunnerTests&Category!=External' ;;
+                sessions) filter='FullyQualifiedName~DockerSandboxSessionTests' ;;
+                processes) filter='FullyQualifiedName~BoundedProcessOutputTests' ;;
+                egress) filter='FullyQualifiedName~EgressExplicitEnforcementTests.Bounded_process_entries_refuse_before_launch_and_report_mode_reaches_marker|FullyQualifiedName~EgressExplicitEnforcementTests.Internal_evaluated_bounded_process_entry_rejects_refusing_decision' ;;
+                contracts)
+                  project=src/Ashlar.Tests.Application/Ashlar.Tests.Application.csproj
+                  filter='FullyQualifiedName~IsolatedTaskContractTests'
+                  ;;
+              esac
+              results="$GITHUB_WORKSPACE/proof/$framework/$suite"
+              mkdir -p "$results"
+              dotnet test "$project" --framework "$framework" --nologo -v minimal \
+                --filter "$filter" --results-directory "$results" \
+                --logger 'trx;LogFileName=focused.trx' 2>&1 | tee "$results/console.log"
+            done
+          done
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Require complete focused test evidence with zero skips
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import importlib.util, json, os, sys
+          from pathlib import Path
+          sys.dont_write_bytecode = True
+          root = Path(os.environ['GITHUB_WORKSPACE'])
+          proof = root / 'proof'
+          spec = importlib.util.spec_from_file_location('mutation_runner', root / 'source/scripts/run-spec007-mutation-batch.py')
+          runner = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(runner)
+          expected = {'tasks': 47, 'sessions': 26, 'processes': 12, 'contracts': 5, 'egress': 3}
+          receipts = []
+          for framework in ('net8.0', 'net10.0'):
+              for suite, total in expected.items():
+                  directory = proof / framework / suite
+                  counts = runner.read_result(directory / 'focused.trx', 0, (directory / 'console.log').read_text())
+                  assert counts['total'] == counts['executed'] == counts['passed'] == total, (framework, suite, counts)
+                  assert counts['failed'] == counts['notExecuted'] == 0, (framework, suite, counts)
+                  receipts.append({'framework': framework, 'suite': suite, 'counters': counts})
+          receipt = {'source': os.environ['SOURCE_SHA'], 'runs': receipts}
+          (proof / 'focused-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt, indent=2))
+          PY
+      - name: Run actual Docker lifecycle and output flood on both frameworks
+        env:
+          ASHLAR_RUN_ISOLATED_TASK_DOCKER: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+          for framework in net8.0 net10.0; do
+            mkdir -p "$GITHUB_WORKSPACE/proof/$framework"
+            dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+              --framework "$framework" --nologo -v minimal \
+              --filter 'FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Execution.IsolatedTaskRunnerTests.Real_Docker_task_has_ephemeral_scratch_readonly_root_and_removes_container|FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Execution.IsolatedTaskRunnerTests.Real_Docker_output_flood_is_bounded_and_the_container_is_removed' \
+              --results-directory "$GITHUB_WORKSPACE/proof/$framework" \
+              --logger 'trx;LogFileName=smoke.trx' \
+              2>&1 | tee "$GITHUB_WORKSPACE/proof/$framework/console.log"
+          done
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Require responsive Docker and no leaked session containers
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker version > proof/docker-version-after.txt
+          docker ps --all --no-trunc --filter label=ashlar.session=1 \
+            --format '{{json .}}' > proof/remaining-session-containers.jsonl
+          test ! -s proof/remaining-session-containers.jsonl
+      - name: Require both exact smoke tests to pass, never skip or zero discovery
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          proof = Path(os.environ['GITHUB_WORKSPACE']) / 'proof'
+          expected = {
+              'Ashlar.Tests.Infrastructure.Tests.Execution.IsolatedTaskRunnerTests.Real_Docker_task_has_ephemeral_scratch_readonly_root_and_removes_container',
+              'Ashlar.Tests.Infrastructure.Tests.Execution.IsolatedTaskRunnerTests.Real_Docker_output_flood_is_bounded_and_the_container_is_removed',
+          }
+          receipts = []
+          for framework in ('net8.0', 'net10.0'):
+              root = ET.parse(proof / framework / 'smoke.trx').getroot()
+              summaries = root.findall('./{*}ResultSummary')
+              assert len(summaries) == 1 and summaries[0].get('outcome') == 'Completed'
+              counter_nodes = summaries[0].findall('./{*}Counters')
+              assert len(counter_nodes) == 1
+              counters = {k: int(v) for k, v in counter_nodes[0].attrib.items()}
+              assert all(counters.get(k) == v for k, v in {
+                  'total': 2, 'executed': 2, 'passed': 2, 'failed': 0, 'notExecuted': 0}.items()), counters
+              assert not any(v for k, v in counters.items() if k not in {
+                  'total', 'executed', 'passed', 'failed', 'notExecuted', 'completed'}), counters
+              results = root.findall('./{*}Results/{*}UnitTestResult')
+              assert len(results) == 2 and all(result.get('outcome') == 'Passed' for result in results)
+              assert {result.get('testName') for result in results} == expected
+              assert all(result.get('testId') and result.get('executionId') for result in results)
+              assert len({result.get('executionId') for result in results}) == 2
+              assert all(info.get('outcome') in ('Passed', 'Completed', 'Warning')
+                         for info in summaries[0].findall('./{*}RunInfos/{*}RunInfo'))
+              receipts.append({'framework': framework, 'tests': sorted(expected), 'counters': counters})
+          receipt = {'source': os.environ['SOURCE_SHA'], 'image': os.environ['ASHLAR_ISOLATED_TASK_TEST_IMAGE'], 'runs': receipts}
+          (proof / 'smoke-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt, indent=2))
+          PY
+      - name: Upload Docker smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-task-docker-and-focused-tests
+          path: proof/
+          if-no-files-found: error
+          retention-days: 14
+
+  mutation-proof:
+    name: Ten isolation safety mutations in devtest container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out exact feature commit
+        uses: actions/checkout@v7
+        with:
+          ref: 7ee90d6b666aadb09105a630b95e8f48311a2b41
+          path: source
+          persist-credentials: false
+      - name: Record source and construct exact mutations outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/proof"
+          test "$(git -C source rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git -C source status --porcelain --untracked-files=all)"
+          git -C source rev-parse HEAD HEAD^{tree} > proof/source.txt
+          docker version > proof/docker-version.txt
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          base = {
+              'file': 'src/Ashlar.Infrastructure/Execution/Sandbox/DockerIsolatedTaskRunner.cs',
+              'project': 'src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj',
+              'framework': 'net10.0',
+              'filter': 'FullyQualifiedName~IsolatedTaskRunnerTests&Category!=External',
+          }
+          cases = [
+              dict(base, id='isolated-task-resource-attestation',
+                   old='attestation.ThrowIfBelowRequested();',
+                   new='/* mutation: omit resource verification */',
+                   expected_failures=[
+                       'Backend_cannot_weaken_the_limits_by_echoing_a_different_request',
+                       'Unverified_or_weaker_environment_refuses_work_and_disposes(defect: "memory")',
+                       'Unverified_or_weaker_environment_refuses_work_and_disposes(defect: "pids")',
+                       'Unverified_or_weaker_environment_refuses_work_and_disposes(defect: "cpu")']),
+              dict(base, id='isolated-task-disposal',
+                   old='await using var session = await _sessions.StartAsync(spec, budget.Token).ConfigureAwait(false);',
+                   new='var session = await _sessions.StartAsync(spec, budget.Token).ConfigureAwait(false);',
+                   expected_failures=[
+                       'Task_returns_output_and_observed_environment_then_disposes_its_session',
+                       'Nonzero_program_exit_is_returned_and_does_not_skip_cleanup',
+                       'Program_exception_preserves_failure_and_disposes_session',
+                       'Inspection_failure_disposes_without_executing_program',
+                       'Caller_cancellation_remains_cancellation_and_disposes',
+                       'Timeout_covers_inspection_and_execution_and_disposes']),
+              dict(base, id='isolated-task-network-containment',
+                   old='|| attestation.EffectiveNetworkMode != DockerSandboxedSessionRunner.NoNetworkMode',
+                   new='/* mutation: omit network containment verification */',
+                   expected_failures=[
+                       'Unverified_or_weaker_environment_refuses_work_and_disposes(defect: "network")']),
+              dict(base, id='isolated-task-timeout-classification',
+                   old='throw new TimeoutException($"Isolated task exceeded its {request.Timeout} startup and execution budget.");',
+                   new='throw new InvalidOperationException($"Isolated task exceeded its {request.Timeout} startup and execution budget.");',
+                   expected_failures=[
+                       'Timeout_covers_inspection_and_execution_and_disposes(duringInspection: False)',
+                       'Timeout_covers_inspection_and_execution_and_disposes(duringInspection: True)',
+                       'Timeout_also_covers_session_startup']),
+              dict(base, id='isolated-session-failed-start-cleanup',
+                   file='src/Ashlar.Infrastructure/Execution/Sandbox/DockerSandboxedSessionRunner.cs',
+                   old='await session.StopAsync().ConfigureAwait(false);',
+                   new='/* mutation: omit cleanup after uncertain startup */',
+                   filter='FullyQualifiedName~DockerSandboxSessionTests.FailedStart_RemovesTheKnownContainerName_AndPreservesTheLaunchFailure|FullyQualifiedName~DockerSandboxSessionTests.CancelledStart_CleansUpWithAnIndependentToken_EvenAfterSuccessfulResponse',
+                   expected_failures=[
+                       'FailedStart_RemovesTheKnownContainerName_AndPreservesTheLaunchFailure',
+                       'CancelledStart_CleansUpWithAnIndependentToken_EvenAfterSuccessfulResponse(returnSuccess: False)',
+                       'CancelledStart_CleansUpWithAnIndependentToken_EvenAfterSuccessfulResponse(returnSuccess: True)']),
+              dict(base, id='isolated-task-host-image-pin',
+                   file='src/Ashlar.Infrastructure/Execution/Sandbox/IsolatedTaskServiceCollectionExtensions.cs',
+                   old='sp.GetService<ISandboxedSessionRunner>() ?? new DockerSandboxedSessionRunner(',
+                   new='new DockerSandboxedSessionRunner(',
+                   filter='FullyQualifiedName~IsolatedTaskRunnerTests.Opt_in_cannot_suppress_autonomy_image_pin_in_either_registration_order',
+                   expected_failures=[
+                       'Opt_in_cannot_suppress_autonomy_image_pin_in_either_registration_order(tasksFirst: False)',
+                       'Opt_in_cannot_suppress_autonomy_image_pin_in_either_registration_order(tasksFirst: True)']),
+              dict(base, id='isolated-task-output-budget-forwarding',
+                   old='boundedSession.ExecBoundedAsync(command!, request.MaxOutputBytes, budget.Token)',
+                   new='boundedSession.ExecBoundedAsync(command!, 1024 * 1024, budget.Token)',
+                   expected_failures=[
+                       'Explicit_resource_budget_is_applied_and_stricter_effective_limits_are_accepted',
+                       'Output_budget_boundaries_are_accepted_and_forwarded(maxOutputBytes: 1)',
+                       'Output_budget_boundaries_are_accepted_and_forwarded(maxOutputBytes: 16777216)']),
+              dict(base, id='isolated-process-output-byte-boundary',
+                   file='src/Ashlar.Infrastructure/HostProcess/TimedProcess.cs',
+                   old='if (count > Limit - _used)',
+                   new='if (count > Limit - _used + 1)',
+                   filter='FullyQualifiedName~BoundedProcessOutputTests.Exceeding_raw_byte_budget_is_failure_even_when_process_exits',
+                   expected_failures=[
+                       'Exceeding_raw_byte_budget_is_failure_even_when_process_exits(stream: "stdout")',
+                       'Exceeding_raw_byte_budget_is_failure_even_when_process_exits(stream: "stderr")',
+                       'Exceeding_raw_byte_budget_is_failure_even_when_process_exits(stream: "combined")']),
+          ]
+          root = Path(os.environ['GITHUB_WORKSPACE'])
+          egress_ids = ('timed-bounded-public-process-is-offhost', 'timed-bounded-internal-rechecks-decision')
+          egress_manifest = json.loads((root / 'source/scripts/mutations/spec007-explicit-egress.json').read_text())
+          egress_cases = {case['id']: case for case in egress_manifest['mutations'] if case['id'] in egress_ids}
+          assert set(egress_cases) == set(egress_ids)
+          cases.extend(egress_cases[identifier] for identifier in egress_ids)
+          assert len(cases) == 10 and len({case['id'] for case in cases}) == 10
+          for case in cases:
+              original = (root / 'source' / case['file']).read_text()
+              assert original.count(case['old']) == 1, case['id']
+              assert case['old'] != case['new']
+          (root / 'proof' / 'mutations.json').write_text(json.dumps({'schema': 1, 'mutations': cases}, indent=2) + '\n')
+          PY
+      - name: Run baseline, exact mutation, restore and green rebuilds
+        shell: bash
+        run: |
+          set -euo pipefail
+          mutation_manifest_base64="$(base64 -w0 "$GITHUB_WORKSPACE/proof/mutations.json")"
+          # Only base64 alphabet is interpolated into the inner command; no source shell text.
+          printf -v mutation_command "set -euo pipefail\nprintf '%%s' '%s' | base64 --decode > /tmp/isolated-task-mutations.json\ndotnet --info\npython3 scripts/run-spec007-mutation-batch.py --manifest /tmp/isolated-task-mutations.json --archive-stdout --timeout-seconds 900" "$mutation_manifest_base64"
+          bash source/scripts/test-in-container.sh \
+            --repo "$GITHUB_WORKSPACE/source" --ref "$SOURCE_SHA" -- "$mutation_command" \
+            2>&1 | tee "$GITHUB_WORKSPACE/proof/mutations.log"
+          test -z "$(git -C source status --porcelain --untracked-files=all)"
+      - name: Decode complete TRX, diff, byte restoration and process evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source/scripts/decode-spec007-mutation-evidence.py \
+            --log "$GITHUB_WORKSPACE/proof/mutations.log" \
+            --output "$GITHUB_WORKSPACE/proof/mutation-evidence" \
+            --repo "$GITHUB_WORKSPACE/source"
+          docker image inspect ashlar-devtest:local > proof/devtest-image.json
+      - name: Require intended failures, exact discovery and restored clean green
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, importlib.util, json, os
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE'])
+          evidence = root / 'proof' / 'mutation-evidence'
+          manifest = json.loads((root / 'proof' / 'mutations.json').read_text())
+          archived_manifest = json.loads((evidence / 'manifest.json').read_text())
+          assert archived_manifest == manifest
+          expected = {case['id']: case for case in manifest['mutations']}
+          summary = json.loads((evidence / 'summary.json').read_text())
+          assert summary['ref'] == os.environ['SOURCE_SHA']
+          assert summary['verdict'] == 'KILLED'
+          records = summary['records']
+          assert len(records) == len(expected) == 10
+          assert {r['id'] for r in records} == set(expected)
+          # Revalidate all archived TRX against their process receipts using the pinned harness.
+          spec = importlib.util.spec_from_file_location('mutation_runner', root / 'source/scripts/run-spec007-mutation-batch.py')
+          runner = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(runner)
+          receipts = []
+          baseline_directories = {}
+          for index, record in enumerate(records):
+              case = expected[record['id']]
+              total = {'isolated-session-failed-start-cleanup': 3, 'isolated-task-host-image-pin': 2,
+                       'isolated-process-output-byte-boundary': 3, 'timed-bounded-public-process-is-offhost': 2,
+                       'timed-bounded-internal-rechecks-decision': 1}.get(record['id'], 47)
+              directory = evidence / f"{index:03d}-{record['id']}"
+              assert record['case'] == case and record['ref'] == os.environ['SOURCE_SHA']
+              assert record['verdict'] == 'KILLED'
+              assert record['original_sha256'] == record['restored_sha256']
+              original = (directory / 'original.bin').read_bytes()
+              assert original == (root / 'source' / case['file']).read_bytes()
+              assert hashlib.sha256(original).hexdigest() == record['original_sha256']
+              assert record['restored_clean'] is True and record['final_clean'] is True
+              assert (directory / 'applied.diff').stat().st_size > 0
+              for phase in ('baseline', 'red', 'green'):
+                  counts = record[phase]
+                  assert counts['total'] == counts['executed'] == total, (record['id'], phase, counts)
+                  assert counts['notExecuted'] == 0
+                  if phase != 'red':
+                      assert counts['failed'] == counts['exit'] == 0 and counts['passed'] == total
+                  else:
+                      assert counts['exit'] == 1 and counts['failed'] > 0
+                      for fragment in case['expected_failures']:
+                          assert any(fragment in name for name in counts['failures']), (record['id'], fragment)
+                  phase_dir = directory / phase
+                  # Baselines are reusable only for the exact project/framework/filter selection.
+                  if phase == 'baseline':
+                      selection = tuple(case[key] for key in ('project', 'framework', 'filter'))
+                      if phase_dir.exists():
+                          assert selection not in baseline_directories
+                          baseline_directories[selection] = phase_dir
+                      else:
+                          assert selection in baseline_directories
+                          phase_dir = baseline_directories[selection]
+                  process = json.loads((phase_dir / 'process.json').read_text())
+                  assert process['timed_out'] is False and process['interrupted'] is False
+                  observed = runner.read_result(phase_dir / 'result.trx', process['exit'], (phase_dir / 'console.log').read_text())
+                  assert observed == counts
+                  command = json.loads((phase_dir / 'command.json').read_text())
+                  assert command[:3] == ['dotnet', 'test', case['project']]
+                  assert command[command.index('--filter') + 1] == case['filter']
+                  assert command[command.index('--framework') + 1] == case['framework']
+                  assert '--no-build' not in command
+              receipts.append({'id': record['id'], 'baseline': record['baseline'], 'red': record['red'], 'green': record['green'], 'restored_clean': True})
+          receipt = {'source': os.environ['SOURCE_SHA'], 'verdict': 'KILLED', 'mutations': receipts}
+          (root / 'proof' / 'mutation-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt, indent=2))
+          PY
+      - name: Upload mutation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-task-mutations
+          path: proof/
+          if-no-files-found: error
+          retention-days: 14
+
+  developer-dogfood:
+    name: Public DI host and packaged parser dogfood
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out validation fixture
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: validation
+          persist-credentials: false
+      - name: Check out exact feature commit
+        uses: actions/checkout@v7
+        with:
+          ref: 7ee90d6b666aadb09105a630b95e8f48311a2b41
+          path: source
+          persist-credentials: false
+      - name: Install repository CI SDKs
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.403
+            8.0.427
+      - name: Build packaged parser and exercise public registration
+        shell: bash
+        run: |
+          bash validation/ci/isolated-task-dogfood/run-dogfood.sh \
+            "$GITHUB_WORKSPACE/source" "$RUNNER_TEMP/dogfood-evidence"
+      - name: Upload developer dogfood evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-task-developer-dogfood
+          path: ${{ runner.temp }}/dogfood-evidence
+          if-no-files-found: error
+          retention-days: 14
