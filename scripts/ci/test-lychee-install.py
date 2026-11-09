@@ -70,11 +70,53 @@ read -r digest asset
         self.assertEqual((self.cwd / "path").read_text(), f"{self.cwd}/lychee/bin\n")
         self.assertEqual(list(self.cwd.glob("lychee-download.*")), [])
 
+    def mock_fallback(self, corrupt=False):
+        self.mock_download()
+        self.stub("curl", """printf '%s\n' "$@" >> "$RUNNER_TEMP/all-curl-args"
+url="${!#}"
+if [[ "$url" == https://github.com/* ]]; then
+  echo primary >> "$RUNNER_TEMP/routes"
+  exit 22
+fi
+[[ "$url" == https://api.github.com/repos/lycheeverse/lychee/releases/assets/409959156 ]]
+echo api >> "$RUNNER_TEMP/routes"
+printf '%s\n' "$@" > "$RUNNER_TEMP/api-args"
+while [[ "$1" != --output ]]; do shift; done
+""" + ('echo corrupted > "$2"' if corrupt else
+       'cp "$RUNNER_TEMP/fixture.tar.gz" "$2"'))
+
+    def test_api_fallback_uses_exact_asset_and_verifies_before_install(self):
+        self.mock_fallback()
+        self.mock_extraction()
+        result = self.run_script("install-lychee.sh")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.cwd / "routes").read_text(), "primary\napi\n")
+        args = (self.cwd / "api-args").read_text().splitlines()
+        self.assertEqual(args[args.index("--header") + 1], "Accept: application/octet-stream")
+        self.assertEqual(args[args.index("--retry") + 1], "2")
+        self.assertEqual(args[args.index("--retry-max-time") + 1], "90")
+        self.assertIn("--fail", args)
+        self.assertIn("--retry-all-errors", args)
+        self.assertNotIn("Authorization", " ".join(args))
+        self.assertTrue((self.cwd / "lychee/bin/lychee").is_file())
+        self.assertEqual(list(self.cwd.glob("lychee-download.*")), [])
+
+    def test_corrupt_api_fallback_fails_checksum_before_extraction(self):
+        self.mock_fallback(corrupt=True)
+        self.stub("tar", 'touch "$RUNNER_TEMP/extracted"')
+        result = self.run_script("install-lychee.sh")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("FAILED", result.stdout)
+        self.assertEqual((self.cwd / "routes").read_text(), "primary\napi\n")
+        self.assertFalse((self.cwd / "extracted").exists())
+        self.assertFalse((self.cwd / "path").exists())
+
     def test_exhausted_download_fails_without_install(self):
-        self.stub("curl", "exit 22")
+        self.stub("curl", 'echo called >> "$RUNNER_TEMP/curl-calls"; exit 22')
         self.mock_extraction()
         result = self.run_script("install-lychee.sh")
         self.assertEqual(result.returncode, 22)
+        self.assertEqual((self.cwd / "curl-calls").read_text(), "called\ncalled\n")
         self.assertFalse((self.cwd / "extracted").exists())
         self.assertFalse((self.cwd / "path").exists())
         self.assertEqual(list(self.cwd.glob("lychee-download.*")), [])

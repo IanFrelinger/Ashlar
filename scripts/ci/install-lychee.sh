@@ -17,10 +17,22 @@ URL="https://github.com/lycheeverse/lychee/releases/download/lychee-${VERSION}/$
 echo "Downloading ${URL}"
 # --show-error exposes the HTTP/TLS failure hidden by the action's curl -sfLO.
 # Retry HTTP failures (22) and TLS failures (35), with bounded backoff and timeout.
-curl --fail --show-error --silent --location \
+if ! curl --fail --show-error --silent --location \
   --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 180 \
   --connect-timeout 15 --max-time 60 \
-  --output "${DOWNLOAD_DIR}/${ASSET}" "${URL}"
+  --output "${DOWNLOAD_DIR}/${ASSET}" "${URL}"; then
+  # GitHub's release page can return persistent 504s while its asset API works.
+  # This is the SAME release asset, not a mirror or a different binary version.
+  # Public assets need no token; do not forward repository credentials.
+  echo "Release URL failed; trying the pinned GitHub release-asset API." >&2
+  rm -f "${DOWNLOAD_DIR}/${ASSET}"
+  curl --fail --show-error --silent --location \
+    --header 'Accept: application/octet-stream' \
+    --retry 2 --retry-all-errors --retry-delay 2 --retry-max-time 90 \
+    --connect-timeout 15 --max-time 60 \
+    --output "${DOWNLOAD_DIR}/${ASSET}" \
+    https://api.github.com/repos/lycheeverse/lychee/releases/assets/409959156
+fi
 (
   cd "${DOWNLOAD_DIR}"
   printf '%s  %s\n' "${SHA256}" "${ASSET}" | sha256sum --check --strict -
