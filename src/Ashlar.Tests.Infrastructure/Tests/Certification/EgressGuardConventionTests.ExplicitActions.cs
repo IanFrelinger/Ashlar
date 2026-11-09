@@ -9,7 +9,7 @@ public sealed partial class EgressGuardConventionTests
     [Fact]
     public void F11_evaluated_process_entry_is_confined_to_the_two_guarded_funnels()
     {
-        Tree.Value.Files.Where(path => Regex.IsMatch(Tree.Value.Model(path)!.Code, @"\bRunEvaluatedAsync\s*\(", RegexOptions.CultureInvariant))
+        Tree.Value.Files.Where(path => Regex.IsMatch(Tree.Value.Model(path)!.Code, @"\bRunEvaluated(?:Bounded)?Async\s*\(", RegexOptions.CultureInvariant))
             .Should().BeEquivalentTo(new[] { ProcessGuardImplFile, "src/Ashlar.Infrastructure/Scaling/ProcessCommandRunner.cs" });
     }
 

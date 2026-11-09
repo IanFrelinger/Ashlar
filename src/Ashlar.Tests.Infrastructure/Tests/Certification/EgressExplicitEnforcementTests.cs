@@ -142,6 +142,51 @@ public sealed class EgressExplicitEnforcementTests : IDisposable
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Bounded_process_entries_refuse_before_launch_and_report_mode_reaches_marker(bool processRunner)
+    {
+        var marker = Path.Combine(_directory, "bounded-executed.txt");
+        var isWindows = OperatingSystem.IsWindows();
+        var info = new ProcessStartInfo(isWindows ? "powershell.exe" : "bash");
+        info.Environment["ASHLAR_BOUNDED_MARKER"] = marker;
+        if (isWindows) info.ArgumentList.Add("-NoProfile");
+        info.ArgumentList.Add(isWindows ? "-Command" : "-c");
+        // ProcessCommandRunner deliberately inherits the working directory and environment;
+        // a literal quoted marker is used for both calls instead of relying on either.
+        var quotedMarker = marker.Replace("'", "'\"'\"'", StringComparison.Ordinal);
+        info.ArgumentList.Add(isWindows
+            ? "[IO.File]::WriteAllText('" + marker.Replace("'", "''", StringComparison.Ordinal) + "', 'ran')"
+            : "printf ran > '" + quotedMarker + "'");
+        async Task Run()
+        {
+            if (processRunner)
+                await new ProcessCommandRunner().RunBoundedAsync(info.FileName, info.ArgumentList.ToArray(), 64);
+            else
+                await TimedProcess.RunBoundedAsync(info, TimeSpan.FromSeconds(5), 64);
+        }
+        var error = await Record.ExceptionAsync(Run);
+        error.Should().BeOfType<EgressRefusedException>().Which.Site.Should().Be(processRunner ? "EG-PROC-03" : "EG-PROC-08");
+        File.Exists(marker).Should().BeFalse();
+        using var report = new EnvironmentVariableScope("ASHLAR_EGRESS_MODE", "report");
+        EgressProcessStateScope.Reset();
+        await Run();
+        (await File.ReadAllTextAsync(marker)).Should().Be("ran");
+    }
+
+    [Fact]
+    public async Task Internal_evaluated_bounded_process_entry_rejects_refusing_decision()
+    {
+        var decision = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-03", "process:bash"));
+        var info = new ProcessStartInfo("bash") { WorkingDirectory = _directory };
+        info.ArgumentList.Add("-c");
+        info.ArgumentList.Add("printf ran > executed.txt");
+        var error = await Record.ExceptionAsync(() => TimedProcess.RunEvaluatedBoundedAsync(info, TimeSpan.FromSeconds(5), 64, decision, CancellationToken.None));
+        error.Should().BeOfType<EgressRefusedException>().Which.Decision.Should().BeSameAs(decision);
+        File.Exists(Path.Combine(_directory, "executed.txt")).Should().BeFalse();
+    }
+
+    [Theory]
     [InlineData("EG-MESH-02")]
     [InlineData("EG-MESH-08")]
     [InlineData("EG-FILE-01")]
