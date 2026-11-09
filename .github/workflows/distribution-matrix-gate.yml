@@ -19,6 +19,9 @@ on:
       - ".docker/Dockerfile.cli"
       - "scripts/verify-stable-sdk-host-sample-packages.sh"
       - "scripts/verify-standalone-brick-authoring.sh"
+      - "scripts/verify-consumer-repo-paths.sh"
+      - "scripts/ci/check-prerequisites.*"
+      - "tools/ci-agents/fixtures/**"
       - "scripts/verify-external-product-shape.sh"
       - "consumer-template/host/**"
       - "scripts/verify-github-bricks-package.sh"
@@ -57,6 +60,9 @@ on:
       - ".docker/Dockerfile.cli"
       - "scripts/verify-stable-sdk-host-sample-packages.sh"
       - "scripts/verify-standalone-brick-authoring.sh"
+      - "scripts/verify-consumer-repo-paths.sh"
+      - "scripts/ci/check-prerequisites.*"
+      - "tools/ci-agents/fixtures/**"
       - "scripts/verify-external-product-shape.sh"
       - "consumer-template/host/**"
       - "scripts/verify-github-bricks-package.sh"
@@ -146,8 +152,24 @@ jobs:
         with:
           dotnet-version: 10.0.403
 
+      - name: Check developer dogfood prerequisites
+        run: |
+          bash scripts/ci/check-prerequisites.sh --profile developer-dogfood \
+            --json-output "$RUNNER_TEMP/developer-dogfood/preflight.json"
+
       - name: Verify tool-installed ashlar new brick outside repo
+        env:
+          ASHLAR_AUTHORING_VERIFY_RESULTS: ${{ runner.temp }}/developer-dogfood
         run: bash scripts/verify-standalone-brick-authoring.sh
+
+      - name: Retain scaffold and developer edit test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: developer-dogfood-${{ github.run_id }}
+          path: ${{ runner.temp }}/developer-dogfood/
+          if-no-files-found: error
+          retention-days: 30
 
   external-product-shape:
     name: External product shape (brick + host + client)

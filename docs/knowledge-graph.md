@@ -19,9 +19,9 @@ remembered to update — staleness here is a red build.
 | of those, operator-facing (not test-only) | 157 |
 | missing from `docs/Configuration.md` | 17 |
 | **mentioned in no document at all** | **0** |
-| test files declaring xUnit facts | 843 |
-| declared facts | 5585 |
-| workflows | 62 |
+| test files declaring xUnit facts | 846 |
+| declared facts | 5605 |
+| workflows | 63 |
 
 ## Namespaces cert-gate selects
 

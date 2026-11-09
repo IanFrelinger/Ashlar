@@ -2,6 +2,8 @@
 
 Documentation index for the Ashlar platform. Start here to find what you need.
 
+- [Developer CI workers](DeveloperCiAgents.md) — scripted developer journeys, independent advisory reviewers, verification routing, permissions and limits.
+
 ## Start Here
 
 1. `docs/TesterQuickstart.md` — **the one lane for a first run**: clone → `dotnet build Ashlar.Kernel.sln` → `ashlar doctor` → run the API on loopback, submit one task, read its audit trail → run the certification gate. No Docker, no API keys, verified paths only.
