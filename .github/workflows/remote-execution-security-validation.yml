@@ -1,0 +1,49 @@
+name: Remote execution security validation
+
+on:
+  push:
+    branches:
+      - codex/remote-execution-security-validation
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remote-execution-security-validation
+  cancel-in-progress: false
+
+jobs:
+  security-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out exact fix candidate
+        uses: actions/checkout@v7
+        with:
+          ref: 508745cad9204f6249a8cf0cafde0997ba1637b5
+          fetch-depth: 0
+
+      - name: Confirm source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "508745cad9204f6249a8cf0cafde0997ba1637b5"
+          test "$(git rev-parse HEAD^{tree})" = "eaf95705db6b313d2fcf8cf51c9a0a474dbd1217"
+          test -z "$(git status --porcelain)"
+
+      - name: Run real regression and mutation proofs in Linux devtest
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/test-in-container.sh --repo "$GITHUB_WORKSPACE" \
+            --ref 508745cad9204f6249a8cf0cafde0997ba1637b5 \
+            -- 'python scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/remote-execution-security.json --archive-stdout' \
+            2>&1 | tee "$RUNNER_TEMP/security-mutation-evidence.log"
+
+      - name: Upload complete validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remote-execution-security-evidence
+          path: ${{ runner.temp }}/security-mutation-evidence.log
+          if-no-files-found: error
