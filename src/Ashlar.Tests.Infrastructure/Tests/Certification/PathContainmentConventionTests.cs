@@ -98,16 +98,10 @@ public sealed class PathContainmentConventionTests
     /// <summary>
     /// The copies that remain, with the exact number of checks in each, on 2026-09-30. This list is
     /// expected to SHRINK: convert a copy to <c>PathContainment</c> and lower (or delete) its pin in
-    /// the same change. Both remaining copies are already separator-aware; neither is the escape.
+    /// the same change. The remaining copy is already separator-aware; it is not the escape.
     /// </summary>
     private static readonly Dictionary<string, int> Remaining = new(StringComparer.Ordinal)
     {
-        // Volume-mount validation on the remote execution surface: separator-aware, root-inclusive,
-        // case-insensitive on Windows only. Left because converting it makes a src/ change span
-        // application/, which layer-boundary refuses without a [coordinated-integration] PR; it
-        // belongs in an application/ follow-up.
-        ["application/src/Ashlar.API/Endpoints/AshlarEndpoints.cs"] = 2,
-
         // sandbox.writable vs sandbox.root: separator-aware, root-inclusive, ordinal. Left because
         // Ashlar.Manifest references no project at all, and PathContainment lives in
         // Ashlar.Abstractions; converting it needs a new ProjectReference, which is its own decision.

@@ -17,6 +17,17 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Security — remote execution and custom-CA TLS
+
+- **Breaking hardening:** `/api/execution/run` rejects every nonempty `VolumeMounts` with 400,
+  including paths under `Ashlar:Execution:AllowedVolumeMountRoot`. The legacy setting no longer
+  enables mounts: a pathname check cannot prevent symlink substitution before the Docker daemon
+  resolves the source. Omit mounts for remote runs, or use a trusted local execution workflow.
+  Mount-free remote runs, remote image builds, and local Docker mounting are unchanged.
+- Custom-CA gRPC connections preserve TLS hostname validation while replacing platform chain
+  trust with the configured CA. A certificate for another host is no longer accepted merely
+  because the configured CA signed it.
+
 ### Added — developer CI review workers
 
 - Add user-invokable, operation-scoped dependency preflights and automatic checks for the reviewer, coordinator, repository-gate and developer-dogfood CI paths, with required/optional results and retained receipts. Broader runtime and deployment coverage remains separate.
