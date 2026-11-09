@@ -1,0 +1,74 @@
+name: Disposable runtime mutation evidence
+on:
+  push:
+    branches: [cursor/runtime-mutation-validation]
+permissions:
+  contents: read
+jobs:
+  mutation-evidence:
+    name: Runtime mutations (${{ matrix.group }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [cache-inputs, cache-safety, event-ownership, telemetry]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: da246d7420311a0f6220bfd09f2473b66484f36a
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact source and container prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = da246d7420311a0f6220bfd09f2473b66484f36a
+          test "$(git rev-parse HEAD^{tree})" = 6427f8ffc968c9adcb48fbfc7b6c689d17b69763
+          test -z "$(git status --porcelain)"
+          command -v docker
+          timeout 30 docker info --format '{{.ServerVersion}}'
+      - name: Run exact-source mutations in supported container
+        env:
+          MUTATION_GROUP: ${{ matrix.group }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/runtime-mutations/$MUTATION_GROUP"
+          export EVIDENCE_ROOT="$RUNNER_TEMP/runtime-mutations/$MUTATION_GROUP"
+          ids=$(python3 -c 'import json,os; print(",".join(c["id"] for c in json.load(open("scripts/mutations/runtime-findings.json"))["mutations"] if c["group"]==os.environ["MUTATION_GROUP"]))')
+          test -n "$ids"
+          set +e
+          bash scripts/test-in-container.sh --repo "$GITHUB_WORKSPACE" --ref da246d7420311a0f6220bfd09f2473b66484f36a -- \
+            "python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/runtime-findings.json --ids '$ids' --archive-stdout --timeout-seconds 600" \
+            > "$EVIDENCE_ROOT/container.log" 2>&1
+          result=$?
+          set -e
+          python3 scripts/decode-spec007-mutation-evidence.py --repo "$GITHUB_WORKSPACE" \
+            --log "$EVIDENCE_ROOT/container.log" --output "$EVIDENCE_ROOT/evidence"
+          python3 - <<'PY'
+          import json, os, pathlib
+          root = pathlib.Path(os.environ['EVIDENCE_ROOT'])
+          summary = json.loads((root / 'evidence/summary.json').read_text())
+          selected = [c for c in json.load(open('scripts/mutations/runtime-findings.json'))['mutations'] if c['group'] == os.environ['MUTATION_GROUP']]
+          assert summary['ref'] == 'da246d7420311a0f6220bfd09f2473b66484f36a'
+          assert len(summary['records']) == len(selected) == 5
+          lines = []
+          for record in summary['records']:
+              red, green = record.get('red', {}), record.get('green', {})
+              line = f"{record['id']}: {record['verdict']} red={red.get('failed', '?')}/{red.get('total', '?')} green={green.get('passed', '?')}/{green.get('total', '?')}"
+              print(line)
+              lines.append(line)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as report:
+              report.write('Exact source: da246d7420311a0f6220bfd09f2473b66484f36a\n\n' + '\n'.join('- ' + line for line in lines) + '\n')
+          assert summary['verdict'] == 'KILLED', summary
+          assert all(r['verdict'] == 'KILLED' and r.get('restored_clean') and r.get('final_clean') and r['original_sha256'] == r['restored_sha256'] for r in summary['records'])
+          PY
+          exit "$result"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-mutation-evidence-${{ matrix.group }}
+          path: ${{ runner.temp }}/runtime-mutations/
+          if-no-files-found: error
+          retention-days: 30
