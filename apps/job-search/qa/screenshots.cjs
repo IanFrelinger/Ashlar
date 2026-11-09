@@ -3,7 +3,7 @@
 //
 //   STUDIO_URL=http://127.0.0.1:8080 node screenshots.cjs [--out DIR] [--scale 2]
 //
-// Writes <out>/<view>-<theme>-<width>.png for the sign-in, welcome, designer (with a step added and the wiring shown),
+// Writes <out>/<view>-<theme>-<width>.png (plus a first-screen <view>-<theme>-phone-first.png) for the sign-in, welcome, designer (with a step added and the wiring shown),
 // tracker (after one search), runs, profile and privacy views, in light and dark colour schemes, at desktop and
 // phone widths. Refuses a studio that is not synthetic, like every other QA entry point.
 "use strict";
@@ -41,10 +41,22 @@ async function main() {
       for (const size of SIZES) {
         const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: scale, colorScheme: theme });
         const page = await context.newPage();
-        const shot = async (name, opts = {}) => {
-          const file = path.join(out, `${name}-${theme}-${size.name}.png`);
+        // Full-page captures put sticky and fixed bars wherever the page happened to be scrolled; for the record the
+        // page is scrolled to the top first, the header is let flow, and the phone also gets a first-screen capture
+        // with the tab bar where a person sees it.
+        // (Through the CSSOM: the studio's CSP forbids injected <style> elements as well as inline styles.)
+        const shot = async (name) => {
           await page.waitForTimeout(300);
-          await page.screenshot({ path: file, fullPage: opts.fullPage ?? true });
+          await page.evaluate(() => window.scrollTo(0, 0));
+          if (size.name === "phone") {
+            const first = path.join(out, `${name}-${theme}-phone-first.png`);
+            await page.screenshot({ path: first, fullPage: false });
+            written.push(first);
+          }
+          await page.evaluate(() => { document.querySelector(".top").style.position = "static"; });
+          const file = path.join(out, `${name}-${theme}-${size.name}.png`);
+          await page.screenshot({ path: file, fullPage: true });
+          await page.evaluate(() => { document.querySelector(".top").style.position = ""; });
           written.push(file);
         };
         await page.goto(STUDIO_URL + "/");

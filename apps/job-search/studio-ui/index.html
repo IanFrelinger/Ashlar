@@ -2,34 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Job Search Studio</title>
   <meta name="description" content="Design your own job search: your steps, your data, your Drive.">
-  <link rel="icon" href="data:,">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="app.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo" aria-hidden="true"></span>
-      <span>Job Search Studio</span>
+  <div class="top">
+    <header class="topbar">
+      <a class="brand" href="#/designer">
+        <svg class="mark" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="10.5" width="14" height="3.5" rx="1"/><rect x="3" y="6.25" width="10" height="3.25" rx="1"/><rect class="cap" x="5" y="2" width="6" height="3.25" rx="1"/></svg>
+        <span>Job Search Studio</span>
+      </a>
+      <nav id="nav" aria-label="Main" hidden>
+        <a href="#/designer" data-test="nav-designer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h7M15 5h2M3 10h2M10 10h7M3 15h6M14 15h3"/><circle cx="13" cy="5" r="2"/><circle cx="8" cy="10" r="2"/><circle cx="12" cy="15" r="2"/></svg><span>Designer</span></a>
+        <a href="#/tracker" data-test="nav-tracker"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="1.5"/><path d="M3 9h14M8 9v7"/></svg><span>Tracker</span></a>
+        <a href="#/runs" data-test="nav-runs"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg><span>Runs</span></a>
+        <a href="#/profile" data-test="nav-profile"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M4 17c.8-3.2 3-4.8 6-4.8s5.2 1.6 6 4.8"/></svg><span>Profile</span></a>
+        <a href="#/privacy" data-test="nav-privacy"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l6 2.2v4.6c0 3.6-2.6 6.3-6 7.2-3.4-.9-6-3.6-6-7.2V5.2z"/></svg><span>Privacy<span class="nav-more"> &amp; data</span></span></a>
+      </nav>
+      <div class="who" id="who"></div>
+    </header>
+    <div id="synthetic-banner" class="banner" role="status" hidden>
+      <span class="qa">QA</span>
+      <span>Made-up people and postings. Do not enter real personal data.</span>
+      <span class="build" id="build"></span>
     </div>
-    <nav id="nav" aria-label="Main" hidden>
-      <a href="#/designer" data-test="nav-designer">Designer</a>
-      <a href="#/tracker" data-test="nav-tracker">Tracker</a>
-      <a href="#/runs" data-test="nav-runs">Runs</a>
-      <a href="#/profile" data-test="nav-profile">Profile</a>
-      <a href="#/privacy" data-test="nav-privacy">Privacy &amp; data</a>
-    </nav>
-    <div class="who" id="who"></div>
-  </header>
-  <div id="synthetic-banner" class="banner" role="status" hidden>
-    Synthetic environment: made-up people and postings only. Never enter real personal data here.
   </div>
   <main id="main" tabindex="-1">
-    <p class="loading">Loading…</p>
+    <p class="loading"><span class="dot pulse" aria-hidden="true"></span>Loading…</p>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
