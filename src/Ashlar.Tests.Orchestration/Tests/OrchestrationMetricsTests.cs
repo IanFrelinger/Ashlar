@@ -136,4 +136,42 @@ public sealed class OrchestrationMetricsTests
         report.Agents[0].AgentId.Should().Be("many");
         report.Agents[0].ExecutionCount.Should().Be(3);
     }
+
+    [Fact]
+    public void Spans_are_bounded_including_unfinished_spans()
+    {
+        var metrics = new OrchestrationMetrics(new Mock<ILogger<OrchestrationMetrics>>().Object, 2);
+        var oldest = metrics.StartSpan("unfinished");
+        var second = metrics.StartSpan("completed");
+        metrics.EndSpan(second);
+        var newest = metrics.StartSpan("latest");
+        metrics.EndSpan(newest);
+        metrics.EndSpan(oldest); // Already evicted: must not recreate it.
+        metrics.GetTraces().Select(s => s.SpanId).Should().BeEquivalentTo(new[] { second, newest });
+        metrics.GetPerformanceReport().Traces.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Concurrent_span_admission_and_completion_obey_capacity()
+    {
+        var metrics = new OrchestrationMetrics(new Mock<ILogger<OrchestrationMetrics>>().Object, 16);
+        Parallel.For(0, 1000, _ => metrics.EndSpan(metrics.StartSpan("work")));
+        metrics.GetTraces().Should().HaveCount(16);
+        metrics.Clear();
+        metrics.GetTraces().Should().BeEmpty();
+        metrics.EndSpan(metrics.StartSpan("fresh"));
+        metrics.GetTraces().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Trace_tags_are_copied_at_ingress_and_report_boundaries()
+    {
+        var tags = new Dictionary<string, string> { ["scope"] = "original" };
+        var id = _sut.StartSpan("test", tags: tags);
+        tags["scope"] = "changed";
+        _sut.EndSpan(id);
+        _sut.GetTraces().Single().Tags["scope"] = "changed again";
+        ((IDictionary<string, string>)_sut.GetPerformanceReport().Traces.Single().Tags)["scope"] = "changed in report";
+        _sut.GetTraces().Single().Tags["scope"].Should().Be("original");
+    }
 }
