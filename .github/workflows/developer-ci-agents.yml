@@ -1,0 +1,97 @@
+name: Developer CI reviewers
+
+# Deterministic advisory workers, not model-driven agents. They never rewrite code.
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'application/src/**'
+      - 'samples/templates/brick/**'
+      - '.github/workflows/**'
+      - 'tools/ci-agents/**'
+      - 'scripts/ci/test-developer-ci-agents.py'
+  schedule:
+    - cron: '30 7 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: developer-ci-reviewers-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Advisory ${{ matrix.worker }} reviewer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        worker: [redundancy, efficiency, security, cost]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install parser used by the repository's workflow checks
+        run: python3 -m pip install --disable-pip-version-check PyYAML==6.0.3
+      - name: Inspect immutable source as data
+        env:
+          REVIEWER: ${{ matrix.worker }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          args=(--head "$(git rev-parse HEAD)" --worker "$REVIEWER" --output "$RUNNER_TEMP/review")
+          if [[ -n "$BASE_SHA" ]]; then args+=(--base "$BASE_SHA"); fi
+          python3 tools/ci-agents/review.py "${args[@]}"
+      - name: Publish advisory summary
+        if: always()
+        run: |
+          if [[ -f "$RUNNER_TEMP/review/summary.md" ]]; then
+            cat "$RUNNER_TEMP/review/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Review did not produce evidence; this is not a clean result.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: developer-review-${{ matrix.worker }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/review/
+          if-no-files-found: error
+          retention-days: 30
+
+  coordinate:
+    name: Coordinate findings and verification plans
+    needs: review
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: developer-review-*-${{ github.run_id }}
+          path: ${{ runner.temp }}/reviews
+      - name: Deduplicate candidates and route verification
+        run: |
+          python3 tools/ci-agents/coordinate.py --reports "$RUNNER_TEMP/reviews" \
+            --head "$(git rev-parse HEAD)" --output "$RUNNER_TEMP/queue"
+      - name: Publish queue summary
+        if: always()
+        run: |
+          if [[ -f "$RUNNER_TEMP/queue/summary.md" ]]; then
+            cat "$RUNNER_TEMP/queue/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Coordination failed; no complete verification queue is available.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: developer-verification-queue-${{ github.run_id }}
+          path: ${{ runner.temp }}/queue/
+          if-no-files-found: error
+          retention-days: 30

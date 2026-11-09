@@ -97,26 +97,11 @@ if [[ "${LIST_ONLY}" -eq 1 ]]; then
   exit 0
 fi
 
-FAILED=()
-for g in "${GATES[@]}"; do
-  echo
-  echo "::group::${g}"
-  case "${g}" in
-    *.py) "${PY_BIN}" "${g}" ;;
-    *)    bash "${g}" ;;
-  esac
-  rc=$?
-  echo "::endgroup::"
-  if [[ "${rc}" -ne 0 ]]; then
-    echo "::error::${g} failed (exit ${rc})"
-    FAILED+=("${g}")
-  fi
-done
-
-echo
-if [[ "${#FAILED[@]}" -gt 0 ]]; then
-  echo "repo-gates: ${#FAILED[@]} of ${#GATES[@]} gate(s) failed:" >&2
-  printf '  %s\n' "${FAILED[@]}" >&2
-  exit 1
-fi
-echo "repo-gates: all ${#GATES[@]} gate(s) passed"
+# Keep failures visible and leave time to upload evidence before shell-lint's job timeout.
+# A hung check is terminated, later checks still run while the overall budget remains.
+REPORTS="${ASHLAR_GATE_REPORTS:-$(mktemp -d)}"
+exec "${PY_BIN}" scripts/ci/run-reported-gates.py \
+  --reports "${REPORTS}" \
+  --timeout "${ASHLAR_GATE_TIMEOUT_SECONDS:-60}" \
+  --budget "${ASHLAR_GATE_BUDGET_SECONDS:-180}" \
+  "${GATES[@]}"

@@ -17,6 +17,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — developer CI review workers
+
+- Repository gate tests now have per-check and overall deadlines, retained failure/stall logs, reproduction commands and explicit incomplete statuses in the required shell-lint job.
+- Add independent read-only redundancy, efficiency, security and cost reviewers with bounded, SHA-bound advisory reports and a deduplicated verification queue. Model-driven fix writing, issues, approvals and releases remain disabled.
+- Extend the existing standalone brick authoring journey with a real consumer edit/test cycle, cancellation checks and retained test receipts; reuse existing distribution builds.
+
+
 ### Changed — provider-aware and recollected release evidence
 
 - Brick contract `1.4.0` checks each required context's app binding independently. Wrong-app failures
