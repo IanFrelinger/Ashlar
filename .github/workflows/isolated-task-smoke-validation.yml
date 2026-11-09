@@ -1,0 +1,175 @@
+name: Isolated task Docker proof (corrected target matrix)
+'on':
+  push:
+    branches:
+    - codex/isolated-task-smoke-validation
+permissions:
+  contents: read
+env:
+  SOURCE_SHA: 7ee90d6b666aadb09105a630b95e8f48311a2b41
+  DOTNET_NOLOGO: '1'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+jobs:
+  docker-smoke:
+    name: Focused tests and real Docker smoke (net8 and net10)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+    - name: Check out exact feature commit
+      uses: actions/checkout@v7
+      with:
+        ref: 7ee90d6b666aadb09105a630b95e8f48311a2b41
+        path: source
+        persist-credentials: false
+    - name: Install repository CI SDKs
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: |
+          10.0.403
+          8.0.427
+    - name: Record source and preload smoke image
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "$GITHUB_WORKSPACE/proof"
+        test "$(git -C source rev-parse HEAD)" = "$SOURCE_SHA"
+        test -z "$(git -C source status --porcelain --untracked-files=all)"
+        git -C source rev-parse HEAD HEAD^{tree} > proof/source.txt
+        dotnet --info > proof/dotnet-info.txt
+        docker version > proof/docker-version.txt
+        docker info > proof/docker-info.txt
+        docker pull busybox:1.36.1 2>&1 | tee proof/image-pull.log
+        docker image inspect busybox:1.36.1 > proof/smoke-image.json
+        # Test the already-loaded immutable content ID, not a mutable tag.
+        smoke_image_id="$(docker image inspect --format '{{.Id}}' busybox:1.36.1)"
+        [[ "$smoke_image_id" =~ ^sha256:[0-9a-f]{64}$ ]]
+        printf 'ASHLAR_ISOLATED_TASK_TEST_IMAGE=%s\n' "$smoke_image_id" >> "$GITHUB_ENV"
+    - name: Run focused suites on each supported test framework
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd source
+        for framework in net8.0 net10.0; do
+          for suite in tasks sessions processes contracts egress; do
+            project=src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj
+            case "$suite" in
+              tasks) filter='FullyQualifiedName~IsolatedTaskRunnerTests&Category!=External' ;;
+              sessions) filter='FullyQualifiedName~DockerSandboxSessionTests' ;;
+              processes) filter='FullyQualifiedName~BoundedProcessOutputTests' ;;
+              egress) filter='FullyQualifiedName~EgressExplicitEnforcementTests.Bounded_process_entries_refuse_before_launch_and_report_mode_reaches_marker|FullyQualifiedName~EgressExplicitEnforcementTests.Internal_evaluated_bounded_process_entry_rejects_refusing_decision' ;;
+              contracts)
+                # The application test project targets net8.0 only.
+                [[ "$framework" == net8.0 ]] || continue
+                project=src/Ashlar.Tests.Application/Ashlar.Tests.Application.csproj
+                filter='FullyQualifiedName~IsolatedTaskContractTests'
+                ;;
+            esac
+            results="$GITHUB_WORKSPACE/proof/$framework/$suite"
+            mkdir -p "$results"
+            dotnet test "$project" --framework "$framework" --nologo -v minimal \
+              --filter "$filter" --results-directory "$results" \
+              --logger 'trx;LogFileName=focused.trx' 2>&1 | tee "$results/console.log"
+          done
+        done
+        test -z "$(git status --porcelain --untracked-files=all)"
+    - name: Require complete focused test evidence with zero skips
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        python3 - <<'PY'
+        import importlib.util, json, os, sys
+        from pathlib import Path
+        sys.dont_write_bytecode = True
+        root = Path(os.environ['GITHUB_WORKSPACE'])
+        proof = root / 'proof'
+        spec = importlib.util.spec_from_file_location('mutation_runner', root / 'source/scripts/run-spec007-mutation-batch.py')
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        expected = {'tasks': 47, 'sessions': 26, 'processes': 12, 'contracts': 5, 'egress': 3}
+        receipts = []
+        for framework in ('net8.0', 'net10.0'):
+            for suite, total in expected.items():
+                if suite == 'contracts' and framework != 'net8.0':
+                    continue
+                directory = proof / framework / suite
+                counts = runner.read_result(directory / 'focused.trx', 0, (directory / 'console.log').read_text())
+                assert counts['total'] == counts['executed'] == counts['passed'] == total, (framework, suite, counts)
+                assert counts['failed'] == counts['notExecuted'] == 0, (framework, suite, counts)
+                receipts.append({'framework': framework, 'suite': suite, 'counters': counts})
+        receipt = {'source': os.environ['SOURCE_SHA'], 'runs': receipts}
+        (proof / 'focused-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+        print(json.dumps(receipt, indent=2))
+        PY
+    - name: Run actual Docker lifecycle and output flood on both frameworks
+      env:
+        ASHLAR_RUN_ISOLATED_TASK_DOCKER: '1'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd source
+        for framework in net8.0 net10.0; do
+          mkdir -p "$GITHUB_WORKSPACE/proof/$framework"
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            --framework "$framework" --nologo -v minimal \
+            --filter 'FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Execution.IsolatedTaskRunnerTests.Real_Docker_task_has_ephemeral_scratch_readonly_root_and_removes_container|FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Execution.IsolatedTaskRunnerTests.Real_Docker_output_flood_is_bounded_and_the_container_is_removed' \
+            --results-directory "$GITHUB_WORKSPACE/proof/$framework" \
+            --logger 'trx;LogFileName=smoke.trx' \
+            2>&1 | tee "$GITHUB_WORKSPACE/proof/$framework/console.log"
+        done
+        test -z "$(git status --porcelain --untracked-files=all)"
+    - name: Require responsive Docker and no leaked session containers
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        docker version > proof/docker-version-after.txt
+        docker ps --all --no-trunc --filter label=ashlar.session=1 \
+          --format '{{json .}}' > proof/remaining-session-containers.jsonl
+        test ! -s proof/remaining-session-containers.jsonl
+    - name: Require both exact smoke tests to pass, never skip or zero discovery
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        python3 - <<'PY'
+        import json, os
+        from pathlib import Path
+        import xml.etree.ElementTree as ET
+        proof = Path(os.environ['GITHUB_WORKSPACE']) / 'proof'
+        expected = {
+            'Ashlar.Tests.Infrastructure.Tests.Execution.IsolatedTaskRunnerTests.Real_Docker_task_has_ephemeral_scratch_readonly_root_and_removes_container',
+            'Ashlar.Tests.Infrastructure.Tests.Execution.IsolatedTaskRunnerTests.Real_Docker_output_flood_is_bounded_and_the_container_is_removed',
+        }
+        receipts = []
+        for framework in ('net8.0', 'net10.0'):
+            root = ET.parse(proof / framework / 'smoke.trx').getroot()
+            summaries = root.findall('./{*}ResultSummary')
+            assert len(summaries) == 1 and summaries[0].get('outcome') == 'Completed'
+            counter_nodes = summaries[0].findall('./{*}Counters')
+            assert len(counter_nodes) == 1
+            counters = {k: int(v) for k, v in counter_nodes[0].attrib.items()}
+            assert all(counters.get(k) == v for k, v in {
+                'total': 2, 'executed': 2, 'passed': 2, 'failed': 0, 'notExecuted': 0}.items()), counters
+            assert not any(v for k, v in counters.items() if k not in {
+                'total', 'executed', 'passed', 'failed', 'notExecuted', 'completed'}), counters
+            results = root.findall('./{*}Results/{*}UnitTestResult')
+            assert len(results) == 2 and all(result.get('outcome') == 'Passed' for result in results)
+            assert {result.get('testName') for result in results} == expected
+            assert all(result.get('testId') and result.get('executionId') for result in results)
+            assert len({result.get('executionId') for result in results}) == 2
+            assert all(info.get('outcome') in ('Passed', 'Completed', 'Warning')
+                       for info in summaries[0].findall('./{*}RunInfos/{*}RunInfo'))
+            receipts.append({'framework': framework, 'tests': sorted(expected), 'counters': counters})
+        receipt = {'source': os.environ['SOURCE_SHA'], 'image': os.environ['ASHLAR_ISOLATED_TASK_TEST_IMAGE'], 'runs': receipts}
+        (proof / 'smoke-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+        print(json.dumps(receipt, indent=2))
+        PY
+    - name: Upload Docker smoke evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: isolated-task-docker-and-focused-tests
+        path: proof/
+        if-no-files-found: error
+        retention-days: 14
