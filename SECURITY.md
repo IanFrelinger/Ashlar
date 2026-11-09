@@ -40,7 +40,7 @@ What a fresh checkout does when you run it, and what you must turn on before it 
 
 **Remote container execution is opt-in**
 
-- `POST /api/execution/build` and `POST /api/execution/run` hand caller-chosen images, commands and host bind mounts to this host's Docker daemon on behalf of a `RemoteExecutionPlatform` client (`ASHLAR_EXECUTION_REMOTE_URL`). They are mapped only when `Ashlar:Execution:ServeRemoteExecution=true` (404 otherwise), refuse `AuthorizationMode=None` with 403 even when opted in, and reject any `VolumeMounts` (400) unless `Ashlar:Execution:AllowedVolumeMountRoot` names the single host directory they may live under.
+- `POST /api/execution/build` and `POST /api/execution/run` hand caller-chosen images and commands to this host's Docker daemon on behalf of a `RemoteExecutionPlatform` client (`ASHLAR_EXECUTION_REMOTE_URL`). They are mapped only when `Ashlar:Execution:ServeRemoteExecution=true` (404 otherwise), refuse `AuthorizationMode=None` with 403 even when opted in, and reject every nonempty `VolumeMounts` (400). The legacy `Ashlar:Execution:AllowedVolumeMountRoot` setting no longer enables mounts: lexical checks and one-time symlink resolution cannot confine the Docker daemon's later resolution of writable source paths. Omit mounts for remote runs or use a trusted local execution workflow when mounts are required. This does not sandbox arbitrary image builds or make remote execution suitable for untrusted callers.
 - Shipped compose files never mount `docker.sock` into `Ashlar.API`; the in-process `DockerExecutionPlatform` used by `ashlar test --platform` on the CLI is unaffected by the opt-in.
 
 **Commercial hosts**

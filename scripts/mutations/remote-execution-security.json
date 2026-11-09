@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "note": "Prepared regression mutations only. No C# assertions or mutation kills have been observed in this environment; Docker is unavailable. See local review report for validation limits.",
+  "mutations": [
+    {
+      "id": "remote-bind-refusal-removed",
+      "file": "application/src/Ashlar.API/Endpoints/AshlarEndpoints.cs",
+      "old": "        if (!TryValidateVolumeMounts(request.VolumeMounts, out var mountError))\n            return Results.BadRequest(new ProblemDetails { Title = \"VolumeMounts rejected\", Detail = mountError });",
+      "new": "        TryValidateVolumeMounts(request.VolumeMounts, out var mountError);",
+      "filter": "FullyQualifiedName~Volume_mounts_are_rejected_even_under_the_legacy_configured_root|FullyQualifiedName~In_root_symlink_mount_sources_never_reach_the_platform",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Volume_mounts_are_rejected_even_under_the_legacy_configured_root",
+        "In_root_symlink_mount_sources_never_reach_the_platform"
+      ]
+    },
+    {
+      "id": "grpc-custom-ca-hostname-check-removed",
+      "file": "src/Ashlar.Transport.Grpc/DefaultGrpcChannelFactory.cs",
+      "old": "            if (certificate == null ||\n                (sslPolicyErrors & ~SslPolicyErrors.RemoteCertificateChainErrors) != SslPolicyErrors.None)",
+      "new": "            if (certificate == null)",
+      "filter": "FullyQualifiedName~DefaultGrpcChannelFactoryTlsTests",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj",
+      "expected_failures": [
+        "Custom_ca_preserves_hostname_and_chain_validation_during_tls_handshake"
+      ]
+    }
+  ]
+}
