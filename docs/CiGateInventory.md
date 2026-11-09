@@ -2,7 +2,7 @@
 
 This file describes what CI **actually does** on this repository: which workflow files exist, what triggers each one, and which checks branch protection **really** requires. Workflow YAML controls when checks run; GitHub branch protection (a repository setting, not YAML) controls which check names must be green before merge. Where the two disagree, this file follows the settings and says so.
 
-Snapshot: **62 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), recounted 2026-11-02 after the project inventory guard gained a PR trigger (`pr-blockers-action.yml` was added 2026-10-25); 61 recounted 2026-10-03 after `products-gate.yml` was removed with the product-split scaffolds (parked on `archive/parked-2026-10-03`). It was 62 from 2026-09-13; before that this line read 58, verified 2026-09-04, while the trigger map below said 58 too; both were stale. Includes `runtime-portability-gate.yml` (three execution lanes — the .NET 9 runtime consumer added 2026-09-10, the net10.0 trimmed/AOT publish matrix added 2026-09-11, and the netstandard2.0-under-Mono consumer added 2026-09-12).
+Snapshot: **63 workflow files** under `.github/workflows/` (`git ls-files ".github/workflows/*.yml"`), recounted 2026-11-08 after adding `developer-ci-agents.yml` (the project inventory guard gained a PR trigger 2026-11-02); 61 recounted 2026-10-03 after `products-gate.yml` was removed with the product-split scaffolds (parked on `archive/parked-2026-10-03`). It was 62 from 2026-09-13; before that this line read 58, verified 2026-09-04, while the trigger map below said 58 too; both were stale. Includes `runtime-portability-gate.yml` (three execution lanes — the .NET 9 runtime consumer added 2026-09-10, the net10.0 trimmed/AOT publish matrix added 2026-09-11, and the netstandard2.0-under-Mono consumer added 2026-09-12).
 
 > **Companion:** `docs/HowGatesGoQuiet.md` — the ways a check in this repository has stopped
 > answering while still looking like it was. Read it before adding a gate, and before believing one.
@@ -99,22 +99,23 @@ gh api --method PATCH -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-
 
 ## Trigger map
 
-Counts by trigger class (62 files, counted 2026-10-25):
+Counts by trigger class (63 files, counted 2026-11-08):
 
 | Class | Count | Meaning |
 | --- | --- | --- |
-| Runs on `pull_request` | 21 | 7 run on every PR (`build-gate`, `cert-gate`, `docs-link-check`, `full-platform-readiness-gate` — path filter inside the workflow, `layer-boundary` — `paths: "**"`, `shell-lint`, `uat-gate`), 13 path-filtered (including `runtime-portability-gate`, `pr-blockers-action`, and the project inventory guard added 2026-11-02), 1 label-driven (`release-staging-on-label`). *Corrected 2026-09-13: this row read 17 with a six-name unfiltered set that omitted `build-gate`; recounted from the workflow files.* |
+| Runs on `pull_request` | 22 | 7 run on every PR (`build-gate`, `cert-gate`, `docs-link-check`, `full-platform-readiness-gate` — path filter inside the workflow, `layer-boundary` — `paths: "**"`, `shell-lint`, `uat-gate`), 14 path-filtered (including `developer-ci-agents`, `runtime-portability-gate`, `pr-blockers-action`, and the project inventory guard added 2026-11-02), 1 label-driven (`release-staging-on-label`). *Corrected 2026-09-13: this row read 17 with a six-name unfiltered set that omitted `build-gate`; recounted from the workflow files.* |
 | Push- and/or schedule-driven (path-filtered on `master`/`main`/`cursor/**`), plus `workflow_dispatch` | 18 | Post-merge / scheduled signal; never blocks a PR. *Recounted 2026-11-02 after the project inventory guard gained a PR trigger. Corrected 2026-10-03: this row read 18, so the five rows summed to one fewer than the file count; recounted from the workflow files.* |
 | `workflow_dispatch` only | 18 | Manual lanes (mesh labs, multi-env Docker suites, ship/ops/perf, release plumbing) |
 | Tag / release event | 2 | `release.yml` (`v*.*.*` tags), `devlog-ghost-release.yml` (`release: published`) |
 | Reusable (`workflow_call`) | 3 | `reusable-*` |
 
-Six workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00), `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of each month), and `dogfood-continuous-proof` (06:00 weekdays). (`mesh-lab-stress-gate` lost its schedule 2026-08-16 and `mesh-lab-tls-gate` lost its Tue 07:00 on 2026-09-13, both after consecutive red scheduled runs; all three mesh lanes are dispatch-only. Corrected 2026-09-13: this sentence previously said six and listed six names, but seven workflows carried a `schedule` at the time — it named `mesh-lab-tls-gate` and omitted `dogfood-continuous-proof`, so BOTH the count and the set were wrong. Six is correct only because this same change removes the `mesh-lab-tls-gate` cron. An earlier version of this note claimed the count had been right; it had not.)
+Seven workflows carry a `schedule`: `distribution-matrix-gate` (Mon 10:00 UTC), `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00), `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of each month), `dogfood-continuous-proof` (06:00 weekdays), and `developer-ci-agents` (Fri 07:30). The developer reviewers are read-only advisory jobs; the existing Distribution Matrix owns the developer journey builds.
 
 ### PR-triggered workflows
 
 | Workflow file | Name / job(s) | PR trigger | Also |
 | --- | --- | --- | --- |
+| `developer-ci-agents.yml` | Four advisory reviewers + verification coordinator | paths: product C#, brick templates, workflows and CI reviewer tooling | Friday schedule, dispatch; no fixes, issue creation or model calls; [scope and limits](DeveloperCiAgents.md) |
 | `cert-gate.yml` | Cert gate / `cert-gate` | **every PR** (no paths) | push `master`, dispatch — **required** |
 | `shell-lint.yml` | Shell lint / `shell-lint` | **every PR** (no paths) — **required** | dispatch — always reports; cheap parse/lint check |
 | `docs-link-check.yml` | Docs Link Check / `lychee (README + docs)` | **every PR** (no paths) — **required** | push, dispatch — always reports; ~30s lychee run |

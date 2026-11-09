@@ -21,8 +21,8 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 844,
-    "declared_facts": 5578,
-    "workflows": 62
+    "declared_facts": 5579,
+    "workflows": 63
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -6523,7 +6523,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/SemanticCacheConcurrencyTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
-      "declared_facts": 3,
+      "declared_facts": 4,
       "in_cert_gate_filter": false
     },
     {
@@ -8735,6 +8735,15 @@
       "name": "Dev Container Gate",
       "triggers": [
         "push",
+        "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/developer-ci-agents.yml",
+      "name": "Developer CI reviewers",
+      "triggers": [
+        "pull_request",
+        "schedule",
         "workflow_dispatch"
       ]
     },
