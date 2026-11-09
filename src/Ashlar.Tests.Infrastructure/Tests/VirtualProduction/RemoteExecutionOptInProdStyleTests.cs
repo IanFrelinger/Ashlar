@@ -16,9 +16,9 @@ namespace Ashlar.Tests.Infrastructure.Tests.VirtualProduction;
 /// <summary>
 /// ProdStyle coverage for the security posture of the remote container-execution surface and the
 /// exposure fail-closed rule, on the real Ashlar.API pipeline (auth middleware, endpoint mapping,
-/// startup guard). <c>/api/execution/*</c> hands caller-chosen images, commands and host bind mounts
+/// startup guard). <c>/api/execution/*</c> hands caller-chosen images and commands
 /// to the Docker daemon, so it must be dark by default, refuse AuthorizationMode=None even when opted
-/// in, and accept volume mounts only under a single configured root. Off-loopback ExposureProfiles
+/// in, and reject all host bind mounts, even with the legacy root configured. Off-loopback ExposureProfiles
 /// with no auth must refuse to start unless the operator sets the documented escape hatch.
 /// Configuration is injected with UseSetting only; no process environment variables are touched.
 /// </summary>
@@ -224,36 +224,92 @@ public sealed class RemoteExecutionOptInProdStyleTests
     }
 
     [Fact(Timeout = TestTimeouts.HostTouching)]
-    public async Task Volume_mounts_are_accepted_only_under_the_configured_root()
+    public async Task Volume_mounts_are_rejected_even_under_the_legacy_configured_root()
     {
         var platform = new RecordingExecutionPlatform();
-        var root = Path.Combine(Path.GetTempPath(), "ashlar-prodstyle-mount-root");
-        var inside = Path.Combine(root, "test-results");
-        var traversal = Path.Combine(root, "..", "escaped");
-        var outside = Path.Combine(Path.GetTempPath(), "ashlar-prodstyle-elsewhere");
-        using var factory = CreateFactory(
-            ApiKeyAuthSettings((ServeRemoteExecutionKey, "true"), (AllowedVolumeMountRootKey, root)),
-            platform);
-        using var client = factory.CreateClient();
+        var root = Directory.CreateTempSubdirectory("ashlar-prodstyle-mount-").FullName;
+        try
+        {
+            var inside = Directory.CreateDirectory(Path.Combine(root, "test-results")).FullName;
+            var file = Path.Combine(inside, "result.txt");
+            File.WriteAllText(file, "test result");
+            using var factory = CreateFactory(
+                ApiKeyAuthSettings((ServeRemoteExecutionKey, "true"), (AllowedVolumeMountRootKey, root)),
+                platform);
+            using var client = factory.CreateClient();
 
-        var accepted = await client.SendAsync(RunRequest(
-            SimpleRun(new Dictionary<string, string> { [inside] = "/workspace/test-results" }), ApiKey));
-        accepted.StatusCode.Should().Be(HttpStatusCode.OK, "a mount under the configured root is the intended RemoteExecutionPlatform use");
-        platform.Runs.Should().ContainSingle().Which.VolumeMounts.Should().ContainKey(inside);
+            // Even ordinary existing directories/files are refused. Checking a source first and
+            // letting the daemon resolve it later would still leave a symlink-replacement window.
+            foreach (var hostPath in new[]
+            {
+                root, inside, file, Path.Combine(root, "missing"),
+                Path.Combine(root, "..", "escaped"), root + "-sibling", "test-results",
+            })
+            {
+                var rejected = await client.SendAsync(RunRequest(
+                    SimpleRun(new Dictionary<string, string> { [hostPath] = "/workspace/test-results" }), ApiKey));
+                rejected.StatusCode.Should().Be(HttpStatusCode.BadRequest, "no caller-selected bind source is safe to hand to the daemon");
+                (await rejected.Content.ReadAsStringAsync()).Should().Contain("Host bind mounts are disabled");
+            }
+            platform.Runs.Should().BeEmpty("a configured legacy root must not reopen bind mounts");
 
-        var rejectedOutside = await client.SendAsync(RunRequest(
-            SimpleRun(new Dictionary<string, string> { [outside] = "/mnt/host" }), ApiKey));
-        rejectedOutside.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            // Both wire representations of a mount-free request still run with the same config.
+            foreach (var mounts in new Dictionary<string, string>?[] { null, new() })
+            {
+                var accepted = await client.SendAsync(RunRequest(SimpleRun(mounts), ApiKey));
+                accepted.StatusCode.Should().Be(HttpStatusCode.OK);
+            }
+            platform.Runs.Should().HaveCount(2);
+            platform.Runs.Should().OnlyContain(run => run.VolumeMounts == null || run.VolumeMounts.Count == 0);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 
-        var rejectedTraversal = await client.SendAsync(RunRequest(
-            SimpleRun(new Dictionary<string, string> { [traversal] = "/mnt/host" }), ApiKey));
-        rejectedTraversal.StatusCode.Should().Be(HttpStatusCode.BadRequest, "'..' segments are normalised before the root check");
+    // Linux is the supported devtest container platform. Windows symlink creation can require
+    // privileges; report an explicit skip there rather than silently treating a failed arrange as green.
+    private sealed class UnixSymlinkFactAttribute : FactAttribute
+    {
+        public UnixSymlinkFactAttribute()
+        {
+            if (OperatingSystem.IsWindows())
+                Skip = "This filesystem regression requires Unix symlink creation; run it in the Linux devtest container.";
+        }
+    }
 
-        var rejectedRelative = await client.SendAsync(RunRequest(
-            SimpleRun(new Dictionary<string, string> { ["test-results"] = "/mnt/host" }), ApiKey));
-        rejectedRelative.StatusCode.Should().Be(HttpStatusCode.BadRequest, "relative host paths are never accepted");
+    [UnixSymlinkFact(Timeout = TestTimeouts.HostTouching)]
+    public async Task In_root_symlink_mount_sources_never_reach_the_platform()
+    {
+        var stem = Directory.CreateTempSubdirectory("ashlar-prodstyle-symlink-").FullName;
+        try
+        {
+            var root = Directory.CreateDirectory(Path.Combine(stem, "allowed")).FullName;
+            var outside = Directory.CreateDirectory(Path.Combine(stem, "outside")).FullName;
+            File.WriteAllText(Path.Combine(outside, "private.txt"), "outside marker");
+            var link = Path.Combine(root, "link");
+            Directory.CreateSymbolicLink(link, outside);
+            File.ReadAllText(Path.Combine(link, "private.txt")).Should().Be("outside marker",
+                "the fixture must actually resolve outside the allowed root");
 
-        platform.Runs.Should().ContainSingle("only the in-root mount may reach the platform");
+            var platform = new RecordingExecutionPlatform();
+            using var factory = CreateFactory(
+                ApiKeyAuthSettings((ServeRemoteExecutionKey, "true"), (AllowedVolumeMountRootKey, root)),
+                platform);
+            using var client = factory.CreateClient();
+            foreach (var hostPath in new[] { link, Path.Combine(link, "private.txt"), Path.Combine(link, "missing") })
+            {
+                var rejected = await client.SendAsync(RunRequest(
+                    SimpleRun(new Dictionary<string, string> { [hostPath] = "/mnt/host" }), ApiKey));
+                rejected.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            }
+            platform.Runs.Should().BeEmpty("no symlink spelling may be resolved later by Docker");
+        }
+        finally
+        {
+            Directory.Delete(stem, recursive: true);
+        }
     }
 
     [Fact(Timeout = TestTimeouts.HostTouching)]

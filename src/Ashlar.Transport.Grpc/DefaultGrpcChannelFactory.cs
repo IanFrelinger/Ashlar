@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.Http;
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Ashlar.Abstractions.Security.Egress;
 using Grpc.Net.Client;
@@ -126,17 +127,19 @@ public sealed class DefaultGrpcChannelFactory : IGrpcChannelFactory
 #pragma warning restore SYSLIB0057
         handler.ServerCertificateCustomValidationCallback = (_, certificate, chain, sslPolicyErrors) =>
         {
-            if (certificate == null)
+            // Custom trust replaces only platform chain trust, never endpoint identity checks.
+            if (certificate == null ||
+                (sslPolicyErrors & ~SslPolicyErrors.RemoteCertificateChainErrors) != SslPolicyErrors.None)
             {
                 return false;
             }
 
-            var localChain = new X509Chain();
+            using var localChain = new X509Chain();
             localChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
             localChain.ChainPolicy.CustomTrustStore.Add(caCertificate);
             localChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
 
-            return localChain.Build(new X509Certificate2(certificate));
+            return localChain.Build(certificate);
         };
     }
 
