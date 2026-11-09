@@ -20,6 +20,7 @@ library every user shares. The next user who wants the same step gets it without
 | 2026-11-08 | The server-hosted model runs on **the same server, on CPU**: one m7i.xlarge (4 vCPU, 16 GB) runs the app and an ~8B open model under Ollama, reached over loopback. This replaces the small single server. | Owner, answering "Which server should run it?" |
 | 2026-11-08 | Development and release are built around **automated QA test agents, each with its own screen**, testing the UI. | Owner's request |
 | 2026-11-08 | QA agents are driven by **Claude computer use**, only against a staging copy filled with made-up personas; the runner refuses any target that is not flagged synthetic. | Owner, answering "Which model should drive them?" |
+| 2026-11-09 | The **step library is shared across customers**, and it comes next, ahead of fleet operations: it is the advantage that compounds. | Owner, after the scaling discussion: "bump up 3) A step library shared across customers" |
 
 ## 2. Integrator decisions (defaults taken; the owner may change any of them)
 
@@ -148,10 +149,10 @@ QA agents never see production. Production holds real PII, and agents send scree
 
 | Phase | Scope |
 |---|---|
-| 1 (this) | Web host, Google sign-in, workflow documents and compiler, designer, step library, forge with two model tiers, certification and sharing, isolated step host, PII controls and data-subject rights, encrypted secrets, one-server AWS deployment with the private model, QA agents and release gates, tests. |
-| 2 | A chat assistant that edits the workflow ("only remote jobs in Colorado, and flag anything with on-call") as a reviewable diff; branches; more step kinds (score adjustments, digests the user explicitly asks for). |
-| 3 | Operations: Postgres for more than one server, metering and billing, quotas per plan, observability, KMS-wrapped keys. |
-| 4 | Sharing across deployments: the library as signed `.ashpkg` packages over Ashlar federation; a local-model option for operators. |
+| 1 (built) | Web host, Google sign-in, workflow documents and compiler, designer, step library, forge with two model tiers, certification and sharing, isolated step host, PII controls and data-subject rights, encrypted secrets, one-server AWS deployment with the private model, QA agents and release gates, tests. |
+| 2 (next) | **Steps shared across customers** (owner decision 2026-11-09): every customer's server draws on one reviewed, signed library, so a step written for one customer serves all of them. Design: [LIBRARY-SHARING.md](LIBRARY-SHARING.md). |
+| 3 | A chat assistant that edits the workflow ("only remote jobs in Colorado, and flag anything with on-call") as a reviewable diff; branches; more step kinds (score adjustments, digests the user explicitly asks for). |
+| 4 | Operations across customers: measured seats per server, one-command customer setup, staged rollouts across servers, central health, metering and billing, quotas per plan, a coach view, KMS-wrapped keys; Postgres only if one customer outgrows a server. |
 
 ## 7. Known limits (Phase 1)
 

@@ -185,6 +185,21 @@ service certifying model-written code, it is one request holding a worker foreve
 - **Fix:** a per-execution budget in the gate (witness and mutant runs alike), with a timed-out mutant counted as
   killed and a timed-out witness case as a failure.
 
+## F15: a certified brick has no portable, sealed package
+
+Ashlar's `.ashpkg` (`ExtensionPackaging`, `src/Ashlar.Manifest/Packaging/ExtensionPackaging.cs`) seals a self-extend
+`GateRecord`, meaning a proposal and its signed admission, together with the proposal's files. A brick certification
+(`CertificationRecord`, from the certification chain) has no such package. It travels as a directory holding the
+record, the source and the gate-emitted DLL, as in `samples/verified-brick-consumer` and this app's `certified/`. So
+federation can move a self-extend proposal between nodes, but not a certified brick.
+
+- **Cost here:** sharing steps across customers ([LIBRARY-SHARING.md](LIBRARY-SHARING.md)) needs its own step package:
+  source, witness and metadata, sealed by the library publisher key. Each server re-certifies on import. STUDIO.md
+  had promised `.ashpkg` for this.
+- **Fix:** an `ashpkg` variant, or a sibling format, that seals a `CertificationRecord` with its source and witness.
+  It would be opened by the same fail-closed verifier, so certified bricks travel through federation the way
+  extensions do.
+
 ## What worked well
 
 - `AddAshlarSdk` + `AddAshlar()` composed with no configuration in a console host and in tests.
