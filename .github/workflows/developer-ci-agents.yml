@@ -10,6 +10,7 @@ on:
       - '.github/workflows/**'
       - 'tools/ci-agents/**'
       - 'scripts/ci/test-developer-ci-agents.py'
+      - 'scripts/ci/check-prerequisites.*'
   schedule:
     - cron: '30 7 * * 5'
   workflow_dispatch:
@@ -37,6 +38,10 @@ jobs:
           persist-credentials: false
       - name: Install parser used by the repository's workflow checks
         run: python3 -m pip install --disable-pip-version-check PyYAML==6.0.3
+      - name: Check reviewer prerequisites
+        run: |
+          bash scripts/ci/check-prerequisites.sh --profile ci-review \
+            --json-output "$RUNNER_TEMP/review/preflight.json"
       - name: Inspect immutable source as data
         env:
           REVIEWER: ${{ matrix.worker }}
@@ -72,6 +77,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - name: Check coordinator prerequisites
+        run: |
+          bash scripts/ci/check-prerequisites.sh --profile ci-coordinate \
+            --json-output "$RUNNER_TEMP/queue/preflight.json"
       - uses: actions/download-artifact@v4
         with:
           pattern: developer-review-*-${{ github.run_id }}

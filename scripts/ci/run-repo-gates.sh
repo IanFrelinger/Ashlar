@@ -100,6 +100,8 @@ fi
 # Keep failures visible and leave time to upload evidence before shell-lint's job timeout.
 # A hung check is terminated, later checks still run while the overall budget remains.
 REPORTS="${ASHLAR_GATE_REPORTS:-$(mktemp -d)}"
+"${PY_BIN}" scripts/ci/check-prerequisites.py --profile repo-gates \
+  --json-output "${REPORTS}/preflight.json" || exit $?
 exec "${PY_BIN}" scripts/ci/run-reported-gates.py \
   --reports "${REPORTS}" \
   --timeout "${ASHLAR_GATE_TIMEOUT_SECONDS:-60}" \

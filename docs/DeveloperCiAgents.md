@@ -105,6 +105,40 @@ The standalone developer journey reuses the tested consumer-path guard and retai
 its log with the TRX receipts. An unavailable scanner or a read error fails the
 journey instead of being treated as a clean path scan.
 
+### Optional dependency preflights
+
+Check the prerequisites for a selected operation without running that operation:
+
+```bash
+bash scripts/ci/check-prerequisites.sh --profile repo-gates --json-output /tmp/ashlar-preflight.json
+bash scripts/ci/check-prerequisites.sh --profile container-tests --json-output /tmp/ashlar-container-preflight.json
+```
+
+| Profile | Required checks | Invocation coverage |
+|---|---|---|
+| `ci-review` | Python 3.11+, working git, PyYAML 6.0.3 | Automatic before each advisory reviewer |
+| `ci-coordinate` | Python 3.11+, working git | Automatic before combining worker receipts; no YAML or Docker requirement |
+| `repo-gates` | Python 3.11+, PyYAML, Bash 4+, working git and listed shell utilities | Automatic before discovered repository checks; standalone command also available |
+| `developer-dogfood` | Stable .NET SDK 10.0.403 or later within 10.0, actual .NET 8 and ASP.NET Core 8 runtimes, Bash/git and script utilities | Automatic in the standalone Distribution Matrix job; invoke only in CI/devtest, not the developer host |
+| `container-tests` | Docker CLI and reachable daemon, Bash/git and container-harness utilities | User-invokable on the host before the container route; does not require host .NET |
+
+Every external probe is bounded (ten seconds by default, adjustable with `--timeout`).
+Missing required commands, bad versions, import failures and unavailable required
+services fail with a remediation hint. Optional tools such as ripgrep are warnings;
+missing Docker does not block a reviewer that does not use it. CI retains preflight
+receipts alongside each job's existing artifacts. These probes do not install
+packages, run containers or change system settings.
+
+This is an initial set of operation-scoped checks, not coverage of every Ashlar
+capability. It does not certify package-feed access, credentials, all transitive
+dependencies, test discovery or the result of the later operation. Runtime, service,
+deployment, release, Make and other workflow entry points need a separate declared
+coverage inventory, reusing their existing provider/bootstrap/startup checks.
+Optional preflight never bypasses mandatory authorization, security, configuration,
+zero-test, or execution-time validation. A missing or skipped check is not passing
+evidence. A future inventory should classify direct checks, inherited checks,
+explicit exemptions and uncovered entry points in an unconditional repository gate.
+
 Run the developer journey through the repository's devtest container:
 
 ```bash

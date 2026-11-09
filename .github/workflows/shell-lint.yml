@@ -97,6 +97,8 @@ jobs:
         run: |
           if [[ -f "$RUNNER_TEMP/repository-gate-diagnostics/summary.md" ]]; then
             cat "$RUNNER_TEMP/repository-gate-diagnostics/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          elif [[ -f "$RUNNER_TEMP/repository-gate-diagnostics/preflight.json" ]]; then
+            echo 'Repository gate preflight did not pass. Inspect preflight.json in the repository-gate-diagnostics artifact for the exact missing prerequisite and fix. Tests were not verified.' >> "$GITHUB_STEP_SUMMARY"
           else
             echo 'Repository gates did not produce diagnostics. They were not verified; inspect the earlier failed or cancelled step.' >> "$GITHUB_STEP_SUMMARY"
           fi

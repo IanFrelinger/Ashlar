@@ -19,6 +19,7 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Added — developer CI review workers
 
+- Add user-invokable, operation-scoped dependency preflights and automatic checks for the reviewer, coordinator, repository-gate and developer-dogfood CI paths, with required/optional results and retained receipts. Broader runtime and deployment coverage remains separate.
 - Repository gate tests now have per-check and overall deadlines, retained failure/stall logs, reproduction commands and explicit incomplete statuses in the required shell-lint job.
 - Add independent read-only redundancy, efficiency, security and cost reviewers with bounded, SHA-bound advisory reports and a deduplicated verification queue. Model-driven fix writing, issues, approvals and releases remain disabled.
 - Extend the existing standalone brick authoring journey with a real consumer edit/test cycle, cancellation checks and retained test receipts; reuse existing distribution builds.
