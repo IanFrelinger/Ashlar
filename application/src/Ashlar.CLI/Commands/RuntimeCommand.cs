@@ -1,8 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.Diagnostics;
-using System.Reflection;
-using System.Text.Json;
 using Ashlar.CLI.Runtime;
 
 namespace Ashlar.CLI.Commands;
@@ -199,48 +195,4 @@ public sealed partial class RuntimeCommand : Command
         int historyWindow,
         int strictPromotionStreak) =>
         RuntimeGateEvaluation.ResolveVisualRequired(visualRequiredMode, repoRoot, historyWindow, strictPromotionStreak);
-
-    private static string[] ResolveGoals(string? goalsJson, string? goalsFile)
-    {
-        if (!string.IsNullOrWhiteSpace(goalsJson))
-        {
-            try
-            {
-                var parsed = JsonSerializer.Deserialize<string[]>(goalsJson);
-                return NormalizeGoals(parsed);
-            }
-            catch
-            {
-                return Array.Empty<string>();
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(goalsFile) && File.Exists(goalsFile))
-        {
-            var lines = File.ReadAllLines(goalsFile);
-            return NormalizeGoals(lines);
-        }
-
-        return Array.Empty<string>();
-    }
-
-    private static string[] NormalizeGoals(IEnumerable<string>? goals)
-    {
-        return (goals ?? Array.Empty<string>())
-            .Select(g => (g ?? string.Empty).Trim())
-            .Where(g => !string.IsNullOrWhiteSpace(g))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-    }
-
-    private static string[] ResolvePolicies(string csv)
-    {
-        return (csv ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(RuntimeCommandUtilities.NormalizeQaPolicy)
-            .Where(p => p is "demo" or "release" or "prod" or "research" or "auto")
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-    }
-
 }

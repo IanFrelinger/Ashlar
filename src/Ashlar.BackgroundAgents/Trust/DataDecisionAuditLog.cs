@@ -43,10 +43,8 @@ public sealed class DataDecisionAuditLog : IDataDecisionAuditLog, ISanitizationA
     /// <inheritdoc />
     IReadOnlyList<SanitizationAuditEntry> ISanitizationAuditLog.GetRecent(int maxCount, DateTimeOffset? since)
     {
-        var all = GetRecentInternal(maxCount * 3, since, null, "Sanitization");
+        var all = GetRecentInternal(maxCount, since, null, "Sanitization");
         return all
-            .Where(e => e.EventType == "Sanitization")
-            .Take(maxCount)
             .Select(e => new SanitizationAuditEntry
             {
                 Timestamp = e.Timestamp,

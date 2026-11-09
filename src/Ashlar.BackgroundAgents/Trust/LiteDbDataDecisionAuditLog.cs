@@ -178,7 +178,7 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
     /// <inheritdoc />
     IReadOnlyList<SanitizationAuditEntry> ISanitizationAuditLog.GetRecent(int maxCount, DateTimeOffset? since)
     {
-        var all = GetRecent(maxCount * 3, since, null, "Sanitization");
+        var all = GetRecent(maxCount, since, null, "Sanitization");
         return all
             .Select(e => new SanitizationAuditEntry
             {
@@ -194,6 +194,9 @@ public sealed class LiteDbDataDecisionAuditLog : IDataDecisionAuditLog, ISanitiz
     /// <inheritdoc />
     public IReadOnlyList<DataDecisionAuditEntry> GetRecent(int maxCount, DateTimeOffset? since = null, DateTimeOffset? until = null, string? eventType = null)
     {
+        if (maxCount <= 0)
+            return Array.Empty<DataDecisionAuditEntry>();
+
         // The read surface: ExportToJson/Markdown/Csv and the explicit ISanitizationAuditLog.GetRecent
         // all come through here. DeserializeObject off a half-built mapper is the failure this closes
         // on this side -- it outnumbered the write-side throws roughly four to one when measured.

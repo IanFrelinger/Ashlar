@@ -64,7 +64,7 @@ public sealed class HelloBrick : Brick
         IExecutionContext context,
         CancellationToken cancellationToken = default)
     {
-        var name = input.Get<string>("name");
+        var name = input.Get<string>("name", "world");
         var output = new BrickOutput { Summary = $"Greeted {name}." };
         output.Set("message", $"Hello, {name}!");
         return Task.FromResult(output);

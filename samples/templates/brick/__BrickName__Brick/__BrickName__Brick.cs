@@ -24,7 +24,8 @@ public sealed class __BrickName__Brick : Brick
             ],
             Outputs =
             [
-                new BrickOutputDefinition("message", "string", "Greeting text")
+                new BrickOutputDefinition("message", "string", "Greeting text"),
+                new BrickOutputDefinition("implementation", "string", "Execution implementation")
             ]
         };
     }
@@ -35,7 +36,7 @@ public sealed class __BrickName__Brick : Brick
         IExecutionContext context,
         CancellationToken cancellationToken = default)
     {
-        var name = input.Get<string>("name");
+        var name = input.Get<string>("name", "world");
         var output = new BrickOutput
         {
             Summary = $"Generated greeting for {name}."
