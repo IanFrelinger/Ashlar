@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Offline regressions for required link-check installation and fail-closed execution."""
 import os
+import io
+import tarfile
 from pathlib import Path
 import subprocess
 import tempfile
@@ -32,13 +34,18 @@ class LycheeTests(unittest.TestCase):
                               cwd=self.cwd, env=self.env, text=True, capture_output=True)
 
     def mock_download(self):
+        # Match the published v0.24.2 archive layout, using real tar extraction.
+        data = b"#!/bin/sh\nexit 0\n"
+        with tarfile.open(self.cwd / "fixture.tar.gz", "w:gz") as archive:
+            member = tarfile.TarInfo("lychee-x86_64-unknown-linux-gnu/lychee")
+            member.size = len(data)
+            archive.addfile(member, io.BytesIO(data))
         self.stub("curl", """printf '%s\n' "$@" > "$RUNNER_TEMP/curl-args"
 while [[ "$1" != --output ]]; do shift; done
-touch "$2"
+cp "$RUNNER_TEMP/fixture.tar.gz" "$2"
 """)
 
     def mock_extraction(self):
-        self.stub("tar", 'touch "$RUNNER_TEMP/extracted"; printf "#!/bin/sh\\nexit 0\\n" > lychee')
         self.stub("sha256sum", """[[ "$*" == "--check --strict -" ]]
 read -r digest asset
 [[ "$digest" == 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a ]]
@@ -73,7 +80,7 @@ read -r digest asset
         self.assertEqual(list(self.cwd.glob("lychee-download.*")), [])
 
     def test_real_checksum_rejects_corrupt_archive_before_extraction(self):
-        self.mock_download()  # Empty archive cannot match the published digest.
+        self.mock_download()  # Fixture archive cannot match the published digest.
         self.stub("tar", 'touch "$RUNNER_TEMP/extracted"')
         result = self.run_script("install-lychee.sh")
         self.assertNotEqual(result.returncode, 0)

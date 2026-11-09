@@ -24,7 +24,7 @@ curl --fail --show-error --silent --location \
 (
   cd "${DOWNLOAD_DIR}"
   printf '%s  %s\n' "${SHA256}" "${ASSET}" | sha256sum --check --strict -
-  tar -xzf "${ASSET}" lychee
+  tar -xzf "${ASSET}" --strip-components=1 "lychee-x86_64-unknown-linux-gnu/lychee"
 )
 install -D "${DOWNLOAD_DIR}/lychee" "${RUNNER_TEMP}/lychee/bin/lychee"
 echo "${RUNNER_TEMP}/lychee/bin" >> "${GITHUB_PATH}"
