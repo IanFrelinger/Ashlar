@@ -37,7 +37,7 @@ jobs:
           set -euo pipefail
           bash scripts/test-in-container.sh --repo "$GITHUB_WORKSPACE" \
             --ref 508745cad9204f6249a8cf0cafde0997ba1637b5 \
-            -- 'python scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/remote-execution-security.json --archive-stdout' \
+            -- 'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/remote-execution-security.json --archive-stdout' \
             2>&1 | tee "$RUNNER_TEMP/security-mutation-evidence.log"
 
       - name: Upload complete validation evidence
