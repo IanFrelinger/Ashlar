@@ -105,9 +105,17 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
         ExecutionOptions options,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var channel = Channel.CreateUnbounded<ExecutionEvent>();
+        cancellationToken.ThrowIfCancellationRequested();
+        using var producerCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var producerToken = producerCts.Token;
+        var channel = Channel.CreateBounded<ExecutionEvent>(new BoundedChannelOptions(64)
+        {
+            SingleReader = true,
+            SingleWriter = true,
+            FullMode = BoundedChannelFullMode.Wait
+        });
 
-        _ = Task.Run(async () =>
+        var producer = Task.Run(async () =>
         {
             var writer = channel.Writer;
             try
@@ -122,7 +130,7 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     Variables = new Dictionary<string, object>(input.Parameters)
                 };
 
-                await writer.WriteAsync(new BehaviorStartedEvent(behavior.Id, behavior.Name, DateTime.UtcNow), cancellationToken);
+                await writer.WriteAsync(new BehaviorStartedEvent(behavior.Id, behavior.Name, DateTime.UtcNow), producerToken);
 
                 // Tracks steps that errored, so the final BehaviorCompletedEvent.Success reflects
                 // reality. It used to be hardcoded true — a behavior reported success even when
@@ -373,25 +381,41 @@ public class BehaviorExecutor : Ashlar.Core.Domain.Execution.IBehaviorExecutor
                     }
 
                     return LoopAction.Continue;
-                }, new LoopOptions { Name = "behavior-steps" }, cancellationToken);
+                }, new LoopOptions { Name = "behavior-steps" }, producerToken);
 
                 var success = EvaluateSuccessCriteria(behavior.SuccessCriteria, stepFailures == 0);
-                await writer.WriteAsync(new BehaviorCompletedEvent(behavior.Id, success, context.Variables), cancellationToken);
+                await writer.WriteAsync(new BehaviorCompletedEvent(behavior.Id, success, context.Variables), producerToken);
+            }
+            catch (OperationCanceledException) when (producerToken.IsCancellationRequested)
+            {
+                // Consumer cancellation/disposal is expected, not a synthetic step failure.
             }
             catch (Exception ex)
             {
                 // If something unexpected happens, emit a final failure event via StepError with synthetic step id.
-                await channel.Writer.WriteAsync(new StepErrorEvent("behavior", ex.Message), CancellationToken.None);
+                try
+                {
+                    await channel.Writer.WriteAsync(new StepErrorEvent("behavior", ex.Message), producerToken);
+                }
+                catch (OperationCanceledException) when (producerToken.IsCancellationRequested) { }
             }
             finally
             {
                 writer.TryComplete();
             }
-        }, cancellationToken);
+        }, CancellationToken.None); // Always start so the writer is completed, even if already cancelled.
 
-        await foreach (var evt in channel.Reader.ReadAllAsync(cancellationToken))
+        try
         {
-            yield return evt;
+            await foreach (var evt in channel.Reader.ReadAllAsync(cancellationToken))
+            {
+                yield return evt;
+            }
+        }
+        finally
+        {
+            producerCts.Cancel();
+            await producer.ConfigureAwait(false);
         }
     }
     

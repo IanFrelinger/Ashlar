@@ -11,7 +11,7 @@ namespace Ashlar.Infrastructure.Analysis.Adapters;
 /// Decorator for IAnalysisService that adds caching (Decorator pattern - OCP).
 /// 
 /// Provides caching layer for analysis results:
-/// - Generates cache keys from path + file modification times
+/// - Generates cache keys from root path + complete local file contents
 /// - Caches results for 30 minutes
 /// - Returns cached results when available
 /// - Falls through to inner service on cache miss
@@ -45,7 +45,7 @@ public class CachedAnalysisServiceAdapter : IAnalysisService
         var cacheKey = await GenerateCacheKeyAsync(path, cancellationToken);
 
         // Try to get from cache
-        var cachedResult = await _cache.GetAsync<AnalysisResult>(cacheKey, cancellationToken);
+        var cachedResult = cacheKey is null ? null : await _cache.GetAsync<AnalysisResult>(cacheKey, cancellationToken);
         if (cachedResult != null)
         {
             _logger.LogInformation("Returning cached analysis result for path: {Path}", path.FullName);
@@ -63,22 +63,16 @@ public class CachedAnalysisServiceAdapter : IAnalysisService
         var result = await _inner.AnalyzeAsync(path, progress, cancellationToken);
 
         // Store in cache (30 minute expiration)
-        await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(30), cancellationToken);
+        // Do not store a result under a snapshot that changed while analysis ran.
+        if (cacheKey is not null && cacheKey == await GenerateCacheKeyAsync(path, cancellationToken))
+            await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(30), cancellationToken);
 
         return result;
     }
 
-    private async Task<string> GenerateCacheKeyAsync(DirectoryInfo path, CancellationToken cancellationToken)
+    private static async Task<string?> GenerateCacheKeyAsync(DirectoryInfo path, CancellationToken cancellationToken)
     {
-        // Create a hash from path + file modification times
-        var files = path.GetFiles("*", SearchOption.AllDirectories)
-            .OrderBy(f => f.FullName)
-            .Take(100) // Limit to avoid performance issues
-            .Select(f => $"{f.FullName}:{f.LastWriteTimeUtc.Ticks}");
-
-        var content = string.Join("|", files);
-        var hash = await CacheKeyGenerator.ComputeHashAsync(content, cancellationToken);
-        return $"analysis:{hash}";
+        var hash = await DirectoryFingerprint.TryComputeAsync(path, cancellationToken).ConfigureAwait(false);
+        return hash is null ? null : $"analysis:v2:{hash}";
     }
 }
-

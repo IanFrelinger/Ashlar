@@ -8,14 +8,14 @@ namespace Ashlar.Orchestration.Metrics;
 
 /// <summary>
 /// Enhanced metrics collector for orchestration-specific metrics.
-/// 
+///
 /// Responsibilities:
 /// - Records operation execution times and counts
 /// - Tracks agent execution metrics (duration, state, resource usage)
 /// - Manages distributed tracing spans
 /// - Generates performance reports
 /// - Integrates with base IMetricsCollector for standard metrics
-/// 
+///
 /// Thread-safe implementation using concurrent collections.
 /// Used throughout orchestration for comprehensive metrics collection.
 /// </summary>
@@ -25,12 +25,27 @@ public sealed class OrchestrationMetrics
     private readonly ILogger<OrchestrationMetrics> _logger;
     private readonly ConcurrentDictionary<string, OperationMetrics> _operations = new();
     private readonly ConcurrentDictionary<string, AgentMetrics> _agentMetrics = new();
-    private readonly ConcurrentDictionary<string, TraceSpan> _spans = new();
+    private readonly Dictionary<string, TraceSpan> _spans = new(StringComparer.Ordinal);
+    private readonly Queue<string> _spanOrder = new();
+    private readonly object _spanGate = new();
+    private readonly int _maxRetainedSpans;
 
     public OrchestrationMetrics(
         ILogger<OrchestrationMetrics> logger,
+        IMetricsCollector? baseCollector = null) : this(logger, 1024, baseCollector)
+    {
+    }
+
+    /// <summary>
+    /// Creates a collector retaining at most <paramref name="maxRetainedSpans"/> traces,
+    /// including unfinished traces. Oldest traces are evicted at admission; ending an evicted
+    /// trace is harmless. Export traces separately when a full history is required.
+    /// </summary>
+    public OrchestrationMetrics(ILogger<OrchestrationMetrics> logger, int maxRetainedSpans,
         IMetricsCollector? baseCollector = null)
     {
+        if (maxRetainedSpans <= 0) throw new ArgumentOutOfRangeException(nameof(maxRetainedSpans));
+        _maxRetainedSpans = maxRetainedSpans;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _baseCollector = baseCollector;
     }
@@ -134,10 +149,16 @@ public sealed class OrchestrationMetrics
             OperationName = operationName,
             ParentSpanId = parentSpanId,
             StartTime = DateTimeOffset.UtcNow,
-            Tags = tags ?? new Dictionary<string, string>()
+            Tags = tags is null ? new Dictionary<string, string>() : new Dictionary<string, string>(tags)
         };
 
-        _spans[spanId] = span;
+        lock (_spanGate)
+        {
+            while (_spans.Count >= _maxRetainedSpans)
+                _spans.Remove(_spanOrder.Dequeue());
+            _spans[spanId] = span;
+            _spanOrder.Enqueue(spanId);
+        }
         _logger.LogDebug("Started span {SpanId}: {Operation}", spanId, operationName);
         return spanId;
     }
@@ -147,25 +168,28 @@ public sealed class OrchestrationMetrics
     /// </summary>
     public void EndSpan(string spanId, bool success = true, Dictionary<string, string>? additionalTags = null)
     {
-        if (!_spans.TryGetValue(spanId, out var span))
+        lock (_spanGate)
         {
-            _logger.LogWarning("Attempted to end non-existent span {SpanId}", spanId);
-            return;
-        }
-
-        span.EndTime = DateTimeOffset.UtcNow;
-        span.Duration = span.EndTime.Value - span.StartTime;
-        span.Success = success;
-
-        if (additionalTags != null)
-        {
-            foreach (var kvp in additionalTags)
+            if (!_spans.TryGetValue(spanId, out var span))
             {
-                span.Tags[kvp.Key] = kvp.Value;
+                _logger.LogWarning("Attempted to end non-existent span {SpanId}", spanId);
+                return;
             }
-        }
 
-        _logger.LogDebug("Ended span {SpanId}: {Duration}ms, success={Success}", spanId, span.Duration.TotalMilliseconds, success);
+            span.EndTime = DateTimeOffset.UtcNow;
+            span.Duration = span.EndTime.Value - span.StartTime;
+            span.Success = success;
+
+            if (additionalTags != null)
+            {
+                foreach (var kvp in additionalTags)
+                {
+                    span.Tags[kvp.Key] = kvp.Value;
+                }
+            }
+
+            _logger.LogDebug("Ended span {SpanId}: {Duration}ms, success={Success}", spanId, span.Duration.TotalMilliseconds, success);
+        }
     }
 
     /// <summary>
@@ -203,7 +227,7 @@ public sealed class OrchestrationMetrics
             .OrderByDescending(a => a.ExecutionCount)
             .ToList();
 
-        var traceSpans = _spans.Values
+        var traceSpans = GetTraces()
             .Where(s => s.EndTime.HasValue)
             .Select(s => new SpanReport
             {
@@ -238,11 +262,24 @@ public sealed class OrchestrationMetrics
     /// </summary>
     public IReadOnlyList<TraceSpan> GetTraces(string? correlationId = null, string? operationName = null)
     {
-        return _spans.Values
-            .Where(s =>
-                (correlationId == null || s.Tags.TryGetValue("correlationId", out var cid) && cid == correlationId) &&
-                (operationName == null || s.OperationName == operationName))
-            .ToList();
+        lock (_spanGate)
+        {
+            return _spans.Values
+                .Where(s =>
+                    (correlationId == null || s.Tags.TryGetValue("correlationId", out var cid) && cid == correlationId) &&
+                    (operationName == null || s.OperationName == operationName))
+                .Select(s => new TraceSpan
+                {
+                    SpanId = s.SpanId,
+                    OperationName = s.OperationName,
+                    ParentSpanId = s.ParentSpanId,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    Duration = s.Duration,
+                    Success = s.Success,
+                    Tags = new Dictionary<string, string>(s.Tags)
+                }).ToList();
+        }
     }
 
     /// <summary>
@@ -252,7 +289,11 @@ public sealed class OrchestrationMetrics
     {
         _operations.Clear();
         _agentMetrics.Clear();
-        _spans.Clear();
+        lock (_spanGate)
+        {
+            _spans.Clear();
+            _spanOrder.Clear();
+        }
         _logger.LogInformation("Cleared all orchestration metrics");
     }
 }
