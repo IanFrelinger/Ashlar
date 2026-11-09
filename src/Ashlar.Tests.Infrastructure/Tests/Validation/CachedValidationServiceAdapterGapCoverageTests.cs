@@ -11,8 +11,24 @@ using Xunit;
 namespace Ashlar.Tests.Infrastructure.Tests.Validation;
 
 /// <summary>Tests for cached validation service adapter gap coverage.</summary>
-public sealed class CachedValidationServiceAdapterGapCoverageTests
+[Collection("ProcessCwd")]
+public sealed class CachedValidationServiceAdapterGapCoverageTests : IDisposable
 {
+    private readonly string _previousDirectory = Directory.GetCurrentDirectory();
+    private readonly DirectoryInfo _directory = Directory.CreateTempSubdirectory("ashlar-validation-cache-");
+
+    public CachedValidationServiceAdapterGapCoverageTests()
+    {
+        // Cache behavior needs a stable, bounded input tree, not the live test runner's outputs.
+        Directory.SetCurrentDirectory(_directory.FullName);
+    }
+
+    public void Dispose()
+    {
+        Directory.SetCurrentDirectory(_previousDirectory);
+        _directory.Delete(recursive: true);
+    }
+
     [Fact]
     public void Constructor_throws_for_null_dependencies()
     {

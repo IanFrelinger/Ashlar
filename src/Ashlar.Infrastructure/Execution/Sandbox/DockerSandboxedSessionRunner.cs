@@ -303,7 +303,7 @@ public sealed class DockerSandboxedSessionRunner : ISandboxedSessionRunner
         IReadOnlyList<string> DroppedCapabilities,
         IReadOnlyList<string> SecurityOptions);
 
-    private sealed class DockerSandboxedSession : ISandboxedSession
+    private sealed class DockerSandboxedSession : IBoundedOutputSandboxedSession
     {
         private readonly SandboxSpec _spec;
         private readonly IProcessCommandRunner _processRunner;
@@ -406,15 +406,35 @@ public sealed class DockerSandboxedSessionRunner : ISandboxedSessionRunner
             IReadOnlyList<string> command,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfStopped();
+            var args = BuildExecArguments(SessionId, command);
+            return await _processRunner.RunAsync("docker", args, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<ProcessCommandResult> ExecBoundedAsync(
+            IReadOnlyList<string> command,
+            int maxOutputBytes,
+            CancellationToken cancellationToken = default)
+        {
+            ThrowIfStopped();
+            if (maxOutputBytes < 1 || maxOutputBytes > 16 * 1024 * 1024)
+                throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
+            if (_processRunner is not IBoundedOutputProcessCommandRunner boundedProcess)
+                throw new NotSupportedException("Isolated tasks require a process runner with bounded host output capture.");
+
+            var args = BuildExecArguments(SessionId, command);
+            return await boundedProcess.RunBoundedAsync("docker", args, maxOutputBytes, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        private void ThrowIfStopped()
+        {
             if (Volatile.Read(ref _stopped) != 0)
             {
                 throw new InvalidOperationException(
                     $"Sandbox session '{SessionId}' has been stopped; executing against a torn-down "
                     + "session must be loud, never silently re-created.");
             }
-
-            var args = BuildExecArguments(SessionId, command);
-            return await _processRunner.RunAsync("docker", args, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken = default)

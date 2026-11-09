@@ -23,6 +23,7 @@ public sealed class IsolatedTaskRunnerTests
         Assert.Equal("sha256:verified", result.Environment.ImageDigest);
         Assert.Equal(new[] { "start", "attest", "exec", "dispose" }, backend.Events);
         Assert.Equal(Request().Command, backend.Session.ExecutedCommand);
+        Assert.Equal(1024 * 1024, backend.Session.ExecutedMaxOutputBytes);
         var spec = Assert.IsType<SandboxSpec>(backend.Spec);
         Assert.Equal(NetworkAccess.None, spec.Network);
         Assert.Empty(spec.Mounts);
@@ -60,6 +61,7 @@ public sealed class IsolatedTaskRunnerTests
             Cpus = 0.5m,
             Pids = 32,
             Timeout = TimeSpan.FromSeconds(5),
+            MaxOutputBytes = 8192,
         };
 
         var result = await new DockerIsolatedTaskRunner(backend).RunAsync(request);
@@ -68,6 +70,50 @@ public sealed class IsolatedTaskRunnerTests
         var expected = new ResourceLimits("134217728", 32, "0.5", TimeSpan.FromSeconds(5));
         Assert.Equal(expected, backend.Spec!.Limits);
         Assert.Equal(expected, result.Environment.Requested);
+        Assert.Equal(8192, backend.Session.ExecutedMaxOutputBytes);
+    }
+
+    [Fact]
+    public async Task Output_limit_failure_preserves_the_exception_and_disposes_the_session()
+    {
+        var backend = new RecordingBackend();
+        var failure = new ProcessOutputLimitExceededException(4096);
+        backend.Session.Execute = (_, _) => throw failure;
+
+        var actual = await Assert.ThrowsAsync<ProcessOutputLimitExceededException>(() =>
+            new DockerIsolatedTaskRunner(backend).RunAsync(Request() with { MaxOutputBytes = 4096 }));
+
+        Assert.Same(failure, actual);
+        Assert.Equal(4096, actual.MaxOutputBytes);
+        Assert.Equal(4096, backend.Session.ExecutedMaxOutputBytes);
+        Assert.Equal(new[] { "start", "attest", "exec", "dispose" }, backend.Events);
+    }
+
+    [Fact]
+    public async Task Backend_without_bounded_output_support_refuses_work_and_disposes()
+    {
+        var backend = new RecordingBackend { SupportsBoundedOutput = false };
+
+        await Assert.ThrowsAsync<NotSupportedException>(() => new DockerIsolatedTaskRunner(backend).RunAsync(Request()));
+
+        Assert.DoesNotContain("unbounded-exec", backend.Events);
+        Assert.DoesNotContain("exec", backend.Events);
+        Assert.Null(backend.Session.ExecutedCommand);
+        Assert.Equal("dispose", backend.Events.Last());
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(16 * 1024 * 1024)]
+    public async Task Output_budget_boundaries_are_accepted_and_forwarded(int maxOutputBytes)
+    {
+        var backend = new RecordingBackend();
+        backend.Session.Execute = (_, _) => Task.FromResult(new ProcessCommandResult(0, "", ""));
+
+        var result = await new DockerIsolatedTaskRunner(backend).RunAsync(Request() with { MaxOutputBytes = maxOutputBytes });
+
+        Assert.True(result.Command.Succeeded);
+        Assert.Equal(maxOutputBytes, backend.Session.ExecutedMaxOutputBytes);
     }
 
     [Fact]
@@ -253,6 +299,9 @@ public sealed class IsolatedTaskRunnerTests
         yield return new object[] { Request() with { Cpus = 1025m } };
         yield return new object[] { Request() with { Timeout = TimeSpan.Zero } };
         yield return new object[] { Request() with { Timeout = TimeSpan.FromDays(2) } };
+        yield return new object[] { Request() with { MaxOutputBytes = 0 } };
+        yield return new object[] { Request() with { MaxOutputBytes = -1 } };
+        yield return new object[] { Request() with { MaxOutputBytes = 16 * 1024 * 1024 + 1 } };
     }
 
     [Theory]
@@ -288,6 +337,7 @@ public sealed class IsolatedTaskRunnerTests
 
         Assert.NotEqual(first.Environment.SessionId, second.Environment.SessionId);
         Assert.Equal("parsed", first.Command.StdOut);
+        Assert.Equal(new[] { 1024 * 1024, 1024 * 1024 }, docker.OutputCaps);
         Assert.Equal(new[] { "run", "inspect", "version", "exec", "rm", "run", "inspect", "version", "exec", "rm" },
             docker.Calls.Select(call => call[0]));
         foreach (var start in docker.Calls.Where(call => call[0] == "run"))
@@ -389,12 +439,55 @@ public sealed class IsolatedTaskRunnerTests
         }
     }
 
+    [OptInFact("ASHLAR_RUN_ISOLATED_TASK_DOCKER", "Linux Docker with a preloaded shell/sleep image",
+        RequiredEnvironmentVariables = new[] { "ASHLAR_ISOLATED_TASK_TEST_IMAGE" }, Timeout = 60_000)]
+    [Trait("Category", "External")]
+    public async Task Real_Docker_output_flood_is_bounded_and_the_container_is_removed()
+    {
+        var image = Environment.GetEnvironmentVariable("ASHLAR_ISOLATED_TASK_TEST_IMAGE")!;
+        var process = new ProcessCommandRunner();
+        var sessions = new ObservedSessionRunner(new DockerSandboxedSessionRunner(process));
+        var runner = new DockerIsolatedTaskRunner(sessions);
+        var request = new IsolatedTaskRequest(image, new[]
+        {
+            "/bin/sh", "-c",
+            "while :; do printf 'stdout flood 0123456789\\n'; printf 'stderr flood 0123456789\\n' >&2; done",
+        }) { MaxOutputBytes = 4096, Timeout = TimeSpan.FromSeconds(15) };
+
+        var failure = await Assert.ThrowsAsync<ProcessOutputLimitExceededException>(() => runner.RunAsync(request));
+
+        Assert.Equal(4096, failure.MaxOutputBytes);
+        var sessionId = Assert.Single(sessions.SessionIds);
+        using var inspectionBudget = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var listing = await process.RunAsync("docker", new[]
+        {
+            "ps", "--all", "--filter", $"name={sessionId}", "--format", "{{.Names}}",
+        }, inspectionBudget.Token);
+        Assert.True(listing.Succeeded, listing.StdErr);
+        Assert.DoesNotContain(sessionId, listing.StdOut);
+        var inspection = await process.RunAsync("docker", new[] { "inspect", sessionId }, inspectionBudget.Token);
+        Assert.False(inspection.Succeeded, "Output overflow must remove the temporary container before returning.");
+    }
+
+    private sealed class ObservedSessionRunner(ISandboxedSessionRunner inner) : ISandboxedSessionRunner
+    {
+        public List<string> SessionIds { get; } = new();
+
+        public async Task<ISandboxedSession> StartAsync(SandboxSpec spec, CancellationToken cancellationToken = default)
+        {
+            var session = await inner.StartAsync(spec, cancellationToken);
+            SessionIds.Add(session.SessionId);
+            return session;
+        }
+    }
+
     private sealed class RecordingBackend : ISandboxedSessionRunner
     {
         public List<string> Events { get; } = new();
         public RecordingSession Session { get; }
         public SandboxSpec? Spec { get; private set; }
         public Func<CancellationToken, Task>? BeforeStart { get; set; }
+        public bool SupportsBoundedOutput { get; init; } = true;
 
         public RecordingBackend() => Session = new RecordingSession(Events);
 
@@ -404,14 +497,25 @@ public sealed class IsolatedTaskRunnerTests
             Spec = spec;
             if (BeforeStart is not null)
                 await BeforeStart(cancellationToken);
-            return Session;
+            return SupportsBoundedOutput ? Session : new UnboundedSession(Session);
         }
     }
 
-    private sealed class RecordingSession(List<string> events) : ISandboxedSession
+    private sealed class UnboundedSession(RecordingSession inner) : ISandboxedSession
+    {
+        public string SessionId => inner.SessionId;
+        public Task<ProcessCommandResult> ExecAsync(IReadOnlyList<string> command, CancellationToken cancellationToken = default) =>
+            inner.ExecAsync(command, cancellationToken);
+        public Task<SessionAttestation> AttestAsync(CancellationToken cancellationToken = default) => inner.AttestAsync(cancellationToken);
+        public Task StopAsync(CancellationToken cancellationToken = default) => inner.StopAsync(cancellationToken);
+        public ValueTask DisposeAsync() => inner.DisposeAsync();
+    }
+
+    private sealed class RecordingSession(List<string> events) : IBoundedOutputSandboxedSession
     {
         public string SessionId { get; } = "session-for-task";
         public IReadOnlyList<string>? ExecutedCommand { get; private set; }
+        public int? ExecutedMaxOutputBytes { get; private set; }
         public Func<CancellationToken, Task<SessionAttestation>>? Inspect { get; set; }
         public Func<IReadOnlyList<string>, CancellationToken, Task<ProcessCommandResult>>? Execute { get; set; }
 
@@ -439,7 +543,20 @@ public sealed class IsolatedTaskRunnerTests
 
         public Task<ProcessCommandResult> ExecAsync(IReadOnlyList<string> command, CancellationToken cancellationToken = default)
         {
+            events.Add("unbounded-exec");
+            return ExecuteCommand(command, cancellationToken);
+        }
+
+        public Task<ProcessCommandResult> ExecBoundedAsync(IReadOnlyList<string> command, int maxOutputBytes,
+            CancellationToken cancellationToken = default)
+        {
             events.Add("exec");
+            ExecutedMaxOutputBytes = maxOutputBytes;
+            return ExecuteCommand(command, cancellationToken);
+        }
+
+        private Task<ProcessCommandResult> ExecuteCommand(IReadOnlyList<string> command, CancellationToken cancellationToken)
+        {
             ExecutedCommand = command.ToArray();
             return Execute?.Invoke(command, cancellationToken)
                 ?? Task.FromResult(new ProcessCommandResult(0, "parsed", "diagnostic"));
@@ -454,9 +571,17 @@ public sealed class IsolatedTaskRunnerTests
         }
     }
 
-    private sealed class RecordingProcessRunner : IProcessCommandRunner
+    private sealed class RecordingProcessRunner : IBoundedOutputProcessCommandRunner
     {
         public List<IReadOnlyList<string>> Calls { get; } = new();
+        public List<int> OutputCaps { get; } = new();
+
+        public Task<ProcessCommandResult> RunBoundedAsync(string fileName, IReadOnlyList<string> arguments,
+            int maxOutputBytes, CancellationToken cancellationToken = default)
+        {
+            OutputCaps.Add(maxOutputBytes);
+            return RunAsync(fileName, arguments, cancellationToken);
+        }
 
         public Task<ProcessCommandResult> RunAsync(string fileName, IReadOnlyList<string> arguments,
             CancellationToken cancellationToken = default)

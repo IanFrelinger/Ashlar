@@ -10,7 +10,8 @@ public interface IIsolatedTaskRunner
     /// <summary>
     /// Runs an image-packaged program with explicit argv inputs and captured stdout/stderr
     /// outputs. Timeout throws <see cref="TimeoutException"/>; caller cancellation remains
-    /// cancellation. Both paths attempt teardown before returning.
+    /// cancellation. Excess output throws <see cref="ProcessOutputLimitExceededException"/>.
+    /// Every exit attempts teardown before returning.
     /// </summary>
     Task<IsolatedTaskResult> RunAsync(IsolatedTaskRequest request, CancellationToken cancellationToken = default);
 }
@@ -33,6 +34,9 @@ public sealed record IsolatedTaskRequest(string Image, IReadOnlyList<string> Com
 
     /// <summary>Total startup, inspection and execution budget (default one minute).</summary>
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>Combined stdout/stderr byte ceiling (default 1 MiB; maximum 16 MiB).</summary>
+    public int MaxOutputBytes { get; init; } = 1024 * 1024;
 }
 
 /// <summary>Command output and the environment observed before invoking the program.</summary>

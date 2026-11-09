@@ -47,4 +47,29 @@ public sealed class ProcessEventSourceTests
 
         collected.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task SubscribeAsync_break_without_cancelling_stops_the_subscription_and_allows_restart()
+    {
+        using var current = System.Diagnostics.Process.GetCurrentProcess();
+        var source = new ProcessEventSource([current.ProcessName], pollInterval: TimeSpan.FromMilliseconds(20));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        for (var i = 0; i < 2; i++)
+        {
+            var enumerator = source.SubscribeAsync(cts.Token).GetAsyncEnumerator();
+            Assert.True(await enumerator.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(3)));
+            var disposal = enumerator.DisposeAsync().AsTask();
+            try
+            {
+                await disposal.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.False(cts.IsCancellationRequested);
+            }
+            catch
+            {
+                cts.Cancel();
+                await disposal;
+                throw;
+            }
+        }
+    }
 }

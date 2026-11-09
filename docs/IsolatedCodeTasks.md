@@ -28,6 +28,7 @@ var result = await runner.RunAsync(new IsolatedTaskRequest(
     Cpus = 1m,
     Pids = 64,
     Timeout = TimeSpan.FromMinutes(1),
+    MaxOutputBytes = 1024 * 1024,
 });
 
 Console.WriteLine(result.Command.StdOut);
@@ -63,6 +64,7 @@ The task API deliberately exposes a narrow permission set:
 | CPU | One CPU quota by default; configurable from 0.01 to 1024, subject to engine capacity |
 | Processes/threads | 64 IDs by default, positive; keepalive counts toward the limit |
 | Wall clock | One minute by default; positive and at most one day |
+| Captured task output | 1 MiB combined raw stdout/stderr bytes by default; configurable from 1 byte to 16 MiB |
 | Image fetching | Never; a missing image fails |
 
 The image reference and budgets are **trusted host configuration**. Do not let generated
@@ -77,7 +79,10 @@ root, dropped capabilities, privilege escalation prevention and effective memory
 caps. Missing evidence or weaker limits refuse execution. It uses the existing
 `ISandboxedSessionRunner`, session inspection and provenance mechanisms; failures never
 fall back to running the command on the host. A host-supplied session runner must honor
-the same lifecycle and cancellation contracts. Existing registrations are preserved.
+the same lifecycle and cancellation contracts. Its sessions must additionally implement
+`IBoundedOutputSandboxedSession`; Docker process-runner overrides must implement
+`IBoundedOutputProcessCommandRunner`. Unsupported overrides refuse task execution instead
+of silently using unbounded capture. Existing registrations are preserved.
 
 ## Lifecycle and cleanup
 
@@ -87,6 +92,14 @@ disposes the owned session. Startup failure or cancellation also attempts remova
 unique container name, even when Docker did not return a successful start response.
 Removal uses an independent ten-second budget, so it can run after caller cancellation
 without hanging forever. Cleanup failure is logged and does not replace the task result.
+
+Task stdout and stderr are streamed into a shared byte budget on the host. Exceeding
+`MaxOutputBytes` aborts capture, kills the local Docker client process and throws
+`ProcessOutputLimitExceededException`; session disposal then attempts to remove the
+container and its workload. Partial output is not returned as a successful or truncated
+result. The limit counts raw bytes, before decoding, so UTF-8 characters can use multiple
+bytes. Decoded strings and fixed read buffers have additional bounded memory overhead.
+This is a task-output limit, not a memory limit for the entire embedding host.
 
 The fixed keepalive uses a finite sleep rounded up to whole seconds. With the trusted
 image behaving normally, it exits at the lifetime ceiling and Docker's `--rm` removes the
@@ -109,10 +122,11 @@ cleans it up. Neither disposal nor a deadline label guarantees cleanup during ou
   them even for a network-disabled session. Authorize the required operations in the
   host's policy rather than bypassing the guard. See the settled limitation in
   [SPEC-007](specs/SPEC-007-security-labels-and-reference-monitor.md).
-- Output capture uses the existing process runner and is buffered without a size cap.
-  Use this for bounded-output workloads; container memory limits do not bound the host's
-  captured output. Arguments, process listings and configured logs can expose inputs,
-  so do not use argv to carry secrets.
+- Choose an output budget suitable for the workload. The new bounded capture path is
+  required for isolated tasks; existing general-purpose process and session APIs retain
+  their behavior. Docker control-plane responses such as inspection are separate from
+  task output and rely on a trusted engine. Arguments, process listings and configured
+  logs can expose inputs, so do not use argv to carry secrets.
 - There is no writable host output directory, streaming input/output, dynamic dependency
   installation, per-method interception or transparent class migration. These require
   separately designed contracts. Portability comes from packaging a task in an image,
@@ -124,7 +138,7 @@ Focused tests cover the opt-in composition and task lifecycle, plus session star
 cleanup failure paths. From a clone with Docker available:
 
 ```bash
-bash scripts/test-in-container.sh --dirty --filter 'FullyQualifiedName~IsolatedTaskRunnerTests|FullyQualifiedName~DockerSandboxSessionTests'
+bash scripts/test-in-container.sh --dirty --filter 'FullyQualifiedName~IsolatedTaskRunnerTests|FullyQualifiedName~DockerSandboxSessionTests|FullyQualifiedName~BoundedProcessOutputTests'
 ```
 
 Fake-engine tests establish orchestration behavior; they do not establish kernel-level
@@ -134,5 +148,8 @@ smoke test requires `ASHLAR_RUN_ISOLATED_TASK_DOCKER=1` and
 `ASHLAR_ISOLATED_TASK_TEST_IMAGE` naming a preloaded Linux image with `/bin/sh` and `sleep`.
 Set those variables inside a Docker-capable test environment with host policy permitting
 the lifecycle operations. The standard devtest wrapper does not forward a Docker socket
-or these variables. The smoke test checks scratch separation, read-only root and cleanup;
-it does not establish resistance to hostile code or verify every resource constraint.
+or these variables. The lifecycle smoke checks scratch separation, read-only root and
+cleanup. `Real_Docker_output_flood_is_bounded_and_the_container_is_removed` uses the same
+opt-in variables and checks that a continuous stdout/stderr producer exceeds a 4096-byte
+budget, raises the typed error and leaves no container. These checks do not establish
+resistance to hostile code or verify every resource constraint.

@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using Ashlar.Abstractions.Security.Egress;
+using Ashlar.Core.Application.Execution.Ports;
 
 namespace Ashlar.Infrastructure.HostProcess;
 
@@ -109,6 +111,176 @@ public static class TimedProcess
         {
             process?.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Runs a process while capturing at most <paramref name="maxOutputBytes"/> raw bytes
+    /// across stdout and stderr together. Overflow kills the local process tree and throws
+    /// <see cref="ProcessOutputLimitExceededException"/>. Limits are between one byte and 16 MiB.
+    /// Output is decoded only after complete capture, so multibyte characters may cross reads.
+    /// </summary>
+    public static Task<TimedProcessResult> RunBoundedAsync(
+        ProcessStartInfo startInfo,
+        TimeSpan timeout,
+        int maxOutputBytes,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(startInfo);
+        var decision = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process,
+            "EG-PROC-08", "process:" + Path.GetFileNameWithoutExtension(startInfo.FileName)));
+        if (decision.Refuses) throw new EgressRefusedException(decision);
+        return RunEvaluatedBoundedAsync(startInfo, timeout, maxOutputBytes, decision, cancellationToken);
+    }
+
+    internal static async Task<TimedProcessResult> RunEvaluatedBoundedAsync(
+        ProcessStartInfo startInfo, TimeSpan timeout, int maxOutputBytes,
+        EgressDecision decision, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(startInfo);
+        ArgumentNullException.ThrowIfNull(decision);
+        decision.ThrowIfRefused();
+        if (maxOutputBytes < 1 || maxOutputBytes > 16 * 1024 * 1024)
+            throw new ArgumentOutOfRangeException(nameof(maxOutputBytes), "Output limit must be between one byte and 16 MiB.");
+        if (timeout <= TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
+            throw new ArgumentOutOfRangeException(nameof(timeout), "Timeout must be positive or infinite.");
+        cancellationToken.ThrowIfCancellationRequested();
+
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+        startInfo.CreateNoWindow = true;
+
+        using var process = Process.Start(startInfo);
+        if (process is null)
+            return new TimedProcessResult(1, string.Empty, "Failed to start process.", TimedOut: false);
+
+        using var readersCancellation = new CancellationTokenSource();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        if (timeout != Timeout.InfiniteTimeSpan)
+            linked.CancelAfter(timeout);
+        var budget = new OutputCaptureBudget(maxOutputBytes);
+        var stdoutTask = CaptureBoundedAsync(process.StandardOutput.BaseStream,
+            process.StandardOutput.CurrentEncoding, budget, readersCancellation.Token);
+        var stderrTask = CaptureBoundedAsync(process.StandardError.BaseStream,
+            process.StandardError.CurrentEncoding, budget, readersCancellation.Token);
+        var readers = Task.WhenAll(stdoutTask, stderrTask);
+        var timedOut = false;
+        try
+        {
+            var exited = process.WaitForExitAsync(linked.Token);
+            if (await Task.WhenAny(exited, budget.Failure).ConfigureAwait(false) == budget.Failure)
+                throw await budget.Failure.ConfigureAwait(false);
+            try
+            {
+                await exited.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                timedOut = true;
+                await KillTreeAsync(process).ConfigureAwait(false);
+            }
+
+            // A child may exit while a descendant still owns its pipe handles. Do not
+            // await those handles indefinitely or return success with truncated output.
+            var drainDeadline = Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            var drained = await Task.WhenAny(readers, budget.Failure, drainDeadline).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (budget.Failure.IsCompletedSuccessfully)
+                throw await budget.Failure.ConfigureAwait(false);
+            if (drained != readers)
+                throw new IOException("Process output pipes did not close within the bounded drain deadline.");
+            var captured = await readers.ConfigureAwait(false);
+            // Recheck after both readers settle: exit and overflow can race.
+            if (budget.Failure.IsCompletedSuccessfully)
+                throw await budget.Failure.ConfigureAwait(false);
+            return new TimedProcessResult(
+                timedOut ? TimeoutExitCode : process.ExitCode, captured[0], captured[1], timedOut);
+        }
+        catch
+        {
+            await KillTreeAsync(process).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        finally
+        {
+            // Cancellation alone is insufficient for an inherited pipe on some platforms.
+            // Closing the streams also releases blocked reads; observe all read failures.
+            readersCancellation.Cancel();
+            process.StandardOutput.Dispose();
+            process.StandardError.Dispose();
+            await ObserveReadersAsync(readers).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<string> CaptureBoundedAsync(
+        Stream stream, Encoding encoding, OutputCaptureBudget budget, CancellationToken cancellationToken)
+    {
+        using var capture = new MemoryStream();
+        var buffer = new byte[4096];
+        try
+        {
+            while (true)
+            {
+                var count = await stream.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+                if (count == 0)
+                    break;
+                if (!budget.Reserve(count))
+                    throw new ProcessOutputLimitExceededException(budget.Limit);
+                capture.Write(buffer, 0, count);
+            }
+            return encoding.GetString(capture.GetBuffer(), 0, checked((int)capture.Length));
+        }
+        catch (Exception error)
+        {
+            budget.ReportFailure(error);
+            throw;
+        }
+    }
+
+    private static async Task ObserveReadersAsync(Task readers)
+    {
+        try
+        {
+            await readers.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            // Disposed pipes normally finish immediately. Retain an observer even on
+            // platforms that delay cancellation completion; capture storage is bounded.
+            _ = readers.ContinueWith(completed => _ = completed.Exception,
+                CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+        catch (Exception)
+        {
+            // The primary process/overflow/cancellation failure is already preserved.
+        }
+    }
+
+    private sealed class OutputCaptureBudget(int limit)
+    {
+        private readonly object _gate = new();
+        private readonly TaskCompletionSource<Exception> _failure = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _used;
+        public int Limit { get; } = limit;
+        public Task<Exception> Failure => _failure.Task;
+
+        public bool Reserve(int count)
+        {
+            lock (_gate)
+            {
+                if (count > Limit - _used)
+                {
+                    ReportFailure(new ProcessOutputLimitExceededException(Limit));
+                    return false;
+                }
+                _used += count;
+                return true;
+            }
+        }
+
+        public void ReportFailure(Exception error) => _failure.TrySetResult(error);
     }
 
     /// <summary>

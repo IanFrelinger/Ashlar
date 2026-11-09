@@ -16,13 +16,13 @@
     "projects": 62,
     "projects_shipped_to_nuget": 24,
     "projects_declaring_ispackable_true": 20,
-    "config_variables": 181,
+    "config_variables": 183,
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 843,
-    "declared_facts": 5581,
-    "workflows": 62
+    "test_files_declaring_facts": 847,
+    "declared_facts": 5618,
+    "workflows": 63
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -1204,6 +1204,24 @@
       "test_only": false,
       "in_configuration_reference": true,
       "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_BOUNDED_MARKER",
+      "declared_in": [
+        "Ashlar.Tests.Infrastructure"
+      ],
+      "test_only": true,
+      "in_configuration_reference": false,
+      "in_any_document": false
+    },
+    {
+      "name": "ASHLAR_BOUNDED_TEST_PID",
+      "declared_in": [
+        "Ashlar.Tests.Infrastructure"
+      ],
+      "test_only": true,
+      "in_configuration_reference": false,
+      "in_any_document": false
     },
     {
       "name": "ASHLAR_BUILD_BUDGET",
@@ -3440,7 +3458,7 @@
       "file": "src/Ashlar.Tests.Application/Tests/Execution/IsolatedTaskContractTests.cs",
       "project": "Ashlar.Tests.Application",
       "namespace": "Ashlar.Tests.Application.Tests.Execution",
-      "declared_facts": 3,
+      "declared_facts": 4,
       "in_cert_gate_filter": false
     },
     {
@@ -4802,6 +4820,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Analysis/RuntimeCacheFreshnessTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Analysis",
+      "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Autonomy/AutonomyCompositionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Autonomy",
@@ -5400,7 +5425,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressExplicitEnforcementTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Certification",
-      "declared_facts": 14,
+      "declared_facts": 16,
       "in_cert_gate_filter": true
     },
     {
@@ -6415,7 +6440,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/DockerSandboxSessionTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
-      "declared_facts": 19,
+      "declared_facts": 23,
       "in_cert_gate_filter": false
     },
     {
@@ -6457,7 +6482,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/InfrastructureBehaviorGapCoverageTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
-      "declared_facts": 6,
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {
@@ -6485,7 +6510,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/IsolatedTaskRunnerTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
-      "declared_facts": 16,
+      "declared_facts": 19,
       "in_cert_gate_filter": false
     },
     {
@@ -6542,6 +6567,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
       "declared_facts": 2,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Execution/SemanticCacheConcurrencyTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Execution",
+      "declared_facts": 4,
       "in_cert_gate_filter": false
     },
     {
@@ -7038,14 +7070,14 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Observation/PatternDetectorTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Observation",
-      "declared_facts": 3,
+      "declared_facts": 6,
       "in_cert_gate_filter": false
     },
     {
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Observation/ProcessEventSourceTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Observation",
-      "declared_facts": 2,
+      "declared_facts": 3,
       "in_cert_gate_filter": false
     },
     {
@@ -7270,6 +7302,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Policies",
       "declared_facts": 21,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Process/BoundedProcessOutputTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.ProcessExecution",
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {
@@ -8361,7 +8400,7 @@
       "file": "src/Ashlar.Tests.Orchestration/OrchestrationOrchestratorGapCoverageTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration",
-      "declared_facts": 21,
+      "declared_facts": 22,
       "in_cert_gate_filter": false
     },
     {
@@ -8473,7 +8512,7 @@
       "file": "src/Ashlar.Tests.Orchestration/Tests/OrchestrationMetricsTests.cs",
       "project": "Ashlar.Tests.Orchestration",
       "namespace": "Ashlar.Tests.Orchestration.Tests",
-      "declared_facts": 8,
+      "declared_facts": 11,
       "in_cert_gate_filter": false
     },
     {
@@ -8537,6 +8576,13 @@
       "project": "Ashlar.Tests.Transport",
       "namespace": "Ashlar.Tests.Transport",
       "declared_facts": 7,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Transport/DefaultGrpcChannelFactoryTlsTests.cs",
+      "project": "Ashlar.Tests.Transport",
+      "namespace": "Ashlar.Tests.Transport",
+      "declared_facts": 1,
       "in_cert_gate_filter": false
     },
     {
@@ -8746,6 +8792,15 @@
       "name": "Dev Container Gate",
       "triggers": [
         "push",
+        "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/developer-ci-agents.yml",
+      "name": "Developer CI reviewers",
+      "triggers": [
+        "pull_request",
+        "schedule",
         "workflow_dispatch"
       ]
     },

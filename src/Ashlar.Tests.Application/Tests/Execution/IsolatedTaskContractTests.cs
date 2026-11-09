@@ -25,6 +25,7 @@ public sealed class IsolatedTaskContractTests
             Cpus = 0.25m,
             Pids = 32,
             Timeout = TimeSpan.FromMilliseconds(12_345),
+            MaxOutputBytes = 8192,
         };
 
         var json = JsonSerializer.Serialize(request, JsonOptions);
@@ -38,6 +39,7 @@ public sealed class IsolatedTaskContractTests
         Assert.Equal(request.Cpus, restored.Cpus);
         Assert.Equal(request.Pids, restored.Pids);
         Assert.Equal(request.Timeout, restored.Timeout);
+        Assert.Equal(request.MaxOutputBytes, restored.MaxOutputBytes);
     }
 
     [Fact]
@@ -56,6 +58,21 @@ public sealed class IsolatedTaskContractTests
         Assert.Equal(1m, request.Cpus);
         Assert.Equal(64, request.Pids);
         Assert.Equal(TimeSpan.FromMinutes(1), request.Timeout);
+        Assert.Equal(1024 * 1024, request.MaxOutputBytes);
+    }
+
+    [Fact]
+    public void Output_limit_failure_exposes_the_budget_for_structured_error_reporting()
+    {
+        var failure = new ProcessOutputLimitExceededException(4096);
+
+        // Hosts can report a typed failure and its budget without retaining command output
+        // or parsing human-readable exception text.
+        var json = JsonSerializer.Serialize(new { error = failure.GetType().Name, failure.MaxOutputBytes }, JsonOptions);
+        using var report = JsonDocument.Parse(json);
+
+        Assert.Equal("ProcessOutputLimitExceededException", report.RootElement.GetProperty("error").GetString());
+        Assert.Equal(4096, report.RootElement.GetProperty("maxOutputBytes").GetInt32());
     }
 
     [Theory]

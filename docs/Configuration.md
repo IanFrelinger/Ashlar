@@ -174,12 +174,14 @@ Metric shape over OTLP: `IMetricsCollector` keys (for example `ncr.model_load.su
 
 ## Remote execution surface (`Ashlar__Execution__*`)
 
-`POST /api/execution/build` and `POST /api/execution/run` let a `RemoteExecutionPlatform` caller (`ASHLAR_EXECUTION_REMOTE_URL`) build images and run containers on this host's Docker daemon, including host bind mounts. They are **not mapped** unless opted in, and refuse `AuthorizationMode=None` (403) even when opted in.
+`POST /api/execution/build` and `POST /api/execution/run` let a `RemoteExecutionPlatform` caller (`ASHLAR_EXECUTION_REMOTE_URL`) build images and run containers on this host's Docker daemon. Host bind mounts are disabled on the remote run route. They are **not mapped** unless opted in, and refuse `AuthorizationMode=None` (403) even when opted in.
 
 | Variable / config key | Description | Default |
 |------------------------|-------------|---------|
 | `Ashlar__Execution__ServeRemoteExecution` | `true` maps `/api/execution/build` and `/api/execution/run`. Requires a built-in `Ashlar__Security__AuthorizationMode` other than `None`; otherwise every request is refused with 403 | `false` (routes return 404) |
-| `Ashlar__Execution__AllowedVolumeMountRoot` | Single host directory under which `VolumeMounts` host paths on `/api/execution/run` are accepted (the remote caller mounts only its test-results directory). Unset = any request carrying volume mounts is rejected with 400 | unset |
+| `Ashlar__Execution__AllowedVolumeMountRoot` | Legacy compatibility setting; no longer enables host bind mounts. Every nonempty `VolumeMounts` on `/api/execution/run` is rejected with 400, even under this root | unset |
+
+**Migration:** omit `VolumeMounts` (or send an empty dictionary) for remote runs. Workflows that need mounted test-results or workspace directories must run through a trusted local `DockerExecutionPlatform` workflow instead. Setting a root, resolving symlinks once, or making a mount read-only does not restore safe remote confinement: Docker resolves the host path later, after it could have changed. There is no configuration override for remote bind mounts. A future replacement needs daemon-side race-safe source confinement or explicit artifact transfer; neither is implemented here. Remote image builds are unchanged and still require trusted callers.
 
 ## Mesh and brick HTTP hardening (`Ashlar__Security__Mesh__*`, Phase 2)
 

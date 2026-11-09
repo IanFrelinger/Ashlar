@@ -47,6 +47,8 @@ public sealed class DockerIsolatedTaskRunner : IIsolatedTaskRunner
             // The backend cleans up a start whose outcome is uncertain. Once it returns,
             // disposal owns every exit, including inspection refusal and cancellation.
             await using var session = await _sessions.StartAsync(spec, budget.Token).ConfigureAwait(false);
+            if (session is not IBoundedOutputSandboxedSession boundedSession)
+                throw new NotSupportedException("Isolated tasks require a session with bounded host output capture.");
             budget.Token.ThrowIfCancellationRequested();
             var attestation = await session.AttestAsync(budget.Token).ConfigureAwait(false);
             // Compare against this invocation's limits, not an untrusted backend's echo.
@@ -64,7 +66,8 @@ public sealed class DockerIsolatedTaskRunner : IIsolatedTaskRunner
             }
 
             budget.Token.ThrowIfCancellationRequested();
-            var result = await session.ExecAsync(command!, budget.Token).ConfigureAwait(false);
+            var result = await boundedSession.ExecBoundedAsync(command!, request.MaxOutputBytes, budget.Token)
+                .ConfigureAwait(false);
             budget.Token.ThrowIfCancellationRequested();
             return new IsolatedTaskResult(result, attestation);
         }
@@ -93,5 +96,7 @@ public sealed class DockerIsolatedTaskRunner : IIsolatedTaskRunner
             throw new ArgumentOutOfRangeException(nameof(request), "The process limit must be positive.");
         if (request.Timeout <= TimeSpan.Zero || request.Timeout > TimeSpan.FromDays(1))
             throw new ArgumentOutOfRangeException(nameof(request), "Timeout must be positive and at most one day.");
+        if (request.MaxOutputBytes < 1 || request.MaxOutputBytes > 16 * 1024 * 1024)
+            throw new ArgumentOutOfRangeException(nameof(request), "Combined output must be between 1 byte and 16 MiB.");
     }
 }
