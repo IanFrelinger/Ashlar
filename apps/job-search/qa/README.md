@@ -34,6 +34,9 @@ ANTHROPIC_API_KEY=... npm run agents                # every charter, driven by C
 node agents/run.cjs --charters forge-new-step,privacy-rights --parallel 2 --max-steps 30
 ```
 
+`node screenshots.cjs --out DIR` photographs every view (light and dark, desktop and phone) for design review and
+release notes; it refuses a studio that is not synthetic, like everything else here.
+
 `serve-image.sh` replaces its container and data on every call. Run it again before a second suite, so that every
 suite starts from the same state. The `privacy-rights` charter deletes a persona, and the runner schedules charters
 marked `destructive` after the others.
