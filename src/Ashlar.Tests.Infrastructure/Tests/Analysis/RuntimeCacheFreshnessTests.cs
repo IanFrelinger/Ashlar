@@ -211,7 +211,9 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
         File.WriteAllText(path, "edited");
         var replacement = Path.Combine(_root, "replacement.txt");
         File.WriteAllText(replacement, "replaced");
-        File.Move(replacement, path, overwrite: true);
+        // Move(overwrite: true) uses MoveFileEx on Windows, which rejects an open destination.
+        // Replace uses the atomic replacement operation and honors the reader's delete sharing.
+        File.Replace(replacement, path, destinationBackupFileName: null);
         Assert.Equal("replaced", File.ReadAllText(path));
     }
 
