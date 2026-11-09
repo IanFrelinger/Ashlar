@@ -29,7 +29,7 @@ separate, unticked act, and the EDPB's catalogue of deceptive patterns, shaped t
 | Semantic colour only as a dot beside a word | `.status .dot` in `--good/--warn/--bad`, or a 3px left rule on an error. **No filled pill anywhere**; a UI test asserts zero `.badge` elements. |
 | Two bordered levels at most | A step card holds fields; nothing else is boxed. Built-in stages are rows on a rail. `.tonal` fills replace boxes for disclosure bodies and the evidence prompt. |
 | Shadows only float | `.savebar` and `.toast`. Everything else is a hairline or a tonal step. |
-| A hand-picked px scale | 12/13/14/15/16/22/28/36, weights 400 and 500, 600 for the wordmark, the primary button and the sign-in hero. Line length ≤60ch for anything longer than a sentence. |
+| A hand-picked px scale | 12/13/14/15/16/18/22/28/36 (18 is the stage and palette headings), weights 400 and 500, 600 for the wordmark, the primary button and the sign-in hero. Line length ≤60ch for anything longer than a sentence. |
 | 4px grid | `--s1..--s8` = 4/8/12/16/24/32/48/64. Radii 6 (controls) and 10 (cards). |
 | Dark mode is the same sheet re-lit | Three tonal steps (`#141517 / #1C1D20 / #25272B`), lighter means higher; the accent is lifted and desaturated with dark text on fills; hairlines are white at 10%. Never inverted. |
 | Motion is small and optional | 120/180ms ease-out on colour and opacity; one looping animation (the pulsing dot, always beside a word); `prefers-reduced-motion` turns it to a slow pulse and removes the rest. |
@@ -56,6 +56,9 @@ keeps text from jumping while the file loads.
 - Two content widths: `.reading` (sign-in, welcome, privacy) and `.working` (designer, tracker, runs, profile).
 - Tables keep a sticky head under the bar (`--top-h` follows the bar's real height) and stack into labelled rows at
   390px, with ARIA roles set at build time so they stay tables to assistive tech.
+- One visually hidden live region (`#announce`) carries every announcement: toasts, inline "Saved" notes and the
+  forge's step changes. The toast itself is not a live region, so it is never read twice. "Skip to content" moves
+  focus without changing the hash (a hash change would re-route to the designer).
 
 ## The views
 
@@ -63,9 +66,9 @@ keeps text from jumping while the file loads.
 |---|---|
 | Sign-in | Headline, one lede, then the action (Google's button to Google's spec, or the persona buttons on a synthetic server), then the three trust facts, "How this works" folded away, a privacy-notice link. The notice is readable before signing in. |
 | Welcome | The trust facts in full, three consent rows with a hairline between, a disabled "Continue to your profile" that reads as "not yet" rather than a faded blue block. |
-| Designer | Eight stages as rows on a numbered rail, each built-in stage with its meaning, a live one-line summary of its settings and an "Edit" disclosure. Stage 4 is the only card group: switch, move and remove as icon buttons, an add row, seams between cards on desktop. The palette (search, detail in place, "Or describe a new step") sits beside the pipeline at ≥960px and under stage 4 on phones. A fixed save bar with Discard and Undo. The forge shows a four-step stepper. Unsaved step changes survive leaving the page. |
+| Designer | Eight stages as rows on a numbered rail, each built-in stage with its meaning, a live one-line summary of its settings and an "Edit" disclosure. Stage 4 is the only card group: switch, move and remove as icon buttons (Alt+↑/↓ reorders from the keyboard, and focus stays on the moved step), an add row, seams between cards on desktop. The palette (search, detail in place, "Or describe a new step") sits beside the pipeline at ≥960px and under stage 4 on phones. A fixed save bar with Discard and Undo. The forge shows a four-step stepper. The wiring is one vertical chain on the pipeline's axis at every width. Unsaved step changes survive leaving the page. |
 | Tracker | Filter chips by status group; job, fit (dot + word + reason), status (grouped options; the evidence prompt appears under the select) and a details row with the user's steps' verdicts, gaps, unknowns, notes and next step. |
-| Runs | One "Run a search now"; dot + word statuses; times without seconds; a details row with boards, listing changes, what could not complete and the workflow log; polling while a run is in progress. |
+| Runs | One "Run a search now", which reads "Running…" and ignores clicks while a search is in progress; dot + word statuses; 24-hour times without seconds; a details row with boards, listing changes, what could not complete and the search log; polling that redraws only when something changed and keeps open rows and focus. |
 | Profile | Fields first with "Confirm all" and per-row Confirm/Reject, the user-only fields as real controls with one Save, the résumé section last for a returning user and alone for a new one. |
 | Privacy | Notice version, the trust facts, "Row by row", what you agreed to, the optional consent, export, and a danger zone drawn as a left rule, with a visible label on the DELETE field. |
 
