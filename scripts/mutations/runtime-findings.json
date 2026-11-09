@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "note": "Exact behavioural mutations for runtime cache, event ownership and trace retention regressions. Execute against the committed candidate using scripts/run-spec007-mutation-batch.py through scripts/test-in-container.sh. This manifest alone is not evidence of a kill.",
+  "mutations": [
+    {
+      "id": "fingerprint-content",
+      "file": "src/Ashlar.Infrastructure/Caching/DirectoryFingerprint.cs",
+      "old": "hash.AppendData(content.GetHashAndReset());",
+      "new": "_ = content.GetHashAndReset();",
+      "filter": "FullyQualifiedName~Analysis_tracks_content_after_the_first_hundred_files_even_if_timestamp_is_preserved",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Analysis_tracks_content_after_the_first_hundred_files_even_if_timestamp_is_preserved"
+      ],
+      "group": "cache-inputs"
+    },
+    {
+      "id": "fingerprint-root",
+      "file": "src/Ashlar.Infrastructure/Caching/DirectoryFingerprint.cs",
+      "old": "Append(hash, root.FullName);",
+      "new": "Append(hash, \"same-root\");",
+      "filter": "FullyQualifiedName~Analysis_distinguishes_empty_roots_and_stable_input_reuses_identity",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Analysis_distinguishes_empty_roots_and_stable_input_reuses_identity"
+      ],
+      "group": "cache-inputs"
+    },
+    {
+      "id": "analysis-store-freshness",
+      "file": "src/Ashlar.Infrastructure/Analysis/Adapters/CachedAnalysisServiceAdapter.cs",
+      "old": "if (cacheKey is not null && cacheKey == await GenerateCacheKeyAsync(path, cancellationToken))",
+      "new": "if (cacheKey is not null)",
+      "filter": "FullyQualifiedName~Analysis_does_not_cache_a_result_if_inputs_changed_during_execution",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Analysis_does_not_cache_a_result_if_inputs_changed_during_execution"
+      ],
+      "group": "cache-inputs"
+    },
+    {
+      "id": "validation-filter-identity",
+      "file": "src/Ashlar.Infrastructure/Validation/Adapters/CachedValidationServiceAdapter.cs",
+      "old": "System.Text.Json.JsonSerializer.Serialize(filter)",
+      "new": "System.Text.Json.JsonSerializer.Serialize(filter ?? \"none\")",
+      "filter": "FullyQualifiedName~Validation_tracks_source_content_and_distinguishes_null_from_literal_none",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Validation_tracks_source_content_and_distinguishes_null_from_literal_none"
+      ],
+      "group": "cache-inputs"
+    },
+    {
+      "id": "validation-generated-outputs",
+      "file": "src/Ashlar.Infrastructure/Validation/Adapters/CachedValidationServiceAdapter.cs",
+      "old": "excludeBuildOutputs: true",
+      "new": "excludeBuildOutputs: false",
+      "filter": "FullyQualifiedName~Validation_ignores_its_own_generated_outputs_but_invalidates_changed_sources",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Validation_ignores_its_own_generated_outputs_but_invalidates_changed_sources"
+      ],
+      "group": "cache-inputs"
+    },
+    {
+      "id": "validation-store-freshness",
+      "file": "src/Ashlar.Infrastructure/Validation/Adapters/CachedValidationServiceAdapter.cs",
+      "old": "if (cacheKey is not null && cacheKey == await GenerateCacheKeyAsync(filter, cancellationToken))",
+      "new": "if (cacheKey is not null)",
+      "filter": "FullyQualifiedName~Validation_does_not_cache_a_result_if_inputs_changed_during_execution",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Validation_does_not_cache_a_result_if_inputs_changed_during_execution"
+      ],
+      "group": "cache-safety"
+    },
+    {
+      "id": "fingerprint-byte-budget",
+      "file": "src/Ashlar.Infrastructure/Caching/DirectoryFingerprint.cs",
+      "old": "                if (initialLength > MaximumBytes - budget.Bytes)\n                    throw new IOException(\"Fingerprint tree exceeds the byte budget.\");\n                await using var stream = CacheFingerprintFile.Open(entry.FullName);\n                using var content = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);\n                var buffer = budget.Buffer;\n                long bytesRead = 0;\n                int count;\n                while ((count = await stream.ReadAsync(buffer.AsMemory(), ct).ConfigureAwait(false)) != 0)\n                {\n                    bytesRead += count;\n                    budget.Bytes += count;\n                    if (budget.Bytes > MaximumBytes)\n                        throw new IOException(\"Fingerprint tree exceeds the byte budget.\");\n                    content.AppendData(buffer, 0, count);\n                }\n",
+      "new": "                if (initialLength > long.MaxValue - budget.Bytes)\n                    throw new IOException(\"Fingerprint tree exceeds the byte budget.\");\n                await using var stream = CacheFingerprintFile.Open(entry.FullName);\n                using var content = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);\n                var buffer = budget.Buffer;\n                long bytesRead = 0;\n                int count;\n                while ((count = await stream.ReadAsync(buffer.AsMemory(), ct).ConfigureAwait(false)) != 0)\n                {\n                    bytesRead += count;\n                    budget.Bytes += count;\n                    if (budget.Bytes > long.MaxValue)\n                        throw new IOException(\"Fingerprint tree exceeds the byte budget.\");\n                    content.AppendData(buffer, 0, count);\n                }\n",
+      "filter": "FullyQualifiedName~Oversized_trees_bypass_cache_without_reading_the_whole_file",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Oversized_trees_bypass_cache_without_reading_the_whole_file"
+      ],
+      "group": "cache-safety"
+    },
+    {
+      "id": "fingerprint-fifo-nonblocking",
+      "file": "src/Ashlar.Infrastructure/Caching/CacheFingerprintFile.cs",
+      "old": "0x800 | 0x20000 | 0x80000",
+      "new": "0x20000 | 0x80000",
+      "filter": "FullyQualifiedName~Unix_fifo_bypasses_cache_without_waiting_for_a_writer",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Unix_fifo_bypasses_cache_without_waiting_for_a_writer"
+      ],
+      "group": "cache-safety"
+    },
+    {
+      "id": "semantic-cache-capacity",
+      "file": "src/Ashlar.Infrastructure/Execution/SemanticCache.cs",
+      "old": "if (_cache.Count == _capacity)",
+      "new": "if (_cache.Count == int.MaxValue)",
+      "filter": "FullyQualifiedName~Capacity_evicts_least_recently_used_and_replacement_does_not_grow_the_cache",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Capacity_evicts_least_recently_used_and_replacement_does_not_grow_the_cache"
+      ],
+      "group": "cache-safety"
+    },
+    {
+      "id": "semantic-cache-writer-lock",
+      "file": "src/Ashlar.Infrastructure/Execution/SemanticCache.cs",
+      "old": "lock (_gate)\n        {\n            if (_cache.TryGetValue(cacheKey, out var existing))",
+      "new": "lock (new object())\n        {\n            if (_cache.TryGetValue(cacheKey, out var existing))",
+      "filter": "FullyQualifiedName~Concurrent_writes_and_reads_remain_bounded",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Concurrent_writes_and_reads_remain_bounded"
+      ],
+      "group": "cache-safety"
+    },
+    {
+      "id": "pattern-evidence-consumption",
+      "file": "src/Ashlar.Infrastructure/Observation/PatternDetector.cs",
+      "old": "_consumedEdits.UnionWith(pattern.RelatedEventIds);",
+      "new": "// Mutation: evidence is left reusable.",
+      "filter": "FullyQualifiedName~Repeated_edits_consume_evidence_once_and_ignore_unrelated_paths",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Repeated_edits_consume_evidence_once_and_ignore_unrelated_paths"
+      ],
+      "group": "event-ownership"
+    },
+    {
+      "id": "pattern-serialization",
+      "file": "src/Ashlar.Infrastructure/Observation/PatternDetector.cs",
+      "old": "private readonly SemaphoreSlim _gate = new(1, 1);",
+      "new": "private readonly SemaphoreSlim _gate = new(int.MaxValue, int.MaxValue);",
+      "filter": "FullyQualifiedName~Duplicate_or_concurrent_deliveries_do_not_amplify_evidence",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Duplicate_or_concurrent_deliveries_do_not_amplify_evidence"
+      ],
+      "group": "event-ownership"
+    },
+    {
+      "id": "pattern-start-only",
+      "file": "src/Ashlar.Infrastructure/Observation/PatternDetector.cs",
+      "old": "changeType.GetString() != \"started\"",
+      "new": "(changeType.GetString() != \"started\" && changeType.GetString() != \"stopped\")",
+      "filter": "FullyQualifiedName~Process_stop_and_unrelated_process_do_not_replay_an_earlier_build",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Process_stop_and_unrelated_process_do_not_replay_an_earlier_build"
+      ],
+      "group": "event-ownership"
+    },
+    {
+      "id": "behavior-producer-ownership",
+      "file": "src/Ashlar.Infrastructure/Execution/BehaviorExecutor.cs",
+      "old": "            producerCts.Cancel();\n            await producer.ConfigureAwait(false);",
+      "new": "            // Mutation: abandoned producer is neither cancelled nor joined.",
+      "filter": "FullyQualifiedName~Behavior_event_enumerator_disposal_cancels_and_joins_the_running_brick",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Behavior_event_enumerator_disposal_cancels_and_joins_the_running_brick"
+      ],
+      "group": "event-ownership"
+    },
+    {
+      "id": "process-producer-ownership",
+      "file": "src/Ashlar.Infrastructure/Observation/ProcessEventSource.cs",
+      "old": "            producerCts.Cancel();\n            await pollTask.ConfigureAwait(false);",
+      "new": "            await pollTask.ConfigureAwait(false);",
+      "filter": "FullyQualifiedName~SubscribeAsync_break_without_cancelling_stops_the_subscription_and_allows_restart",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "SubscribeAsync_break_without_cancelling_stops_the_subscription_and_allows_restart"
+      ],
+      "group": "event-ownership"
+    },
+    {
+      "id": "trace-span-capacity",
+      "file": "src/Ashlar.Orchestration/Metrics/OrchestrationMetrics.cs",
+      "old": "while (_spans.Count >= _maxRetainedSpans)",
+      "new": "while (_spans.Count >= int.MaxValue)",
+      "filter": "FullyQualifiedName~Spans_are_bounded_including_unfinished_spans",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Spans_are_bounded_including_unfinished_spans"
+      ],
+      "group": "telemetry"
+    },
+    {
+      "id": "trace-tags-ingress",
+      "file": "src/Ashlar.Orchestration/Metrics/OrchestrationMetrics.cs",
+      "old": "Tags = tags is null ? new Dictionary<string, string>() : new Dictionary<string, string>(tags)",
+      "new": "Tags = tags ?? new Dictionary<string, string>()",
+      "filter": "FullyQualifiedName~Trace_tags_are_copied_at_ingress_and_report_boundaries",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Trace_tags_are_copied_at_ingress_and_report_boundaries"
+      ],
+      "group": "telemetry"
+    },
+    {
+      "id": "trace-tags-egress",
+      "file": "src/Ashlar.Orchestration/Metrics/OrchestrationMetrics.cs",
+      "old": "Tags = new Dictionary<string, string>(s.Tags)",
+      "new": "Tags = s.Tags",
+      "filter": "FullyQualifiedName~Trace_tags_are_copied_at_ingress_and_report_boundaries",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Trace_tags_are_copied_at_ingress_and_report_boundaries"
+      ],
+      "group": "telemetry"
+    },
+    {
+      "id": "trace-request-redaction",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "[\"requestLength\"] = request.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)\n        });",
+      "new": "[\"request\"] = request\n        });",
+      "filter": "FullyQualifiedName~Orchestration_telemetry_does_not_retain_the_full_request",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Orchestration_telemetry_does_not_retain_the_full_request"
+      ],
+      "group": "telemetry"
+    },
+    {
+      "id": "profiler-request-redaction",
+      "file": "src/Ashlar.Orchestration/Coordination/Orchestrator.cs",
+      "old": "new Dictionary<string, object> { [\"correlationId\"] = correlationId, [\"requestLength\"] = request.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) }",
+      "new": "new Dictionary<string, object> { [\"correlationId\"] = correlationId, [\"request\"] = request }",
+      "filter": "FullyQualifiedName~Orchestration_telemetry_does_not_retain_the_full_request",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj",
+      "expected_failures": [
+        "Orchestration_telemetry_does_not_retain_the_full_request"
+      ],
+      "group": "telemetry"
+    }
+  ]
+}

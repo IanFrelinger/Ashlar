@@ -2,8 +2,8 @@ namespace Ashlar.API.Security;
 
 /// <summary>
 /// Opt-in for the remote container-execution surface (<c>POST /api/execution/build</c> and
-/// <c>POST /api/execution/run</c>). Those routes hand caller-chosen images, commands and host bind
-/// mounts to the local Docker daemon, so they are dark by default and only meant for
+/// <c>POST /api/execution/run</c>). Those routes hand caller-chosen images and commands to the
+/// local Docker daemon, so they are dark by default and only meant for
 /// <c>RemoteExecutionPlatform</c> callers (<c>ASHLAR_EXECUTION_REMOTE_URL</c>).
 /// Binds from configuration section <see cref="SectionPath"/>.
 /// </summary>
@@ -20,10 +20,9 @@ public sealed class AshlarExecutionOptions
     public bool ServeRemoteExecution { get; set; }
 
     /// <summary>
-    /// Single host directory under which <c>VolumeMounts</c> host paths are accepted on
-    /// <c>/api/execution/run</c>. When unset, any request carrying volume mounts is rejected (400).
-    /// The remote caller only mounts a test-results directory, so point this at that tree, never at
-    /// a filesystem root, a home directory or the Docker socket.
+    /// Legacy setting retained for configuration compatibility only. It does not enable host bind
+    /// mounts: every nonempty <c>VolumeMounts</c> on <c>/api/execution/run</c> is rejected (400).
+    /// A pathname allowlist cannot confine the Docker daemon's later resolution of writable paths.
     /// </summary>
     public string? AllowedVolumeMountRoot { get; set; }
 }

@@ -20,8 +20,8 @@
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 843,
-    "declared_facts": 5576,
+    "test_files_declaring_facts": 844,
+    "declared_facts": 5578,
     "workflows": 62
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -4780,7 +4780,7 @@
       "file": "src/Ashlar.Tests.Infrastructure/Tests/Analysis/RuntimeCacheFreshnessTests.cs",
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Analysis",
-      "declared_facts": 5,
+      "declared_facts": 6,
       "in_cert_gate_filter": false
     },
     {
@@ -8519,6 +8519,13 @@
       "project": "Ashlar.Tests.Transport",
       "namespace": "Ashlar.Tests.Transport",
       "declared_facts": 7,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Transport/DefaultGrpcChannelFactoryTlsTests.cs",
+      "project": "Ashlar.Tests.Transport",
+      "namespace": "Ashlar.Tests.Transport",
+      "declared_facts": 1,
       "in_cert_gate_filter": false
     },
     {

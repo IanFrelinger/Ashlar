@@ -120,6 +120,27 @@ public sealed class RuntimeCacheFreshnessTests : IDisposable
         finally { Directory.SetCurrentDirectory(previous); }
     }
 
+    [Fact]
+    public async Task Validation_does_not_cache_a_result_if_inputs_changed_during_execution()
+    {
+        var previous = Directory.GetCurrentDirectory();
+        try
+        {
+            Directory.SetCurrentDirectory(_root);
+            var inner = new Mock<IValidationService>();
+            inner.Setup(s => s.ValidateAsync(It.IsAny<string?>(), It.IsAny<IProgress<ProgressReport>?>(), It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    File.WriteAllText(Path.Combine(_root, "changed.cs"), "changed");
+                    return Task.FromResult(new ValidationResult { Passed = true, Message = "ok", TestsRun = 1, TestsPassed = 1, TestsFailed = 0 });
+                });
+            await new CachedValidationServiceAdapter(inner.Object, _cache.Object,
+                NullLogger<CachedValidationServiceAdapter>.Instance).ValidateAsync(null);
+            _cache.Verify(c => c.SetAsync(It.IsAny<string>(), It.IsAny<ValidationResult>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+        finally { Directory.SetCurrentDirectory(previous); }
+    }
+
     [FileFingerprintFact]
     public async Task Validation_ignores_its_own_generated_outputs_but_invalidates_changed_sources()
     {
