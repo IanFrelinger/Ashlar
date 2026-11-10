@@ -26,11 +26,8 @@ namespace Ashlar.CLI.Output;
 /// and every legitimate row before it goes with it. Escaping turns each byte into U+FFFD without
 /// making the line one character shorter, so the cap is part of the same job.</para>
 ///
-/// <para>SHARED ON PURPOSE. Issue #483 tracks this same class at the pre-existing sites that print
-/// sender-chosen text — a package summary, proposedBy, a course detail. Those are out of scope for
-/// the change that added this file and are deliberately left alone, but they need exactly this
-/// function; it lives here rather than as a private helper on one command so #483 can reuse it
-/// instead of growing a second copy that drifts.</para>
+/// <para>Shared by refusal and success renderers. A correctly signed package can still contain
+/// terminal commands; signer trust never makes its summary, actor or evidence safe to print.</para>
 /// </summary>
 internal static class UntrustedText
 {
@@ -113,7 +110,8 @@ internal static class UntrustedText
         || (c >= '\u0080' && c <= '\u009F')
         // Bidi overrides and isolates. These move nothing; they REORDER what is already on the line,
         // so a hostile name can be made to read left-to-right as an honest one.
-        || c == '\u200E' || c == '\u200F'
+        || c == '\u061C' || c == '\u200E' || c == '\u200F'
+        || c == '\u2028' || c == '\u2029'
         || (c >= '\u202A' && c <= '\u202E')
         || (c >= '\u2066' && c <= '\u2069');
 }

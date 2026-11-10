@@ -95,8 +95,8 @@ public sealed class PkgCommand : Command
             var json = ExtensionPackaging.Pack(record, files, sealer);
             await File.WriteAllTextAsync(outFile.FullName, json);
 
-            Console.WriteLine($"  {Gold("✓ packaged")}  {record.Proposal.Summary}");
-            Console.WriteLine($"  {Dim($"{files.Count} file(s) · admitted by {record.Actor} · verdict {Fp(record.Signer)} · seal {Fp(sealer.PublicKeyBase64)}")}");
+            Console.WriteLine($"  {Gold("✓ packaged")}  {Safe(record.Proposal.Summary)}");
+            Console.WriteLine($"  {Dim($"{files.Count} file(s) · admitted by {Safe(record.Actor)} · verdict {Fp(record.Signer)} · seal {Fp(sealer.PublicKeyBase64)}")}");
             Console.WriteLine($"  {Dim($"→ {outFile.FullName}")}");
             return 0;
         }
@@ -224,12 +224,12 @@ public sealed class PkgCommand : Command
             return 65;
         }
         Console.WriteLine();
-        Console.WriteLine($"  {peek!.Record.Proposal.Summary}");
+        Console.WriteLine($"  {Safe(peek!.Record.Proposal.Summary)}");
         Console.WriteLine($"  {Dim($"origin verdict {Fp(peek.Record.Signer)} · seal {Fp(peek.SealSigner)} · {peek.Files.Count} file(s)")}");
         foreach (var course in peek.Record.Proposal.Courses)
         {
             var glyph = course.Passed ? Ok("✓") : Bad("×");
-            Console.WriteLine($"  {glyph} {course.Name,-12} {Dim($"{course.Detail} (evidence from origin)")}");
+            Console.WriteLine($"  {glyph} {Safe(course.Name),-12} {Dim($"{Safe(course.Detail)} (evidence from origin)")}");
         }
         Console.WriteLine();
 
@@ -237,26 +237,26 @@ public sealed class PkgCommand : Command
         switch (result.Outcome)
         {
             case PackageAdmission.Admitted:
-                Console.WriteLine($"  {Gold($"✓ ADMITTED — {result.Message}")}");
+                Console.WriteLine($"  {Gold($"✓ ADMITTED — {Safe(result.Message)}")}");
                 foreach (var path in result.AppliedPaths)
                 {
-                    Console.WriteLine($"  {Ok("✓ applied")}  {path}");
+                    Console.WriteLine($"  {Ok("✓ applied")}  {Safe(path)}");
                 }
                 if (result.Warning is not null)
                 {
-                    Console.Error.WriteLine($"  {Bad("! " + result.Warning)}");
+                    Console.Error.WriteLine($"  {Bad("! " + Safe(result.Warning))}");
                     return 1;   // admission recorded, but the disk state is not what was intended
                 }
                 return 0;
             case PackageAdmission.Held:
-                Console.WriteLine($"  {Clay($"! HELD — {result.Message}")}");
-                Console.WriteLine($"  {Dim("nothing is on disk. review:  ashlar gates --show " + result.LocalProposalId)}");
+                Console.WriteLine($"  {Clay($"! HELD — {Safe(result.Message)}")}");
+                Console.WriteLine($"  {Dim("nothing is on disk. review:  ashlar gates --show " + Safe(result.LocalProposalId))}");
                 return 0;
             case PackageAdmission.AlreadyImported:
-                Console.WriteLine($"  {Dim("− already imported: " + result.Message)}");
+                Console.WriteLine($"  {Dim("− already imported: " + Safe(result.Message))}");
                 return 0;
             case PackageAdmission.Rejected:
-                Console.WriteLine($"  {Bad($"× REJECTED — {result.Message}")}");
+                Console.WriteLine($"  {Bad($"× REJECTED — {Safe(result.Message)}")}");
                 Console.WriteLine($"  {Dim("disk untouched")}");
                 return 65;
             case PackageAdmission.Refused:
@@ -272,7 +272,7 @@ public sealed class PkgCommand : Command
                 Console.WriteLine($"  {Dim("disk untouched")}");
                 return 65;
             default:
-                Console.Error.WriteLine(result.Message);
+                Console.Error.WriteLine(Safe(result.Message));
                 return 1;
         }
     }
@@ -315,21 +315,21 @@ public sealed class PkgCommand : Command
 
         var r = pkg!.Record;
         Console.WriteLine();
-        Console.WriteLine($"  {r.Proposal.Summary}");
-        Console.WriteLine($"  {Dim($"{r.Proposal.Id} · kind {r.Proposal.Kind} · by {r.Proposal.ProposedBy} · {r.Proposal.ProposedAt:u}")}");
+        Console.WriteLine($"  {Safe(r.Proposal.Summary)}");
+        Console.WriteLine($"  {Dim($"{Safe(r.Proposal.Id)} · kind {Safe(r.Proposal.Kind)} · by {Safe(r.Proposal.ProposedBy)} · {r.Proposal.ProposedAt:u}")}");
         Console.WriteLine();
         foreach (var course in r.Proposal.Courses)
         {
             var glyph = course.Passed ? Ok("✓") : Bad("×");
-            Console.WriteLine($"  {glyph} {course.Name,-12} {Dim(course.Detail)}");
+            Console.WriteLine($"  {glyph} {Safe(course.Name),-12} {Dim(Safe(course.Detail))}");
         }
         Console.WriteLine();
         foreach (var pf in pkg.Files)
         {
-            Console.WriteLine($"  {Dim($"file · {pf.Path} · {pf.Content.Length} chars")}");
+            Console.WriteLine($"  {Dim($"file · {Safe(pf.Path)} · {pf.Content.Length} chars")}");
         }
         Console.WriteLine();
-        Console.WriteLine($"  {Gold("✓ package verifies")}  {Dim($"verdict signed {Fp(r.Signer)} · sealed {Fp(pkg.SealSigner)} · admitted by {r.Actor}")}");
+        Console.WriteLine($"  {Gold("✓ package verifies")}  {Dim($"verdict signed {Fp(r.Signer)} · sealed {Fp(pkg.SealSigner)} · admitted by {Safe(r.Actor)}")}");
         Console.WriteLine($"  {Dim("importing runs it through YOUR gate:  ashlar pkg import <file>")}");
         return 0;
     }
@@ -404,7 +404,7 @@ public sealed class PkgCommand : Command
             return 77;
         }
 
-        Console.WriteLine($"  {Gold("✓ published to the mesh")}  {pkg!.Record.Proposal.Summary}");
+        Console.WriteLine($"  {Gold("✓ published to the mesh")}  {Safe(pkg!.Record.Proposal.Summary)}");
         Console.WriteLine($"  {Dim($"sealed {Fp(pkg.SealSigner)} · {pkg.Files.Count} file(s)")}");
         Console.WriteLine($"  {Dim($"→ {dest}")}");
         Console.WriteLine($"  {Dim("peers pull with:  ashlar pkg pull --from " + Path.GetDirectoryName(dest))}");
@@ -475,8 +475,8 @@ public sealed class PkgCommand : Command
             }
             var dest = MeshStore.Publish(storeDir, json);
 
-            Console.WriteLine($"  {Gold("✓ shared to the mesh")}  {record.Proposal.Summary}");
-            Console.WriteLine($"  {Dim($"{files.Count} file(s) · admitted by {record.Actor} · verdict {Fp(record.Signer)} · seal {Fp(sealer.PublicKeyBase64)}")}");
+            Console.WriteLine($"  {Gold("✓ shared to the mesh")}  {Safe(record.Proposal.Summary)}");
+            Console.WriteLine($"  {Dim($"{files.Count} file(s) · admitted by {Safe(record.Actor)} · verdict {Fp(record.Signer)} · seal {Fp(sealer.PublicKeyBase64)}")}");
             Console.WriteLine($"  {Dim($"→ {dest}")}");
             Console.WriteLine($"  {Dim("peers pull with:  ashlar pkg pull --from " + Path.GetDirectoryName(dest))}");
             return 0;
@@ -714,20 +714,20 @@ public sealed class PkgCommand : Command
                 {
                     case PackageAdmission.Admitted:
                         admitted++;
-                        Console.WriteLine($"  {Gold("✓ ADMITTED")}  {summary} {Dim($"{sealedBy} · {result.AppliedPaths.Count} file(s)")}");
+                        Console.WriteLine($"  {Gold("✓ ADMITTED")}  {Safe(summary)} {Dim($"{sealedBy} · {result.AppliedPaths.Count} file(s)")}");
                         if (result.Warning is not null)
                         {
                             warned++;
-                            Console.WriteLine($"    {Bad("! " + result.Warning)}");
+                            Console.WriteLine($"    {Bad("! " + Safe(result.Warning))}");
                         }
                         break;
                     case PackageAdmission.Held:
                         held++;
-                        Console.WriteLine($"  {Clay("! HELD")}     {summary} {Dim($"{sealedBy} · review with `ashlar gates`")}");
+                        Console.WriteLine($"  {Clay("! HELD")}     {Safe(summary)} {Dim($"{sealedBy} · review with `ashlar gates`")}");
                         break;
                     case PackageAdmission.AlreadyImported:
                         skipped++;
-                        Console.WriteLine($"  {Dim("− already have  " + summary + sealedBy)}");
+                        Console.WriteLine($"  {Dim("− already have  " + Safe(summary) + sealedBy)}");
                         break;
                     case PackageAdmission.Rejected:
                         refused++;
@@ -756,9 +756,8 @@ public sealed class PkgCommand : Command
                         // sealer fingerprint is the one part of a row a sender cannot choose, which
                         // is the whole reason it is printed.
                         //
-                        // The ADMITTED / HELD / already-have rows above print a summary that came
-                        // out of a package the seal VERIFIED — the pre-existing class #483 tracks —
-                        // and are deliberately left alone.
+                        // ADMITTED / HELD / already-have rows above use the same display boundary:
+                        // a verified seal authenticates text but never makes terminal commands safe.
                         Console.WriteLine($"  {Bad("× REFUSED")}  {Safe(summary)} {Dim($"{sealedBy} · {Safe(result.Message)}")}");
                         break;
                 }
@@ -844,10 +843,8 @@ public sealed class PkgCommand : Command
     /// ceiling — so the bound matters as much as the escaping. See
     /// <see cref="UntrustedText.ForConsole(string?, int)"/>.</para>
     ///
-    /// <para>The helper lives in <see cref="UntrustedText"/> rather than here because issue #483
-    /// tracks the same class at the pre-existing summary / proposedBy / course-detail sites on the
-    /// SUCCESS paths, where the text came out of a package whose seal verified. Those are still
-    /// deliberately untouched.</para>
+    /// <para>All package-controlled display components use the same bound and escaping on success
+    /// and refusal paths. A valid signature proves provenance, never terminal safety.</para>
     /// </summary>
     private static string Safe(string? senderChosen) => UntrustedText.ForConsole(senderChosen);
 

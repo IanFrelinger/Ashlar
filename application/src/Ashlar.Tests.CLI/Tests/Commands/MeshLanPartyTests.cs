@@ -5,6 +5,7 @@ using System.Text;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Ashlar.CLI.Commands.BackgroundAgent;
+using Ashlar.CLI.Packaging;
 using Ashlar.Tests.CLI.Helpers;
 using Xunit;
 
@@ -124,6 +125,38 @@ public sealed class MeshLanPartyTests : IDisposable
     }
 
     // ─────────── #488: the serve path is the sixth reader of a .ashpkg ───────────
+
+    [UnixOnlyFact("ln -s")]
+    public async Task Pkg_leafSwappedAfterMetadata_returns404WithoutOutsideBytes()
+    {
+        var candidate = Path.Combine(_published, "swap-000001.ashpkg");
+        var outside = Path.Combine(_dir, "owned-private-marker.txt");
+        await File.WriteAllTextAsync(outside, "OUTSIDE_PRIVATE_MARKER");
+        // Start empty: hello/index must not consume the controlled race before the GET.
+        var (service, port, client) = await StartServeAsync();
+        await File.WriteAllTextAsync(candidate, "original-package");
+        var swapped = 0;
+        SafePackageRead.BeforeOpenForTests = path =>
+        {
+            if (path != candidate || Interlocked.Exchange(ref swapped, 1) != 0) return;
+            File.Delete(candidate);
+            File.CreateSymbolicLink(candidate, outside);
+        };
+        try
+        {
+            using var response = await client.GetAsync($"http://127.0.0.1:{port}/mesh/v1/pkg/swap-000001.ashpkg");
+            swapped.Should().Be(1, "the real endpoint must reach the controlled metadata/open boundary");
+            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            (await response.Content.ReadAsStringAsync()).Should().NotContain("OUTSIDE_PRIVATE_MARKER");
+            (await client.GetStringAsync($"http://127.0.0.1:{port}/mesh/v1/index")).Should().NotContain("swap-000001");
+        }
+        finally
+        {
+            SafePackageRead.BeforeOpenForTests = null;
+            await service.StopAsync(CancellationToken.None);
+            client.Dispose();
+        }
+    }
 
     [UnixOnlyFact("ln -s")]
     public async Task Pkg_neverFollowsASymlink_soAPlantedLinkIsNeitherServedNorAdvertised()
