@@ -102,6 +102,57 @@ public sealed class DockerSandboxSessionTests
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*no such image*");
     }
 
+    [Fact]
+    public async Task FailedStart_RemovesTheKnownContainerName_AndPreservesTheLaunchFailure()
+    {
+        var calls = new List<IReadOnlyList<string>>();
+        var docker = new FakeProcessRunner((_, args) =>
+        {
+            calls.Add(args.ToArray());
+            return Task.FromResult(args[0] == "run"
+                ? new ProcessCommandResult(125, "", "launch failed after create")
+                : new ProcessCommandResult(1, "", "cleanup also failed"));
+        });
+        var runner = new DockerSandboxedSessionRunner(docker);
+
+        var act = () => runner.StartAsync(KeepaliveSpec());
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*launch failed after create*");
+        var name = calls[0][calls[0].ToList().IndexOf("--name") + 1];
+        calls[1].Should().Equal("rm", "-f", name);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CancelledStart_CleansUpWithAnIndependentToken_EvenAfterSuccessfulResponse(bool returnSuccess)
+    {
+        using var caller = new CancellationTokenSource();
+        var calls = new List<IReadOnlyList<string>>();
+        var docker = new TokenAwareProcessRunner((args, token) =>
+        {
+            calls.Add(args.ToArray());
+            if (args[0] == "run")
+            {
+                caller.Cancel();
+                if (!returnSuccess)
+                    throw new OperationCanceledException(token);
+                return Task.FromResult(new ProcessCommandResult(0, "created", ""));
+            }
+
+            token.IsCancellationRequested.Should().BeFalse("launch cancellation must not prevent removal");
+            return Task.FromResult(new ProcessCommandResult(0, "", ""));
+        });
+        var runner = new DockerSandboxedSessionRunner(docker);
+
+        var act = () => runner.StartAsync(KeepaliveSpec(), caller.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        calls.Should().HaveCount(2);
+        var name = calls[0][calls[0].ToList().IndexOf("--name") + 1];
+        calls[1].Should().Equal("rm", "-f", name);
+    }
+
     // --- exec + teardown -----------------------------------------------------------------
 
     [Fact]
@@ -140,6 +191,80 @@ public sealed class DockerSandboxSessionTests
     }
 
     [Fact]
+    public async Task BoundedExec_ForwardsLiteralArgvOutputBudgetAndCancellation_ToTheProcessRunner()
+    {
+        var docker = new TokenAwareProcessRunner((args, _) => Task.FromResult(
+            args[0] == "exec" ? new ProcessCommandResult(17, "partial", "diagnostic") : new ProcessCommandResult(0, "", "")));
+        var runner = new DockerSandboxedSessionRunner(docker);
+        await using var session = await runner.StartAsync(KeepaliveSpec());
+        var bounded = Assert.IsAssignableFrom<IBoundedOutputSandboxedSession>(session);
+        using var caller = new CancellationTokenSource();
+
+        var result = await bounded.ExecBoundedAsync(new[] { "parser", "literal; $(document)" }, 8192, caller.Token);
+
+        Assert.Equal(new ProcessCommandResult(17, "partial", "diagnostic"), result);
+        var execution = Assert.Single(docker.BoundedCalls);
+        Assert.Equal(new[] { "exec", session.SessionId, "parser", "literal; $(document)" }, execution.Arguments);
+        Assert.Equal(8192, execution.MaxOutputBytes);
+        Assert.Equal(caller.Token, execution.Token);
+    }
+
+    [Fact]
+    public async Task BoundedExec_RefusesALegacyProcessRunner_WithoutExecutingTheProgram()
+    {
+        var calls = new List<IReadOnlyList<string>>();
+        var docker = new FakeProcessRunner((_, args) =>
+        {
+            calls.Add(args.ToArray());
+            return Task.FromResult(new ProcessCommandResult(0, "", ""));
+        });
+        var runner = new DockerSandboxedSessionRunner(docker);
+        await using var session = await runner.StartAsync(KeepaliveSpec());
+        var bounded = Assert.IsAssignableFrom<IBoundedOutputSandboxedSession>(session);
+
+        await Assert.ThrowsAsync<NotSupportedException>(() => bounded.ExecBoundedAsync(new[] { "parser" }, 4096));
+
+        Assert.DoesNotContain(calls, call => call[0] == "exec");
+    }
+
+    [Fact]
+    public async Task BoundedExecAfterTeardown_IsRefusedBeforeCallingTheProcessRunner()
+    {
+        var docker = new TokenAwareProcessRunner((_, _) => Task.FromResult(new ProcessCommandResult(0, "", "")));
+        var runner = new DockerSandboxedSessionRunner(docker);
+        var session = await runner.StartAsync(KeepaliveSpec());
+        var bounded = Assert.IsAssignableFrom<IBoundedOutputSandboxedSession>(session);
+        await session.DisposeAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => bounded.ExecBoundedAsync(new[] { "parser" }, 4096));
+
+        Assert.Empty(docker.BoundedCalls);
+    }
+
+    [Fact]
+    public async Task BoundedExec_OutputOverflowIsPreserved_AndTheSessionCanStillBeDisposed()
+    {
+        var failure = new ProcessOutputLimitExceededException(4096);
+        var calls = new List<IReadOnlyList<string>>();
+        var docker = new TokenAwareProcessRunner((args, _) =>
+        {
+            calls.Add(args.ToArray());
+            return args[0] == "exec" ? throw failure : Task.FromResult(new ProcessCommandResult(0, "", ""));
+        });
+        var runner = new DockerSandboxedSessionRunner(docker);
+        var session = await runner.StartAsync(KeepaliveSpec());
+        var bounded = Assert.IsAssignableFrom<IBoundedOutputSandboxedSession>(session);
+
+        var actual = await Assert.ThrowsAsync<ProcessOutputLimitExceededException>(() =>
+            bounded.ExecBoundedAsync(new[] { "parser" }, 4096));
+        await session.DisposeAsync();
+
+        Assert.Same(failure, actual);
+        Assert.Equal(new[] { "run", "exec", "rm" }, calls.Select(call => call[0]));
+        Assert.Equal(new[] { "rm", "-f", session.SessionId }, calls.Last());
+    }
+
+    [Fact]
     public async Task TeardownFailure_NeverThrows_TheReaperIsTheBackstop()
     {
         var docker = new FakeProcessRunner((_, args) =>
@@ -152,6 +277,30 @@ public sealed class DockerSandboxSessionTests
         var act = () => session.DisposeAsync().AsTask();
 
         await act.Should().NotThrowAsync("a failed teardown must not mask the work's own result");
+    }
+
+    [Fact]
+    public async Task Teardown_StopsWaitingAtItsOwnDeadline_WithoutMaskingTheWorkResult()
+    {
+        var clock = new ControlledTimerClock();
+        var docker = new TokenAwareProcessRunner(async (args, token) =>
+        {
+            if (args[0] == "rm")
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+            return new ProcessCommandResult(0, "", "");
+        });
+        var runner = new DockerSandboxedSessionRunner(docker, clock);
+        var session = await runner.StartAsync(KeepaliveSpec());
+
+        var cleanup = session.DisposeAsync().AsTask();
+        cleanup.IsCompleted.Should().BeFalse();
+        clock.DueTime.Should().Be(DockerSandboxedSessionRunner.TeardownTimeout);
+        clock.Fire();
+        var act = () => cleanup.WaitAsync(TimeSpan.FromSeconds(5));
+
+        await act.Should().NotThrowAsync("the reaper handles removal after the bounded attempt");
+        var exec = () => session.ExecAsync(new[] { "echo", "after-timeout" });
+        await exec.Should().ThrowAsync<InvalidOperationException>().WithMessage("*stopped*");
     }
 
     // --- reaper --------------------------------------------------------------------------
@@ -284,6 +433,49 @@ public sealed class DockerSandboxSessionTests
     }
 
     // --- helpers -------------------------------------------------------------------------
+
+    private sealed class ControlledTimerClock : TimeProvider
+    {
+        private TimerCallback? _callback;
+        private object? _state;
+        public TimeSpan DueTime { get; private set; }
+        public void Fire() => _callback!(_state);
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            _callback = callback;
+            _state = state;
+            DueTime = dueTime;
+            return new NoopTimer();
+        }
+
+        private sealed class NoopTimer : ITimer
+        {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class TokenAwareProcessRunner : IBoundedOutputProcessCommandRunner
+    {
+        private readonly Func<IReadOnlyList<string>, CancellationToken, Task<ProcessCommandResult>> _handler;
+        public List<(IReadOnlyList<string> Arguments, int MaxOutputBytes, CancellationToken Token)> BoundedCalls { get; } = new();
+        public TokenAwareProcessRunner(Func<IReadOnlyList<string>, CancellationToken, Task<ProcessCommandResult>> handler) =>
+            _handler = handler;
+        public Task<ProcessCommandResult> RunAsync(string fileName, IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken = default)
+        {
+            fileName.Should().Be("docker");
+            return _handler(arguments, cancellationToken);
+        }
+
+        public Task<ProcessCommandResult> RunBoundedAsync(string fileName, IReadOnlyList<string> arguments,
+            int maxOutputBytes, CancellationToken cancellationToken = default)
+        {
+            BoundedCalls.Add((arguments.ToArray(), maxOutputBytes, cancellationToken));
+            return RunAsync(fileName, arguments, cancellationToken);
+        }
+    }
 
     private sealed class FrozenClock : TimeProvider
     {

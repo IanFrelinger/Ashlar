@@ -13,6 +13,24 @@ namespace Ashlar.Tests.Infrastructure.Tests.Validation;
 /// <summary>Tests for cached validation service adapter.</summary>
 public class CachedValidationServiceAdapterTests : UnitTestBase
 {
+    private string? _previousDirectory;
+    private DirectoryInfo? _directory;
+
+    public override Task SetupAsync(CancellationToken cancellationToken = default)
+    {
+        _previousDirectory = Directory.GetCurrentDirectory();
+        _directory = Directory.CreateTempSubdirectory("ashlar-validation-cache-");
+        Directory.SetCurrentDirectory(_directory.FullName);
+        return Task.CompletedTask;
+    }
+
+    public override Task CleanupAsync(CancellationToken cancellationToken = default)
+    {
+        if (_previousDirectory is not null) Directory.SetCurrentDirectory(_previousDirectory);
+        _directory?.Delete(recursive: true);
+        return Task.CompletedTask;
+    }
+
     public override async Task<TestResult> ExecuteAsync(CancellationToken cancellationToken = default)
     {
         try

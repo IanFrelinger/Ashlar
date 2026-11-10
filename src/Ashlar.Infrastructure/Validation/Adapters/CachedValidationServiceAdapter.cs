@@ -11,7 +11,7 @@ namespace Ashlar.Infrastructure.Validation.Adapters;
 /// Decorator for IValidationService that adds caching (Decorator pattern - OCP).
 /// 
 /// Provides caching layer for validation results:
-/// - Generates cache keys from filter + test project modification times
+/// - Generates cache keys from filter + root path + local source/config/fixture contents (excluding generated build/test directories)
 /// - Caches results for 15 minutes
 /// - Returns cached results when available
 /// - Falls through to inner service on cache miss
@@ -43,7 +43,7 @@ public class CachedValidationServiceAdapter : IValidationService
     {
         var cacheKey = await GenerateCacheKeyAsync(filter, cancellationToken);
 
-        var cachedResult = await _cache.GetAsync<ValidationResult>(cacheKey, cancellationToken);
+        var cachedResult = cacheKey is null ? null : await _cache.GetAsync<ValidationResult>(cacheKey, cancellationToken);
         if (cachedResult != null)
         {
             _logger.LogInformation("Returning cached validation result for filter: {Filter}", filter ?? "none");
@@ -58,25 +58,18 @@ public class CachedValidationServiceAdapter : IValidationService
 
         _logger.LogInformation("Cache miss, running validation with filter: {Filter}", filter ?? "none");
         var result = await _inner.ValidateAsync(filter, progress, cancellationToken);
-        await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(15), cancellationToken);
+        // Only reuse a result when local inputs stayed unchanged during validation.
+        if (cacheKey is not null && cacheKey == await GenerateCacheKeyAsync(filter, cancellationToken))
+            await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(15), cancellationToken);
 
         return result;
     }
 
-    private async Task<string> GenerateCacheKeyAsync(string? filter, CancellationToken cancellationToken)
+    private static async Task<string?> GenerateCacheKeyAsync(string? filter, CancellationToken cancellationToken)
     {
-        // Create a hash from filter + test project modification times
-        var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
-        var testProjects = currentDir.GetFiles("*.csproj", SearchOption.AllDirectories)
-            .Where(f => f.Name.Contains("Test", StringComparison.OrdinalIgnoreCase) ||
-                       f.DirectoryName?.Contains("test", StringComparison.OrdinalIgnoreCase) == true)
-            .OrderBy(f => f.FullName)
-            .Take(50) // Limit to avoid performance issues
-            .Select(f => $"{f.FullName}:{f.LastWriteTimeUtc.Ticks}");
-
-        var content = $"{filter ?? "none"}|{string.Join("|", testProjects)}";
-        var hash = await CacheKeyGenerator.ComputeHashAsync(content, cancellationToken);
-        return $"validation:{hash}";
+        var hash = await DirectoryFingerprint.TryComputeAsync(
+            new DirectoryInfo(Directory.GetCurrentDirectory()), cancellationToken, excludeBuildOutputs: true).ConfigureAwait(false);
+        // JSON preserves the distinction between null and the literal filter "none".
+        return hash is null ? null : $"validation:v2:{CacheKeyGenerator.ComputeHash(hash + ":" + System.Text.Json.JsonSerializer.Serialize(filter))}";
     }
 }
-

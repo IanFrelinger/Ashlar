@@ -7,13 +7,28 @@ using Ashlar.Infrastructure.HostProcess;
 namespace Ashlar.Infrastructure.Scaling;
 
 /// <summary>Default <see cref="IProcessCommandRunner"/> using <see cref="System.Diagnostics.Process"/>.</summary>
-public sealed class ProcessCommandRunner : IProcessCommandRunner
+public sealed class ProcessCommandRunner : IBoundedOutputProcessCommandRunner
 {
     /// <inheritdoc />
-    public async Task<ProcessCommandResult> RunAsync(
+    public Task<ProcessCommandResult> RunAsync(
         string fileName,
         IReadOnlyList<string> arguments,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        RunCoreAsync(fileName, arguments, null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<ProcessCommandResult> RunBoundedAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        int maxOutputBytes,
+        CancellationToken cancellationToken = default) =>
+        RunCoreAsync(fileName, arguments, maxOutputBytes, cancellationToken);
+
+    private static async Task<ProcessCommandResult> RunCoreAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        int? maxOutputBytes,
+        CancellationToken cancellationToken)
     {
         // SPEC-007 EG-PROC-03: working-tree commands need an actual network-off sandbox to be Host.
         var decision = EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-03", Destination(
@@ -29,8 +44,10 @@ public sealed class ProcessCommandRunner : IProcessCommandRunner
 
         // Infinite wait still kill-on-cancel: sandbox timeouts CancelAfter and must
         // not leave a docker child attached to a wedged daemon.
-        var result = await TimedProcess.RunEvaluatedAsync(psi, Timeout.InfiniteTimeSpan, decision, cancellationToken)
-            .ConfigureAwait(false);
+        var result = maxOutputBytes.HasValue
+            ? await TimedProcess.RunEvaluatedBoundedAsync(
+                psi, Timeout.InfiniteTimeSpan, maxOutputBytes.Value, decision, cancellationToken).ConfigureAwait(false)
+            : await TimedProcess.RunEvaluatedAsync(psi, Timeout.InfiniteTimeSpan, decision, cancellationToken).ConfigureAwait(false);
         return new ProcessCommandResult(result.ExitCode, result.StdOut, result.StdErr);
     }
 

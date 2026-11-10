@@ -17,6 +17,34 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Added — isolated code tasks
+
+- Hosts can opt into `IIsolatedTaskRunner` with `AddAshlarIsolatedTasks`: one temporary
+  Docker session per task, explicit argv/results, no network or host mounts, resource
+  limits, bounded combined stdout/stderr capture and pre-execution inspection. Ordinary
+  data classes and model routing are unchanged.
+- Failed or cancelled session startup now attempts bounded cleanup; teardown cancellation
+  is recorded without replacing the task outcome. Container isolation is not a complete
+  security sandbox for hostile code. See [Isolated code tasks](docs/IsolatedCodeTasks.md).
+
+### Security — remote execution and custom-CA TLS
+
+- **Breaking hardening:** `/api/execution/run` rejects every nonempty `VolumeMounts` with 400,
+  including paths under `Ashlar:Execution:AllowedVolumeMountRoot`. The legacy setting no longer
+  enables mounts: a pathname check cannot prevent symlink substitution before the Docker daemon
+  resolves the source. Omit mounts for remote runs, or use a trusted local execution workflow.
+  Mount-free remote runs, remote image builds, and local Docker mounting are unchanged.
+- Custom-CA gRPC connections preserve TLS hostname validation while replacing platform chain
+  trust with the configured CA. A certificate for another host is no longer accepted merely
+  because the configured CA signed it.
+
+### Added — developer CI review workers
+
+- Add user-invokable, operation-scoped dependency preflights and automatic checks for the reviewer, coordinator, repository-gate and developer-dogfood CI paths, with required/optional results and retained receipts. Broader runtime and deployment coverage remains separate.
+- Repository gate tests now have per-check and overall deadlines, retained failure/stall logs, reproduction commands and explicit incomplete statuses in the required shell-lint job.
+- Add independent read-only redundancy, efficiency, security and cost reviewers with bounded, SHA-bound advisory reports and a deduplicated verification queue. Model-driven fix writing, issues, approvals and releases remain disabled.
+- Extend the existing standalone brick authoring journey with a real consumer edit/test cycle, cancellation checks and retained test receipts; reuse existing distribution builds.
+
 ### Changed — provider-aware and recollected release evidence
 
 - Brick contract `1.4.0` checks each required context's app binding independently. Wrong-app failures

@@ -2,6 +2,8 @@
 
 Documentation index for the Ashlar platform. Start here to find what you need.
 
+- [Developer CI workers](DeveloperCiAgents.md) — scripted developer journeys, independent advisory reviewers, verification routing, permissions and limits.
+
 ## Start Here
 
 1. `docs/TesterQuickstart.md` — **the one lane for a first run**: clone → `dotnet build Ashlar.Kernel.sln` → `ashlar doctor` → run the API on loopback, submit one task, read its audit trail → run the certification gate. No Docker, no API keys, verified paths only.
@@ -99,6 +101,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `docs/TailscaleAndAshlar.md` — Tailscale + Ashlar exposure profile, ACL guidance, advisory endpoint.
 - `docs/config/security-exposure.env.example` — `Ashlar__Security__*` env template for operators.
 - `docs/Configuration.md` — environment variables and configuration reference.
+- `docs/DynamicPreflight.md` — modular operation-selected dependency checks, caller policy, and current coverage.
 - `docs/AgentSandboxArchitecture.md` — project-scoped sandbox model for agent file/tool execution and host-app integration (Unity-friendly).
 
 ## API / SDK / Runtime
@@ -112,6 +115,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `docs/samples/StableSdkHostSample/Program.cs` — reference host integration that only uses stable SDK extension points.
 - `docs/runtime/ExecutionRouting.md` — NCR-based generation routing (local, peer network, RunPod), preferences, and resilience behavior.
 - `docs/AgentExecutionIsolation.md` — per-agent isolation tiers (in-process through container-per-agent), JSON field, and invocation metadata for transports.
+- `docs/IsolatedCodeTasks.md` — opt-in temporary containers for code tasks, with explicit permissions, limits, cleanup and deployment limitations.
 - `docs/architecture/product-split.md` — framework vs extractable product trees; `AirGapped` vs `SecureWorkstation`.
 - `docs/architecture/ProtocolIntegration-MCP-A2A.md` — MCP + A2A protocol adapters: MCP server bridge over `ITool` (allowlists, policy gate, stdio host), MCP client, A2A server core + client transport, and the `Ashlar.API` wiring (`/api/mcp`, `/api/a2a/{agentId}`; all feature-flagged off by default). MCP client and A2A refuse AirGapped **and** SecureWorkstation; local MCP server stays allowed on SecureWorkstation.
 - `docs/runtime/specs/README.md` — runtime spec documents.

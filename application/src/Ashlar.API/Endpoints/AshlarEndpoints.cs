@@ -153,7 +153,7 @@ public static class AshlarEndpoints
             .WithSummary("Get background agent status and mode")
             .Produces<StatusResponse>(StatusCodes.Status200OK);
 
-        // Remote execution surface: hands caller-chosen images, commands and host bind mounts to the
+        // Remote execution surface: hands caller-chosen images and commands to the
         // local Docker daemon, so it is dark unless Ashlar:Execution:ServeRemoteExecution=true. Even
         // when opted in, the handlers refuse (403) while AuthorizationMode resolves to None.
         var executionOptions = app.ServiceProvider.GetService<IOptions<AshlarExecutionOptions>>()?.Value
@@ -662,7 +662,6 @@ public static class AshlarEndpoints
         [FromBody] ExecutionRunRequest request,
         [FromServices] IExecutionPlatform executionPlatform,
         [FromServices] IOptions<AshlarSecurityOptions> securityOptions,
-        [FromServices] IOptions<AshlarExecutionOptions> executionOptions,
         CancellationToken cancellationToken)
     {
         if (RemoteExecutionAuthRefusal(securityOptions.Value) is { } refusal)
@@ -671,7 +670,7 @@ public static class AshlarEndpoints
         if (string.IsNullOrWhiteSpace(request?.ImageTag) || request?.Command == null)
             return Results.BadRequest(new ProblemDetails { Title = "ImageTag and Command are required" });
 
-        if (!TryValidateVolumeMounts(request.VolumeMounts, executionOptions.Value.AllowedVolumeMountRoot, out var mountError))
+        if (!TryValidateVolumeMounts(request.VolumeMounts, out var mountError))
             return Results.BadRequest(new ProblemDetails { Title = "VolumeMounts rejected", Detail = mountError });
 
         try
@@ -710,68 +709,21 @@ public static class AshlarEndpoints
     }
 
     /// <summary>
-    /// Host bind mounts on the remote surface are accepted only under the single configured root
-    /// (<c>Ashlar:Execution:AllowedVolumeMountRoot</c>); with no root configured any mount is rejected.
-    /// RemoteExecutionPlatform sends an empty dictionary when the caller has no mounts, so empty is fine.
+    /// The remote surface refuses all host bind mounts, including paths under the legacy configured
+    /// root. The Docker daemon resolves mount sources after this process hands it a pathname, so a
+    /// lexical or symlink check here cannot prevent a writable directory being replaced in between.
+    /// Do not restore path-based approval without a daemon-side, race-safe source confinement design.
     /// </summary>
-    private static bool TryValidateVolumeMounts(Dictionary<string, string>? volumeMounts, string? allowedRoot, out string? error)
+    private static bool TryValidateVolumeMounts(Dictionary<string, string>? volumeMounts, out string? error)
     {
         error = null;
         if (volumeMounts is null || volumeMounts.Count == 0)
             return true;
 
-        if (string.IsNullOrWhiteSpace(allowedRoot))
-        {
-            error = "VolumeMounts are not accepted on the remote execution surface unless Ashlar:Execution:AllowedVolumeMountRoot names a single host directory.";
-            return false;
-        }
-
-        var separators = new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar };
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        string root;
-        try
-        {
-            root = Path.GetFullPath(allowedRoot.Trim()).TrimEnd(separators);
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            error = "Ashlar:Execution:AllowedVolumeMountRoot is not a valid absolute path.";
-            return false;
-        }
-
-        foreach (var hostPath in volumeMounts.Keys)
-        {
-            var trimmed = hostPath?.Trim() ?? string.Empty;
-            string? full = null;
-            if (trimmed.Length > 0 && Path.IsPathRooted(trimmed))
-            {
-                try
-                {
-                    full = Path.GetFullPath(trimmed).TrimEnd(separators);
-                }
-                catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-                {
-                    full = null;
-                }
-            }
-
-            if (full is null)
-            {
-                error = $"Volume mount host path '{hostPath}' must be an absolute path under the configured root.";
-                return false;
-            }
-
-            var underRoot = string.Equals(full, root, comparison)
-                || full.StartsWith(root + Path.DirectorySeparatorChar, comparison)
-                || full.StartsWith(root + Path.AltDirectorySeparatorChar, comparison);
-            if (!underRoot)
-            {
-                error = $"Volume mount host path '{hostPath}' is outside Ashlar:Execution:AllowedVolumeMountRoot.";
-                return false;
-            }
-        }
-
-        return true;
+        error = "Host bind mounts are disabled on the remote execution surface. " +
+                "Ashlar:Execution:AllowedVolumeMountRoot no longer enables them. " +
+                "Omit VolumeMounts or use a trusted local execution workflow.";
+        return false;
     }
 
     private static async Task<IResult> GetCapabilitiesAsync(

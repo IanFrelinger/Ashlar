@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System.Threading.Channels;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -18,9 +18,6 @@ public sealed class ProcessEventSource : IObservableEventSource
     private readonly TimeSpan _pollInterval;
     private readonly string? _projectPath;
     private readonly ILogger<ProcessEventSource>? _logger;
-    private readonly ConcurrentQueue<NormalizedEvent> _eventQueue = new();
-    private readonly SemaphoreSlim _eventAvailable = new(0);
-    private readonly ConcurrentDictionary<int, string> _knownProcesses = new();
     /// <summary>
     /// Creates a process event source.
     /// </summary>
@@ -33,6 +30,7 @@ public sealed class ProcessEventSource : IObservableEventSource
         _processFilters = processFilters?.Where(n => !string.IsNullOrWhiteSpace(n)).ToList() ?? throw new ArgumentNullException(nameof(processFilters));
         _projectPath = projectPath;
         _pollInterval = pollInterval ?? TimeSpan.FromSeconds(2);
+        if (_pollInterval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(pollInterval));
         _logger = logger;
     }
 
@@ -48,36 +46,34 @@ public sealed class ProcessEventSource : IObservableEventSource
             yield break;
         }
 
-        var pollTask = Task.Run(() => PollAsync(cancellationToken), cancellationToken);
+        // Every enumeration owns its polling state, queue and cancellation. Slow consumers retain
+        // only the latest 256 observations, and a plain break stops polling without a caller token.
+        using var producerCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var channel = Channel.CreateBounded<NormalizedEvent>(new BoundedChannelOptions(256)
+        {
+            SingleReader = true, SingleWriter = true, FullMode = BoundedChannelFullMode.DropOldest
+        });
+        var pollTask = Task.Run(async () =>
+        {
+            try { await PollAsync(channel.Writer, producerCts.Token).ConfigureAwait(false); }
+            catch (OperationCanceledException) when (producerCts.IsCancellationRequested) { }
+            finally { channel.Writer.TryComplete(); }
+        }, CancellationToken.None);
         try
         {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                if (_eventQueue.TryDequeue(out var evt))
-                {
-                    yield return evt;
-                }
-                else
-                {
-                    try
-                    {
-                        await _eventAvailable.WaitAsync(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-                }
-            }
+            await foreach (var evt in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+                yield return evt;
         }
         finally
         {
+            producerCts.Cancel();
             await pollTask.ConfigureAwait(false);
         }
     }
 
-    private async Task PollAsync(CancellationToken ct)
+    private async Task PollAsync(ChannelWriter<NormalizedEvent> writer, CancellationToken ct)
     {
+        var knownProcesses = new Dictionary<int, string>();
         while (!ct.IsCancellationRequested)
         {
             try
@@ -92,10 +88,10 @@ public sealed class ProcessEventSource : IObservableEventSource
                         if (matches)
                         {
                             currentIds.Add(proc.Id);
-                            if (!_knownProcesses.ContainsKey(proc.Id))
+                            if (!knownProcesses.ContainsKey(proc.Id))
                             {
-                                _knownProcesses[proc.Id] = name;
-                                Enqueue("started", name, proc.Id);
+                                knownProcesses[proc.Id] = name;
+                                Enqueue(writer, "started", name, proc.Id);
                             }
                         }
                     }
@@ -109,12 +105,12 @@ public sealed class ProcessEventSource : IObservableEventSource
                     }
                 }
 
-                foreach (var kvp in _knownProcesses.ToList())
+                foreach (var kvp in knownProcesses.ToList())
                 {
                     if (!currentIds.Contains(kvp.Key))
                     {
-                        _knownProcesses.TryRemove(kvp.Key, out _);
-                        Enqueue("stopped", kvp.Value, kvp.Key);
+                        knownProcesses.Remove(kvp.Key);
+                        Enqueue(writer, "stopped", kvp.Value, kvp.Key);
                     }
                 }
             }
@@ -127,7 +123,7 @@ public sealed class ProcessEventSource : IObservableEventSource
         }
     }
 
-    private void Enqueue(string changeType, string processName, int processId)
+    private void Enqueue(ChannelWriter<NormalizedEvent> writer, string changeType, string processName, int processId)
     {
         var payload = JsonSerializer.SerializeToElement(new { changeType, processName, processId, });
         var evt = new NormalizedEvent
@@ -139,7 +135,6 @@ public sealed class ProcessEventSource : IObservableEventSource
             ProjectPath = _projectPath,
             Payload = payload,
         };
-        _eventQueue.Enqueue(evt);
-        _eventAvailable.Release();
+        writer.TryWrite(evt);
     }
 }

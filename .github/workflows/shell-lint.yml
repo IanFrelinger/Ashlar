@@ -79,6 +79,8 @@ jobs:
 
       - name: Repository gates
         shell: bash
+        env:
+          ASHLAR_GATE_REPORTS: ${{ runner.temp }}/repository-gate-diagnostics
         run: |
           # Every gate that is a bare invocation, DISCOVERED rather than listed. This step used to be
           # one step per gate, appended to the same list, which became this repository's worst merge
@@ -88,3 +90,23 @@ jobs:
           # having run nothing, and it runs every gate before reporting rather than stopping at the
           # first failure.
           bash scripts/ci/run-repo-gates.sh
+
+      - name: Publish repository gate failures and stalls
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RUNNER_TEMP/repository-gate-diagnostics/summary.md" ]]; then
+            cat "$RUNNER_TEMP/repository-gate-diagnostics/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          elif [[ -f "$RUNNER_TEMP/repository-gate-diagnostics/preflight.json" ]]; then
+            echo 'Repository gate preflight did not pass. Inspect preflight.json in the repository-gate-diagnostics artifact for the exact missing prerequisite and fix. Tests were not verified.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Repository gates did not produce diagnostics. They were not verified; inspect the earlier failed or cancelled step.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: repository-gate-diagnostics
+          path: ${{ runner.temp }}/repository-gate-diagnostics/
+          if-no-files-found: error
+          retention-days: 30

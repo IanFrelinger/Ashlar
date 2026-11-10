@@ -255,6 +255,60 @@ public class InfrastructureBehaviorGapCoverageTests
         events.OfType<BehaviorCompletedEvent>().Single().Success.Should().BeFalse();
     }
 
+    [Fact]
+    [Trait("Category", "ProdStyle")]
+    public async Task Behavior_event_enumerator_disposal_cancels_and_joins_the_running_brick()
+    {
+        var brick = new CancellationBehaviorBrick();
+        var executor = CreateExecutor(brick);
+        var behavior = new Behavior
+        {
+            Id = "owned-producer", Name = "Owned producer", Description = "test",
+            Steps = [new BehaviorStep { Id = "wait", BrickId = brick.Id, Implementation = ImplementationType.Deterministic }]
+        };
+        using var cts = new CancellationTokenSource();
+        var events = executor.ExecuteWithEventsAsync(new AgentCard { Id = "agent", Name = "agent", Description = "test" },
+            behavior, new BehaviorInput(), new ExecutionOptions(), cts.Token).GetAsyncEnumerator();
+        try
+        {
+            Assert.True(await events.MoveNextAsync());
+            await brick.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await events.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(brick.Stopped.Task.IsCompletedSuccessfully);
+            Assert.False(cts.IsCancellationRequested);
+        }
+        finally
+        {
+            cts.Cancel();
+            await brick.Stopped.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await events.DisposeAsync();
+        }
+    }
+
+    private sealed class CancellationBehaviorBrick : DomainBrick
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Stopped { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public CancellationBehaviorBrick()
+        {
+            Id = "wait"; Name = "Wait"; Description = "test"; Category = BrickCategory.Control;
+            Implementations = new BrickImplementations
+            {
+                Deterministic = new DeterministicImplementation { Id = "det", Name = "det", Description = "test", Executor = "local" }
+            };
+        }
+
+        public override async Task<BrickOutput> ExecuteAsync(BrickInput input, ImplementationType implementation,
+            IExecutionContext context, CancellationToken cancellationToken = default)
+        {
+            Started.TrySetResult();
+            try { await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken); }
+            finally { Stopped.TrySetResult(); }
+            return new BrickOutput();
+        }
+    }
+
     private static BehaviorExecutor CreateExecutor(DomainBrick brick)
     {
         var registry = new SingleBrickRegistry(brick);
