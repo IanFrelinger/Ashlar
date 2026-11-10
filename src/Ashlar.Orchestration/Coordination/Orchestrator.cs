@@ -190,13 +190,13 @@ public sealed class Orchestrator
         var rootSpanId = _metrics?.StartSpan("Orchestrate", null, new Dictionary<string, string>
         {
             ["correlationId"] = correlationId,
-            ["request"] = request
+            ["requestLength"] = request.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
         });
 
-        _logger.LogInformation("Starting orchestration for request: {Request} (CorrelationId: {CorrelationId})", request, correlationId);
+        _logger.LogInformation("Starting orchestration (RequestLength: {RequestLength}, CorrelationId: {CorrelationId})", request.Length, correlationId);
 
         using var profiler = _metrics != null
-            ? new PerformanceProfiler("Orchestrate", _metrics, null, new Dictionary<string, object> { ["correlationId"] = correlationId, ["request"] = request })
+            ? new PerformanceProfiler("Orchestrate", _metrics, null, new Dictionary<string, object> { ["correlationId"] = correlationId, ["requestLength"] = request.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) })
             : null;
 
         try

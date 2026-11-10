@@ -739,6 +739,24 @@ public class OrchestrationOrchestratorGapCoverageTests
         return services.BuildServiceProvider();
     }
 
+    [Fact]
+    [Trait("Category", "ProdStyle")]
+    public async Task Orchestration_telemetry_does_not_retain_the_full_request()
+    {
+        const string request = "Private request that must not enter retained telemetry";
+        var metrics = new OrchestrationMetrics(NullLogger<OrchestrationMetrics>.Instance);
+        var decomposition = new DecompositionResult { OriginalRequest = request, Agents = [] };
+        var sut = CreateOrchestrator(CreateArchitectMock(decomposition).Object,
+            new Mock<IAgentTransport>().Object, metrics: metrics);
+        await sut.OrchestrateAsync(request);
+        var report = metrics.GetPerformanceReport();
+        report.Traces.Should().NotBeEmpty();
+        report.Traces.SelectMany(t => t.Tags).Should().NotContain(t => t.Value.Contains(request));
+        report.Operations.SelectMany(o => o.Metadata).Should().NotContain(m => Equals(m.Value, request));
+        metrics.GetTraces(operationName: "Orchestrate").Should().ContainSingle()
+            .Which.Tags.Should().ContainKey("requestLength").And.NotContainKey("request");
+    }
+
     private static Orchestrator CreateOrchestrator(
         IArchitectAgent architect,
         IAgentTransport transport,

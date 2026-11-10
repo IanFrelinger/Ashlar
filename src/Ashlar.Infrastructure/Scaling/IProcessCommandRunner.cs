@@ -13,3 +13,21 @@ public interface IProcessCommandRunner
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Optional process-runner capability that enforces a combined raw stdout/stderr byte limit.
+/// Callers that require bounded output must reject runners without this capability.
+/// </summary>
+public interface IBoundedOutputProcessCommandRunner : IProcessCommandRunner
+{
+    /// <summary>
+    /// Runs a process with bounded output capture. Exceeding <paramref name="maxOutputBytes"/>
+    /// kills the local process tree and throws <see cref="ProcessOutputLimitExceededException"/>.
+    /// The limit must be between one byte and 16 MiB; it is not a character count.
+    /// </summary>
+    Task<ProcessCommandResult> RunBoundedAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        int maxOutputBytes,
+        CancellationToken cancellationToken = default);
+}

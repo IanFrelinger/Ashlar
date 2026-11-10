@@ -461,8 +461,8 @@
     {
       "id": "timed-public-process-is-offhost",
       "file": "src/Ashlar.Infrastructure/HostProcess/TimedProcess.cs",
-      "old": "\"EG-PROC-08\", \"process:\" + Path.GetFileNameWithoutExtension(startInfo.FileName)",
-      "new": "\"EG-PROC-08\", \"host:\" + Path.GetFileNameWithoutExtension(startInfo.FileName)",
+      "old": "\"EG-PROC-08\", \"process:\" + Path.GetFileNameWithoutExtension(startInfo.FileName)));\n        if (decision.Refuses) throw new EgressRefusedException(decision);\n        return await RunEvaluatedAsync(",
+      "new": "\"EG-PROC-08\", \"host:\" + Path.GetFileNameWithoutExtension(startInfo.FileName)));\n        if (decision.Refuses) throw new EgressRefusedException(decision);\n        return await RunEvaluatedAsync(",
       "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
@@ -473,13 +473,37 @@
     {
       "id": "timed-internal-rechecks-decision",
       "file": "src/Ashlar.Infrastructure/HostProcess/TimedProcess.cs",
-      "old": "        decision.ThrowIfRefused();",
-      "new": "        _ = decision;",
+      "old": "        decision.ThrowIfRefused();\n        if (timeout <= TimeSpan.Zero",
+      "new": "        _ = decision;\n        if (timeout <= TimeSpan.Zero",
       "filter": "FullyQualifiedName~EgressExplicitEnforcementTests",
       "framework": "net8.0",
       "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
       "expected_failures": [
         "Internal_evaluated_process_entry_still_rejects"
+      ]
+    },
+    {
+      "id": "timed-bounded-public-process-is-offhost",
+      "file": "src/Ashlar.Infrastructure/HostProcess/TimedProcess.cs",
+      "old": "\"EG-PROC-08\", \"process:\" + Path.GetFileNameWithoutExtension(startInfo.FileName)));\n        if (decision.Refuses) throw new EgressRefusedException(decision);\n        return RunEvaluatedBoundedAsync(",
+      "new": "\"EG-PROC-08\", \"host:\" + Path.GetFileNameWithoutExtension(startInfo.FileName)));\n        if (decision.Refuses) throw new EgressRefusedException(decision);\n        return RunEvaluatedBoundedAsync(",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests.Bounded_process_entries_refuse_before_launch_and_report_mode_reaches_marker",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Bounded_process_entries_refuse_before_launch_and_report_mode_reaches_marker(processRunner: False)"
+      ]
+    },
+    {
+      "id": "timed-bounded-internal-rechecks-decision",
+      "file": "src/Ashlar.Infrastructure/HostProcess/TimedProcess.cs",
+      "old": "        decision.ThrowIfRefused();\n        if (maxOutputBytes < 1",
+      "new": "        _ = decision;\n        if (maxOutputBytes < 1",
+      "filter": "FullyQualifiedName~EgressExplicitEnforcementTests.Internal_evaluated_bounded_process_entry_rejects_refusing_decision",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "Internal_evaluated_bounded_process_entry_rejects_refusing_decision"
       ]
     },
     {
@@ -775,8 +799,8 @@
     {
       "id": "cli-pkg-refusal-exit-1",
       "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
-      "old": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"→ {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
-      "new": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"→ {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
+      "old": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"\u2192 {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 77;",
+      "new": "l {Fp(sealer.PublicKeyBase64)}\")}\");\n            Console.WriteLine($\"  {Dim($\"\u2192 {outFile.FullName}\")}\");\n            return 0;\n        }\n        catch (Exception ex) when (EgressRefusal.Find(ex) is not null)\n        {\n            Console.Error.WriteLine(EgressRefusal.Find(ex)!.Message);\n            return 1;",
       "filter": "FullyQualifiedName~EgressCliSiteTwinTests",
       "framework": "net10.0",
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",

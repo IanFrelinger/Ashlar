@@ -3,11 +3,11 @@
 Workflows in this directory are **manual-first** to reduce duplicate CI load, surprise
 minute costs, and branch-noise on `cursor/**` and other integration branches. The full,
 per-file trigger map lives in [`docs/CiGateInventory.md`](../../docs/CiGateInventory.md);
-the summary of the 62 files (recounted 2026-11-02, after the project inventory guard gained a PR trigger) is:
+the summary of the 63 files (recounted 2026-11-08, after adding developer CI reviewers) is:
 
-- **21 run on `pull_request`** — seven on every PR (`build-gate`, `cert-gate`, `docs-link-check`,
+- **22 run on `pull_request`** — seven on every PR (`build-gate`, `cert-gate`, `docs-link-check`,
   `full-platform-readiness-gate`, `layer-boundary`, `shell-lint`, `uat-gate`; `layer-boundary`
-  carries `paths: "**"`, which matches everything); thirteen path-filtered
+  carries `paths: "**"`, which matches everything); fourteen path-filtered
   (kernel/application/security/coverage/testing-strategy/project inventory/other path-scoped gates); and one
   label-driven, `release-staging-on-label`. `full-platform-readiness-gate` filters
   paths *inside* the workflow (a `changes` job) so its `Readiness summary` check always reports:
@@ -24,15 +24,15 @@ the summary of the 62 files (recounted 2026-11-02, after the project inventory g
   `devlog-ghost-release.yml` on published releases) — **2 files**.
 - **3 are reusable (`workflow_call`)** and carry no trigger of their own: `reusable-container-publish`,
   `reusable-release-nuget`, `reusable-verify-nuget-consumer`.
-- **Schedules** still exist on six workflows: `distribution-matrix-gate` (Mon 10:00 UTC),
+- **Schedules** still exist on seven workflows: `distribution-matrix-gate` (Mon 10:00 UTC),
   `full-platform-readiness-gate` (Mon 06:00), `onboarding-quickstart-gate` (Mon 07:00),
   `runtime-portability-gate` (Mon 11:00), `rc-gate` (06:00 on the 1st of the month) and
-  `dogfood-continuous-proof` (06:00 weekdays). Everything else is push- or dispatch-driven.
+  `dogfood-continuous-proof` (06:00 weekdays), plus `developer-ci-agents` (Fri 07:30). Everything else is push- or dispatch-driven.
   `mesh-lab-tls-gate` lost its Tue 07:00 schedule on 2026-09-13 after four consecutive red
   scheduled runs, joining its two mesh siblings as manual-only.
 
-The first five classes are disjoint and account for every file: **21 + 18 + 18 + 2 + 3 = 62**.
-The schedule bullet is a cross-cut, not a sixth class: three of those six (`distribution-matrix-gate`,
+The first five classes are disjoint and account for every file: **22 + 18 + 18 + 2 + 3 = 63**.
+The schedule bullet is a cross-cut, not a sixth class: four of those seven (`developer-ci-agents`, `distribution-matrix-gate`,
 `full-platform-readiness-gate`, `runtime-portability-gate`) also run on `pull_request` and are counted
 in the first class; the other three (`onboarding-quickstart-gate`, `rc-gate`,
 `dogfood-continuous-proof`) are in the `push`/`schedule` class. Re-derive rather than trust — every
