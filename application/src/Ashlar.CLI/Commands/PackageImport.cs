@@ -239,7 +239,16 @@ public static class PackageImport
             await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(receipt));
             File.Move(temporary, path); // append-once, never replace a conflicting receipt
         }
-        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        catch (Exception writeError)
+        {
+            try { if (File.Exists(temporary)) File.Delete(temporary); }
+            catch (Exception cleanupError)
+            {
+                throw new AggregateException("Import receipt write and temporary-file cleanup both failed.",
+                    writeError, cleanupError);
+            }
+            throw;
+        }
     }
 
     /// <summary>Display fingerprint for a base64 public key, or a plain note when absent.</summary>
