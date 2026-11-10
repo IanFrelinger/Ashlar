@@ -30,22 +30,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Keep installation retries separate from the link check: broken links must fail.
+      - name: Install pinned lychee with bounded retries
+        run: bash scripts/ci/install-lychee.sh
+
       - name: Run lychee
         id: lychee
-        continue-on-error: true
-        uses: lycheeverse/lychee-action@v2.9.0
-        with:
-          args: --no-progress --max-concurrency 8 --user-agent "ashlar-docs-link-check" README.md "docs/**/*.md"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # lychee-action downloads its binary from GitHub Releases. That curl
-      # occasionally dies with SSL connect error 35 before any links are checked
-      # (PR run on f95b9eb5; the push run of the same SHA succeeded).
-      - name: Retry lychee after install flake
-        if: steps.lychee.outcome == 'failure'
-        uses: lycheeverse/lychee-action@v2.9.0
-        with:
-          args: --no-progress --max-concurrency 8 --user-agent "ashlar-docs-link-check" README.md "docs/**/*.md"
+        run: bash scripts/ci/check-docs-links.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
