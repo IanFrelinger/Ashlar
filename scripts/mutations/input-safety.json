@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "note": "Exact production mutations; baseline, intended failures, byte restoration and green reruns required.",
+  "mutations": [
+    {
+      "id": "yaml-depth-disabled",
+      "file": "src/Ashlar.Manifest/YamlGuard.cs",
+      "old": "stack.Count >= MaxDepth",
+      "new": "stack.Count >= int.MaxValue",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~YamlDepth",
+      "expected_failures": [
+        "Extreme_input_returns_a_reason_instead_of_terminating_the_process"
+      ]
+    },
+    {
+      "id": "yaml-depth-boundary-relaxed",
+      "file": "src/Ashlar.Manifest/YamlGuard.cs",
+      "old": "stack.Count >= MaxDepth",
+      "new": "stack.Count > MaxDepth",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~YamlDepthGuardTests",
+      "expected_failures": [
+        "Exactly_64_open_containers_are_allowed_but_65_are_rejected"
+      ]
+    },
+    {
+      "id": "yaml-sequence-depth-omitted",
+      "file": "src/Ashlar.Manifest/YamlGuard.cs",
+      "old": "parser.Current is MappingStart or SequenceStart &&",
+      "new": "parser.Current is MappingStart &&",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~YamlDepthGuardTests",
+      "expected_failures": [
+        "Exactly_64_open_containers_are_allowed_but_65_are_rejected"
+      ]
+    },
+    {
+      "id": "yaml-mapping-depth-omitted",
+      "file": "src/Ashlar.Manifest/YamlGuard.cs",
+      "old": "parser.Current is MappingStart or SequenceStart &&",
+      "new": "parser.Current is SequenceStart &&",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~YamlDepthGuardTests",
+      "expected_failures": [
+        "Exactly_64_open_containers_are_allowed_but_65_are_rejected"
+      ]
+    },
+    {
+      "id": "runtime-lock-self-test-disabled",
+      "file": "src/Ashlar.Manifest/Storage/FileLockSafety.cs",
+      "old": "internal static void EnsureSupported() => _ = Verified.Value;",
+      "new": "internal static void EnsureSupported() { }",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~FileLockSafetyTests",
+      "expected_failures": [
+        "Disabled_runtime_locking_fails_closed_in_a_fresh_process"
+      ]
+    },
+    {
+      "id": "gate-constructor-lock-check-omitted",
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "old": "        Storage.FileLockSafety.EnsureSupported();\n        _",
+      "new": "        _",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~FileLockSafetyTests",
+      "expected_failures": [
+        "Construction_verifies_runtime_locking_before_creating_store_directories"
+      ]
+    },
+    {
+      "id": "ledger-constructor-lock-check-omitted",
+      "file": "src/Ashlar.Manifest/Ledger/InstanceLedger.cs",
+      "old": "        Storage.FileLockSafety.EnsureSupported();\n        _",
+      "new": "        _",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~FileLockSafetyTests",
+      "expected_failures": [
+        "Construction_verifies_runtime_locking_before_creating_store_directories"
+      ]
+    },
+    {
+      "id": "runtime-lock-failure-cache-disabled",
+      "file": "src/Ashlar.Manifest/Storage/FileLockSafety.cs",
+      "old": "private static readonly Lazy<bool> Verified = new(Verify);",
+      "new": "private static Lazy<bool> Verified => new(Verify);",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~FileLockSafetyTests",
+      "expected_failures": [
+        "Concurrent_first_construction_shares_the_runtime_verification"
+      ]
+    },
+    {
+      "id": "runtime-lock-probe-errors-ignored",
+      "file": "src/Ashlar.Manifest/Storage/FileLockSafety.cs",
+      "old": "throw new InvalidOperationException(\n                \"Could not verify FileShare.None exclusivity. Refusing gate-store and ledger initialization and writes. \" +\n                \"Check the temporary directory and DOTNET_SYSTEM_IO_DISABLEFILELOCKING, then restart the process.\", ex);",
+      "new": "return true;",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~FileLockSafetyTests",
+      "expected_failures": [
+        "An_unusable_probe_directory_fails_closed_during_construction"
+      ]
+    }
+  ]
+}

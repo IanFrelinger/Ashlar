@@ -98,6 +98,7 @@ public sealed partial class InstanceLedger
         {
             throw new ArgumentException("A state root is required.", nameof(stateRoot));
         }
+        Storage.FileLockSafety.EnsureSupported();
         _dir = Path.Combine(stateRoot, "ledger");
     }
 
@@ -331,6 +332,8 @@ public sealed partial class InstanceLedger
     /// </summary>
     private async Task<FileStream> AcquireLockAsync(CancellationToken ct)
     {
+        // Outside the contention retry loop: a disabled lock is a safety failure, not contention.
+        Storage.FileLockSafety.EnsureSupported();
         var lockPath = Path.Combine(_dir, ".lock");
         var deadline = Environment.TickCount64 + 15_000;
         while (true)

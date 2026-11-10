@@ -112,6 +112,7 @@ public sealed partial class GateStore
         {
             throw new ArgumentException("A state root is required.", nameof(stateRoot));
         }
+        Storage.FileLockSafety.EnsureSupported();
         _stateRoot = stateRoot;
         _dir = Path.Combine(stateRoot, "gates");
         _signer = signer;
@@ -334,6 +335,8 @@ public sealed partial class GateStore
     /// </summary>
     private async Task<FileStream> AcquireLockAsync(CancellationToken ct)
     {
+        // Outside the contention retry loop: a disabled lock is a safety failure, not contention.
+        Storage.FileLockSafety.EnsureSupported();
         var lockPath = Path.Combine(_dir, ".lock");
         var deadline = Environment.TickCount64 + 15_000;
         while (true)
