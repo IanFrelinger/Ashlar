@@ -756,9 +756,8 @@ public sealed class PkgCommand : Command
                         // sealer fingerprint is the one part of a row a sender cannot choose, which
                         // is the whole reason it is printed.
                         //
-                        // The ADMITTED / HELD / already-have rows above print a summary that came
-                        // out of a package the seal VERIFIED — the pre-existing class #483 tracks —
-                        // and are deliberately left alone.
+                        // ADMITTED / HELD / already-have rows above use the same display boundary:
+                        // a verified seal authenticates text but never makes terminal commands safe.
                         Console.WriteLine($"  {Bad("× REFUSED")}  {Safe(summary)} {Dim($"{sealedBy} · {Safe(result.Message)}")}");
                         break;
                 }

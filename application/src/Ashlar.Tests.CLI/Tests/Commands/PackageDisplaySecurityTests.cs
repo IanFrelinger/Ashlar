@@ -104,8 +104,10 @@ public sealed class PackageDisplaySecurityTests : IDisposable
     {
         var project = Path.Combine(_dir, "project");
         Directory.CreateDirectory(project);
-        await File.WriteAllTextAsync(Path.Combine(project, "ashlar.yaml"), "kind: Application\n");
-        await File.WriteAllTextAsync(Path.Combine(project, "ashlar.policy.yaml"), "kind: Policy\n");
+        ProjectScaffold.TryScaffold("display-test", out var manifest, out var policy, out var reason)
+            .Should().BeTrue(reason);
+        await File.WriteAllTextAsync(Path.Combine(project, "ashlar.yaml"), manifest);
+        await File.WriteAllTextAsync(Path.Combine(project, "ashlar.policy.yaml"), policy);
         var (code, output) = await Run("pkg", "import", Package(), "--path", project);
         code.Should().Be(65);
         AssertSafe(output);
