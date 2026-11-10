@@ -154,7 +154,7 @@
       "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
       "id": "proposal-lock-retry-disabled",
       "old": "IsSharingViolation(ex) && wait.Elapsed < TimeSpan.FromSeconds(10)",
-      "new": "false && wait.Elapsed < TimeSpan.FromSeconds(10)",
+      "new": "IsSharingViolation(ex) && wait.Elapsed < TimeSpan.Zero",
       "expected_failures": [
         "Held_lock_retries_without_publishing_until_its_owner_releases_it"
       ]
