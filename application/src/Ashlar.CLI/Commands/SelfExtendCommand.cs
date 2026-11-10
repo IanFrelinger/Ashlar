@@ -5,6 +5,7 @@ using System.Text.Json;
 using Ashlar.BackgroundAgents.HostRunners;
 using Ashlar.CLI.Runtime;
 using Ashlar.Infrastructure.HostProcess;
+using Ashlar.Infrastructure.Preflight;
 
 namespace Ashlar.CLI.Commands;
 
@@ -513,7 +514,7 @@ public sealed class SelfExtendCommand : Command
             checks.Add(smokeCheck);
         }
 
-        if (workflow.RunVisualQa)
+        if (runAesthetic && workflow.RunVisualQa)
         {
             var visualInfra = await AssessVisualQaReadinessAsync(repoRoot, ct).ConfigureAwait(false);
             var strictVisual = !string.Equals(workflow.VisualQaFallbackPolicy, "degrade", StringComparison.OrdinalIgnoreCase);
@@ -529,7 +530,8 @@ public sealed class SelfExtendCommand : Command
                 "visual-infra",
                 infraOk,
                 strictVisual,
-                message));
+                message,
+                visualInfra.Dependencies));
         }
 
         return BuildPreflightResult(checks);
@@ -615,24 +617,8 @@ public sealed class SelfExtendCommand : Command
 
     private static async Task<VisualInfraReadiness> AssessVisualQaReadinessAsync(string repoRoot, CancellationToken ct)
     {
-        var dockerCli = await RunProcessAsync("bash", repoRoot, new[] { "-lc", "command -v docker" }, ct).ConfigureAwait(false);
-        if (dockerCli.ExitCode != 0)
-            return new VisualInfraReadiness(false, "Visual QA infra missing docker CLI.");
-
-        var dockerInfo = await RunProcessAsync(
-            "bash",
-            repoRoot,
-            new[] { "-lc", "docker info > /dev/null 2>&1" },
-            ct,
-            TimedProcess.DaemonProbeTimeout).ConfigureAwait(false);
-        if (dockerInfo.ExitCode != 0)
-            return new VisualInfraReadiness(false, "Visual QA infra missing usable Docker daemon.");
-
-        var ollamaCli = await RunProcessAsync("bash", repoRoot, new[] { "-lc", "command -v ollama" }, ct).ConfigureAwait(false);
-        if (ollamaCli.ExitCode != 0)
-            return new VisualInfraReadiness(false, "Visual QA infra missing Ollama CLI.");
-
-        return new VisualInfraReadiness(true, "Visual QA infra ready (docker + daemon + ollama).");
+        var report = await VisualDependencyPreflight.RunAsync(repoRoot, runVisualQa: true, required: true, ct).ConfigureAwait(false);
+        return new VisualInfraReadiness(report.RequiredAvailable, VisualDependencyPreflight.Summarize(report), report);
     }
 
     private static int TryReadTotalTests(string stdout)
@@ -855,7 +841,8 @@ public sealed class SelfExtendCommand : Command
                     id = c.Id,
                     ok = c.Ok,
                     required = c.Required,
-                    message = c.Message
+                    message = c.Message,
+                    dependencies = c.Dependencies
                 }).ToArray()
             };
             Console.WriteLine(JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
@@ -943,7 +930,7 @@ public sealed class SelfExtendCommand : Command
 
     private sealed record PreflightResult(bool Passed, string Summary, IReadOnlyList<PreflightCheck> Checks);
 
-    private sealed record PreflightCheck(string Id, bool Ok, bool Required, string Message);
+    private sealed record PreflightCheck(string Id, bool Ok, bool Required, string Message, DependencyPreflightReport? Dependencies = null);
 
-    private sealed record VisualInfraReadiness(bool Ready, string Summary);
+    private sealed record VisualInfraReadiness(bool Ready, string Summary, DependencyPreflightReport Dependencies);
 }

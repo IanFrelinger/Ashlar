@@ -130,25 +130,35 @@ internal sealed partial class ExecuteHandler(
     }
 
 
-    private static async Task<RuntimePlanContext> ApplyVisualCapabilityFallbackAsync(
+    internal static async Task<RuntimePlanContext> ApplyVisualCapabilityFallbackAsync(
         RuntimePlanContext context,
         string repoRoot,
         string testFilter,
+        bool runTests,
+        bool runPreflight,
         bool allowVisualCapabilityDegrade,
         CancellationToken ct)
     {
-        if (!allowVisualCapabilityDegrade ||
-            !context.Plan.RunVisualQa ||
+        if (!runTests || !runPreflight || !allowVisualCapabilityDegrade ||
+            !context.Plan.RunVisualQa || !context.Plan.RunAestheticQa ||
+            string.Equals(context.Plan.Focus, "functional", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(context.Plan.VisualQaFallbackPolicy, "strict", StringComparison.OrdinalIgnoreCase))
         {
             return context;
         }
 
-        var capability = await AssessVisualInfraCapabilityAsync(repoRoot, ct).ConfigureAwait(false);
-        if (capability.Ready)
+        var report = await VisualDependencyPreflight.RunAsync(repoRoot, runVisualQa: true, required: true, ct).ConfigureAwait(false);
+        return ApplyVisualCapabilityFallback(context, testFilter, report);
+    }
+
+    // The operation, not the runner, owns the existing explicit capability-degrade behavior.
+    internal static RuntimePlanContext ApplyVisualCapabilityFallback(
+        RuntimePlanContext context, string testFilter, Ashlar.Infrastructure.Preflight.DependencyPreflightReport report)
+    {
+        if (report.RequiredAvailable)
             return context;
 
-        var reason = $"runtime capability degrade applied: {capability.Summary}";
+        var reason = $"runtime capability degrade applied: {VisualDependencyPreflight.Summarize(report)}";
         var adjustedPlan = context.Plan with
         {
             VisualQaFallbackPolicy = "degrade",
@@ -160,54 +170,6 @@ internal sealed partial class ExecuteHandler(
             Plan = adjustedPlan,
             WorkflowSpec = adjustedWorkflow
         };
-    }
-
-
-    private static async Task<RuntimeVisualInfraCapability> AssessVisualInfraCapabilityAsync(string repoRoot, CancellationToken ct)
-    {
-        var dockerCli = await RunShellProbeAsync(repoRoot, "command -v docker", ct).ConfigureAwait(false);
-        if (dockerCli.ExitCode != 0)
-            return new RuntimeVisualInfraCapability(false, "Visual QA infra missing docker CLI.");
-
-        var dockerDaemon = await RunShellProbeAsync(repoRoot, "docker info > /dev/null 2>&1", ct).ConfigureAwait(false);
-        if (dockerDaemon.ExitCode != 0)
-            return new RuntimeVisualInfraCapability(false, "Visual QA infra missing usable Docker daemon.");
-
-        var ollamaCli = await RunShellProbeAsync(repoRoot, "command -v ollama", ct).ConfigureAwait(false);
-        if (ollamaCli.ExitCode != 0)
-            return new RuntimeVisualInfraCapability(false, "Visual QA infra missing Ollama CLI.");
-
-        return new RuntimeVisualInfraCapability(true, "Visual QA infra ready (docker + daemon + ollama).");
-    }
-
-
-    private static async Task<RuntimeSubprocessResult> RunShellProbeAsync(
-        string workingDirectory,
-        string script,
-        CancellationToken ct)
-    {
-        var psi = new ProcessStartInfo
-        {
-            FileName = "bash",
-            WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        psi.ArgumentList.Add("-lc");
-        psi.ArgumentList.Add(script);
-
-        var result = await TimedProcess.RunAsync(psi, TimedProcess.DaemonProbeTimeout, ct).ConfigureAwait(false);
-        if (result.TimedOut)
-        {
-            var timeoutNote = $"Probe timed out after {TimedProcess.DaemonProbeTimeout.TotalSeconds:0}s.";
-            var stderr = string.IsNullOrWhiteSpace(result.StdErr)
-                ? timeoutNote
-                : timeoutNote + " " + result.StdErr.Trim();
-            return new RuntimeSubprocessResult(TimedProcess.TimeoutExitCode, result.StdOut, stderr);
-        }
-
-        return new RuntimeSubprocessResult(result.ExitCode, result.StdOut, result.StdErr);
     }
 
 

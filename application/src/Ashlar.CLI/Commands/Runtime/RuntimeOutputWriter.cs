@@ -47,7 +47,7 @@ internal static class RuntimeOutputWriter
                 gates = new
                 {
                     preflightRan = result.PreflightRan,
-                    preflightOk = result.PreflightOk,
+                    preflightOk = result.PreflightRan == true ? result.PreflightOk : null,
                     selfExtendRan = result.SelfExtendRan,
                     selfExtendOk = result.SelfExtendOk
                 },
