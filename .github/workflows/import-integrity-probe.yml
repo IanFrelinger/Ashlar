@@ -11,12 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: '1ea95ad13fd2655d6500112480b5142913d1bf4f'
+          ref: 'e683d4cc74437efcae5c4c967c9e4548b0f9e92b'
           fetch-depth: 0
       - name: Verify exact source
         run: |
-          test "$(git rev-parse HEAD)" = '1ea95ad13fd2655d6500112480b5142913d1bf4f'
-          test "$(git rev-parse HEAD^{tree})" = '5085c80cba6c6a7b31baf44a0ba40ca703c68749'
+          test "$(git rev-parse HEAD)" = 'e683d4cc74437efcae5c4c967c9e4548b0f9e92b'
+          test "$(git rev-parse HEAD^{tree})" = '17c1234d49d119d1c6db5ec1a2a7bdb22dfc72ae'
       - name: Focused import and package suites
         shell: bash
         run: |
@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/test-in-container.sh -- 'bash scripts/e2e-loop.sh' 2>&1 | tee "${RUNNER_TEMP}/import-integrity/e2e.log"
-      - name: Nine mutation proofs
+      - name: Ten mutation proofs
         shell: bash
         run: |
           set -euo pipefail
@@ -43,6 +43,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: import-integrity-1ea95ad13fd2655d6500112480b5142913d1bf4f
+          name: import-integrity-e683d4cc74437efcae5c4c967c9e4548b0f9e92b
           path: ${{ runner.temp }}/import-integrity
           if-no-files-found: error
