@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Runtime.InteropServices;
 using Ashlar.BackgroundAgents.Forge;
 using FluentAssertions;
 using Xunit;
@@ -244,6 +245,77 @@ public sealed class ChangeProposalDurabilityTests : IDisposable
             store.Find("LOWER")!.Status.Should().Be(ChangeProposalStatus.Proposed);
             store.List().Should().HaveCount(2);
         }
+    }
+
+    [Fact]
+    public async Task Held_lock_retries_without_publishing_until_its_owner_releases_it()
+    {
+        var contended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var store = Open(stage => { if (stage == "lock.contended") contended.TrySetResult(); });
+        var held = new FileStream(Path.Combine(_root, ".store.lock"), FileMode.OpenOrCreate,
+            FileAccess.ReadWrite, FileShare.None);
+        var writer = Task.Run(() => store.Add(Proposal()));
+        try
+        {
+            var first = await Task.WhenAny(contended.Task, writer).WaitAsync(TimeSpan.FromSeconds(5));
+            first.Should().Be(contended.Task, "a held lock must be retried, not surfaced as a store failure");
+            writer.IsCompleted.Should().BeFalse();
+            File.Exists(Row()).Should().BeFalse("a waiting writer must not publish without the lock");
+        }
+        finally
+        {
+            held.Dispose();
+            // Join even on assertion failure so teardown cannot race a surviving writer.
+            await writer;
+        }
+        (await writer).Status.Should().Be(ChangeProposalStatus.Proposed);
+        Open().List().Should().ContainSingle();
+    }
+
+    public static IEnumerable<object[]> LockErrorCases()
+    {
+        var windowsSharing = unchecked((int)0x80070020);
+        var windowsLock = unchecked((int)0x80070021);
+        foreach (var platform in new[] { "WINDOWS", "LINUX", "OSX", "FREEBSD", "UNKNOWN" })
+        foreach (var error in new[] { 5, 11, 28, 32, 33, 35, windowsSharing, windowsLock,
+                     unchecked((int)0x80070070), unchecked((int)0x80130020) })
+        {
+            var expected = platform switch
+            {
+                "WINDOWS" => error == windowsSharing || error == windowsLock,
+                "LINUX" => error == 11,
+                "OSX" or "FREEBSD" => error == 35,
+                _ => false
+            };
+            yield return new object[] { platform, error, expected };
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(LockErrorCases))]
+    public void Lock_errors_are_classified_in_their_native_platform_namespace(string platform, int error, bool expected)
+        => ChangeProposalStore.IsSharingViolation(error, OSPlatform.Create(platform)).Should().Be(expected);
+
+    [Theory]
+    [InlineData(5)] // EIO: real storage failure, not contention
+    [InlineData(28)] // ENOSPC
+    [InlineData(unchecked((int)0x80070070))] // Windows disk full
+    [InlineData(unchecked((int)0x80130020))] // Unrelated HRESULT with the same low word
+    public void Non_contention_lock_failures_surface_without_retrying_or_publishing(int error)
+    {
+        var attempts = 0;
+        var failure = new IOException("injected lock open failure", error);
+        var store = Open(stage =>
+        {
+            if (stage != "lock.opening") return;
+            attempts++;
+            throw failure;
+        });
+        Action add = () => store.Add(Proposal());
+        add.Should().Throw<IOException>().Which.Should().BeSameAs(failure);
+        attempts.Should().Be(1);
+        File.Exists(Row()).Should().BeFalse();
+        Open().List().Should().BeEmpty();
     }
 
     [Fact]

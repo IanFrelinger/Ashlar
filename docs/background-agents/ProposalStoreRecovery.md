@@ -25,6 +25,9 @@ on case-insensitive filesystems the filesystem also refuses aliases of an existi
 - Do not unlink `.store.lock` or manually edit a store while writers are running. Cooperating
   processes depend on exclusive file sharing and same-volume atomic rename semantics. Locking
   disabled by the runtime or unsupported by the filesystem is not covered by this protocol.
+- Lock contention retries for at most ten seconds. Windows sharing/lock HRESULTs and native
+  Linux (11) or macOS/FreeBSD (35) EWOULDBLOCK errors are classified separately; unrelated
+  I/O failures surface immediately rather than being mistaken for contention.
 
 `Flush(true)` persists file data. This protocol provides process-crash recovery, not a portable
 power-loss guarantee: directory-entry durability depends on the filesystem and storage stack.

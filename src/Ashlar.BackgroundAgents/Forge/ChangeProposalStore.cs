@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace Ashlar.BackgroundAgents.Forge;
@@ -257,17 +258,35 @@ public sealed class ChangeProposalStore : IChangeProposalStore
         {
             try
             {
+                _fault?.Invoke("lock.opening");
                 return new FileStream(Path.Combine(_root, ".store.lock"), FileMode.OpenOrCreate,
                     FileAccess.ReadWrite, FileShare.None);
             }
             catch (IOException ex) when (IsSharingViolation(ex) && wait.Elapsed < TimeSpan.FromSeconds(10))
             {
+                _fault?.Invoke("lock.contended");
                 Thread.Sleep(10);
             }
         }
     }
 
-    private static bool IsSharingViolation(IOException ex) => (ex.HResult & 0xffff) is 11 or 32 or 33;
+    private static bool IsSharingViolation(IOException ex) =>
+        IsSharingViolation(ex.HResult,
+            OperatingSystem.IsWindows() ? OSPlatform.Windows :
+            OperatingSystem.IsLinux() ? OSPlatform.Linux :
+            OperatingSystem.IsMacOS() ? OSPlatform.OSX :
+            OperatingSystem.IsFreeBSD() ? OSPlatform.FreeBSD : default);
+
+    internal static bool IsSharingViolation(int error, OSPlatform platform)
+    {
+        // Windows uses HRESULT_FROM_WIN32; Unix FileStream preserves the native errno.
+        // Do not pool these numbers: 35 is EDEADLK on Linux, and 11 is EDEADLK on Darwin.
+        if (platform == OSPlatform.Windows)
+            return error is unchecked((int)0x80070020) or unchecked((int)0x80070021);
+        if (platform == OSPlatform.Linux) return error == 11; // EAGAIN / EWOULDBLOCK
+        if (platform == OSPlatform.OSX || platform == OSPlatform.FreeBSD) return error == 35;
+        return false;
+    }
 
     private static bool Exists(string path)
     {

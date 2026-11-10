@@ -121,6 +121,43 @@
       "expected_failures": [
         "Supported_provider_survives_loading_spec_building_and_registration"
       ]
+    },
+    {
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "id": "proposal-bsd-contention-not-recognized",
+      "old": "if (platform == OSPlatform.OSX || platform == OSPlatform.FreeBSD) return error == 35;",
+      "new": "if (platform == OSPlatform.OSX || platform == OSPlatform.FreeBSD) return false;",
+      "expected_failures": [
+        "Lock_errors_are_classified_in_their_native_platform_namespace"
+      ]
+    },
+    {
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "id": "proposal-lock-errors-pooled",
+      "old": "if (platform == OSPlatform.Linux) return error == 11;",
+      "new": "if (platform == OSPlatform.Linux) return (error & 0xffff) is 11 or 32 or 33 or 35;",
+      "expected_failures": [
+        "Lock_errors_are_classified_in_their_native_platform_namespace",
+        "Non_contention_lock_failures_surface_without_retrying_or_publishing"
+      ]
+    },
+    {
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "id": "proposal-lock-retry-disabled",
+      "old": "IsSharingViolation(ex) && wait.Elapsed < TimeSpan.FromSeconds(10)",
+      "new": "false && wait.Elapsed < TimeSpan.FromSeconds(10)",
+      "expected_failures": [
+        "Held_lock_retries_without_publishing_until_its_owner_releases_it"
+      ]
     }
   ]
 }
