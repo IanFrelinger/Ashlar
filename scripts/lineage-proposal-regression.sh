@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ET
 for path in Path(sys.argv[1]).glob('focused-*.trx'):
     root = ET.parse(path).getroot()
     results = root.findall('./{*}Results/{*}UnitTestResult')
-    assert len(results) == 126, (path, len(results))
+    assert len(results) == 132, (path, len(results))
     assert all(r.get('outcome') == 'Passed' for r in results), path
     for suite in ('ChangeProposalStoreTests', 'ChangeProposalDurabilityTests', 'SelfExtendInvariantDRecursionCeilingTests'):
         assert any(suite in r.get('testName', '') for r in results), (path, suite)
