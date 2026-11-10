@@ -20,7 +20,7 @@ jobs:
     steps:
     - uses: actions/checkout@v7
       with:
-        ref: aad9e88ea0c3e96de28a8e02a492b4e17da1de10
+        ref: 78a79622a6a095873a3bf89aac0eed1bfd3e315f
         fetch-depth: 0
         persist-credentials: false
     - name: Verify supported container prerequisites
@@ -37,8 +37,8 @@ jobs:
       run: |
         python3 - <<'PY'
         import json, os, pathlib, shutil, subprocess, sys
-        source = 'aad9e88ea0c3e96de28a8e02a492b4e17da1de10'
-        expected_tree = '4ab703a0e82577a0c9e38da1833d1501e7ed3b6a'
+        source = '78a79622a6a095873a3bf89aac0eed1bfd3e315f'
+        expected_tree = '0c353490d507568976bc0f66bde489e7407afdc5'
         assert subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip() == source
         assert subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip() == expected_tree
         root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "preflight-mutations"
