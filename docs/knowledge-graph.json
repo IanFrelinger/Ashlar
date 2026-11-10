@@ -20,9 +20,9 @@
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 852,
-    "declared_facts": 5673,
-    "workflows": 66
+    "test_files_declaring_facts": 855,
+    "declared_facts": 5685,
+    "workflows": 67
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -855,6 +855,7 @@
       "is_packable_explicit": false,
       "ships_to_nuget": false,
       "target_frameworks": [
+        "net10.0",
         "net8.0"
       ],
       "references": [
@@ -864,7 +865,8 @@
         "Ashlar.Policies",
         "Ashlar.Policies.Dev",
         "Ashlar.Tools.Assembly",
-        "Ashlar.Tools.Dev"
+        "Ashlar.Tools.Dev",
+        "InputSafetyProbe"
       ]
     },
     {
@@ -1623,6 +1625,7 @@
     {
       "name": "ASHLAR_KEY_DIR",
       "declared_in": [
+        "(unowned)",
         "Ashlar.Manifest",
         "Ashlar.Tests.CLI",
         "Ashlar.Tests.Infrastructure",
@@ -8152,6 +8155,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Kernel/Storage/FileLockSafetyTests.cs",
+      "project": "Ashlar.Tests.Kernel",
+      "namespace": "Ashlar.Tests.Kernel.Storage",
+      "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Kernel/ToolsDevTests.cs",
       "project": "Ashlar.Tests.Kernel",
       "namespace": "Ashlar.Tests.Kernel",
@@ -8163,6 +8173,20 @@
       "project": "Ashlar.Tests.Kernel",
       "namespace": "Ashlar.Tests.Kernel",
       "declared_facts": 3,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Kernel/YamlDepthGuardTests.cs",
+      "project": "Ashlar.Tests.Kernel",
+      "namespace": "Ashlar.Tests.Kernel",
+      "declared_facts": 5,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Kernel/YamlDepthProcessTests.cs",
+      "project": "Ashlar.Tests.Kernel",
+      "namespace": "Ashlar.Tests.Kernel",
+      "declared_facts": 1,
       "in_cert_gate_filter": false
     },
     {
@@ -8922,6 +8946,14 @@
       "name": "gRPC transport gate",
       "triggers": [
         "push",
+        "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/input-safety-regression.yml",
+      "name": "Input safety regressions",
+      "triggers": [
+        "pull_request",
         "workflow_dispatch"
       ]
     },
