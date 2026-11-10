@@ -307,4 +307,35 @@ public sealed class PackageImportIntegrityTests : IDisposable
         Forge.List(ChangeProposalStatus.Proposed).Should().HaveCount(2);
         Forge.List(ChangeProposalStatus.Rejected).Should().HaveCount(2);
     }
+
+    [Fact]
+    public async Task Peer_daemon_counts_node_faults_as_errors_and_keeps_processing()
+    {
+        BreakGateWrite("ext-broken");
+        using var http = new HttpClient(new PackagePeerHandler(Package("ext-broken"), Package("ext-good")));
+        var result = await MeshAutoPullService.PullPeerOnceAsync(http, "https://peer.invalid", _project);
+        result.Scanned.Should().Be(2);
+        result.Errors.Should().Be(1);
+        result.Refused.Should().Be(0);
+        result.Held.Should().Be(1);
+        Forge.List(ChangeProposalStatus.Proposed).Should().HaveCount(2);
+        Forge.List(ChangeProposalStatus.Rejected).Should().HaveCount(2);
+    }
+
+    private sealed class PackagePeerHandler(string broken, string good) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var content = request.RequestUri!.AbsolutePath switch
+            {
+                "/mesh/v1/index" => """[{"file":"a.ashpkg","size":1},{"file":"b.ashpkg","size":1}]""",
+                "/mesh/v1/pkg/a.ashpkg" => broken,
+                "/mesh/v1/pkg/b.ashpkg" => good,
+                _ => throw new InvalidOperationException("Unexpected fixture URL"),
+            };
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                { Content = new StringContent(content, Encoding.UTF8, "application/json") });
+        }
+    }
+
 }

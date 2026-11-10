@@ -6,7 +6,7 @@
       "id": "collision-is-not-duplicate",
       "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
       "old": "if (receipt?.Seal == pkg.Seal && receipt?.Signer == pkg.SealSigner)",
-      "new": "if (true)",
+      "new": "if (pkg.Record.Proposal.Id == existing.Proposal.Id)",
       "filter": "FullyQualifiedName~PackageImportIntegrityTests",
       "framework": "net10.0",
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
@@ -47,7 +47,7 @@
       "id": "cleanup-parked-rows",
       "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
       "old": "if (forge is not null && recordedState is not (ProposalState.Held or ProposalState.Admitted))",
-      "new": "if (false)",
+      "new": "if (forge is not null && localForgeIds.Count < 0)",
       "filter": "FullyQualifiedName~PackageImportIntegrityTests",
       "framework": "net10.0",
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
@@ -119,6 +119,19 @@
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
       "expected_failures": [
         "Unusable_receipt_is_an_unknown_collision_never_a_duplicate"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "peer-daemon-error-count",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs",
+      "old": "                var result = await PackageImport.SubmitAsync(projectDir, json).ConfigureAwait(false);\n                switch (result.Outcome)\n                {\n                    case PackageAdmission.Admitted: admitted++; break;\n                    case PackageAdmission.Held: held++; break;\n                    case PackageAdmission.Rejected: rejected++; break;\n                    case PackageAdmission.Refused: refused++; break;\n                    case PackageAdmission.Failed: errors++; break;\n                    case PackageAdmission.AlreadyImported: already++; break;\n                }",
+      "new": "                var result = await PackageImport.SubmitAsync(projectDir, json).ConfigureAwait(false);\n                switch (result.Outcome)\n                {\n                    case PackageAdmission.Admitted: admitted++; break;\n                    case PackageAdmission.Held: held++; break;\n                    case PackageAdmission.Rejected: rejected++; break;\n                    case PackageAdmission.Refused: refused++; break;\n                    case PackageAdmission.Failed: refused++; break;\n                    case PackageAdmission.AlreadyImported: already++; break;\n                }",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Peer_daemon_counts_node_faults_as_errors_and_keeps_processing"
       ],
       "group": "import-integrity"
     }
