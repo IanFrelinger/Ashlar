@@ -13,6 +13,7 @@ using Xunit;
 namespace Ashlar.Tests.CLI.Tests.Commands;
 
 /// <summary>Valid signatures never authorize terminal control bytes, even before signer trust.</summary>
+[Collection("MeshIntegration")]
 public sealed class PackageDisplaySecurityTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "ashlar-display-" + Guid.NewGuid().ToString("N"));

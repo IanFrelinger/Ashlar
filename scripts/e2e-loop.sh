@@ -562,16 +562,11 @@ rm -f "$MESH/aaa-planted-giant.ashpkg"
 # five of these scenarios failed.
 #
 # macOS is excluded for a worse reason than red. There `mkfifo` plants a REAL fifo, `run_cli` has no
-# timeout, and GNU `timeout` is not on a mac runner to add one. SafePackageRead's non-blocking open
-# is a DllImport("libc") with a documented managed fallback that BLOCKS FOREVER on a fifo, and
-# nobody has verified that P/Invoke binds on Darwin. If it does not, macos-latest does not fail — it
-# hangs to the six-hour job limit with nothing in the log to read.
-#
-# Linux is the platform where this behaviour is verified, and where the dev container and the
-# primary CI leg run. Nothing takes over on the other two: SafePackageReadTests' non-regular-file
-# cases are [UnixOnlyFact] and report as SKIPPED on Windows, so the Windows branch of the guard —
-# the \\?\ prefix, the device-namespace refusal, the FILE_TYPE_DISK check — has no automated
-# coverage anywhere, and Darwin has none either. Skipping here is a gap, not a delegation.
+# timeout, and GNU `timeout` is not on a mac runner to add one. The shared reader now fails
+# closed when its native no-follow/non-blocking open is unavailable; it never falls back to a
+# managed FIFO open. These special-file scenarios still run only on Linux: native Windows reparse
+# races and Darwin special-file fixtures need their own runtime coverage, not a claim inferred
+# from a skipped shell block. Ordinary package round trips below run on every platform.
 if [ "$(uname -s)" = "Linux" ]; then
   mkfifo "$MESH/aaa-planted-fifo.ashpkg"
   ln -s /dev/zero "$MESH/aab-planted-zero.ashpkg"
@@ -599,16 +594,15 @@ if [ "$(uname -s)" = "Linux" ]; then
   claim "pkg-show-refuses-symlink-to-device" 65 "not a regular file"
   rm -f "$WORK/zero.ashpkg"
 
-  # A character device stats like an empty regular file and then never stops yielding bytes. Only
-  # the cap ON THE READ stops it, and it has to stop it in milliseconds, not by exhausting memory.
+  # A character device may be seekable and report length zero. The descriptor type check must
+  # refuse it before a read; the independent byte cap is not permission to open a device.
   run_cli pkg import /dev/zero --path "$PP"
-  claim "pkg-import-caps-endless-device-read" 65 "past the limit"
+  claim "pkg-import-refuses-character-device-before-read" 65 "not a regular file"
 else
   echo "  (skipping the FIFO/symlink scenarios: Linux only — on MSYS/Windows mkfifo and ln -s"
   echo "   succeed but leave a .lnk shortcut and an ordinary file, so the fixtures do not mean"
-  echo "   what the claims say; on macOS the non-blocking open is unverified and a real FIFO"
-  echo "   would hang the run rather than fail it. Nothing covers it in their place: the matching"
-  echo "   SafePackageReadTests cases are Unix-only and skip on this host too.)"
+  echo "   what the claims say. Darwin and Windows special-file race coverage remains separate"
+  echo "   from this Linux shell block; skipping it is not evidence that those cases passed.)"
 fi
 
 # a sealed peer pulls the same store: every package rejected, nothing lands, non-zero exit
