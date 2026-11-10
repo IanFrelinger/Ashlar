@@ -67,9 +67,6 @@ public static class PackageImport
             return new(PackageAdmission.Refused, reason, null, null, []);
         }
 
-        try { GateStore.ValidateProposalId(pkg!.Record.Proposal.Id); }
-        catch (ArgumentException ex) { return new(PackageAdmission.Refused, ex.Message, pkg, null, []); }
-
         ChangeProposalStore? forge = null;
         var localForgeIds = new List<string>();
         string? recordedId = null;
@@ -100,6 +97,11 @@ public static class PackageImport
                     + "selfExtend.trustedSigners in ashlar.policy.yaml.",
                     pkg, null, []);
             }
+
+            // Trust remains the first refusal for an untrusted sender. Validate the id before
+            // creating any receiver state, so a package naming CON or a path is not a node fault.
+            try { GateStore.ValidateProposalId(pkg.Record.Proposal.Id); }
+            catch (ArgumentException ex) { return new(PackageAdmission.Refused, ex.Message, pkg, null, []); }
 
             forge = AshlarProjectMediation.ProjectStore(projectDir);
             var store = new GateStore(Path.Combine(projectDir, ".ashlar"), OperatorKey.TryLoad());
@@ -194,7 +196,7 @@ public static class PackageImport
                         + string.Join("; ", cleanupErrors), ex);
                 throw;
             }
-            var message = "node failed while importing: " + ex.Message;
+            var message = $"node failed while importing '{pkg!.Record.Proposal.Id}': " + ex.Message;
             if (recordedId is not null)
                 message += $". Gate decision '{recordedId}' was recorded; inspect its apply state.";
             if (cleanupErrors.Count > 0)

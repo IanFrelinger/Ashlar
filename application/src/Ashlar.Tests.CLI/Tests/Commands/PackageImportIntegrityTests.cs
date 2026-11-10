@@ -50,7 +50,8 @@ public sealed class PackageImportIntegrityTests : IDisposable
         ProjectScaffold.TryScaffold("import-test", out var manifest, out var policy, out var reason).Should().BeTrue(reason);
         policy = policy!.Replace("mode: sealed", "mode: " + mode, StringComparison.Ordinal)
             .Replace("extensions: 0", "extensions: 20", StringComparison.Ordinal)
-            .Replace("mayAdd: []", "mayAdd: [brick]", StringComparison.Ordinal);
+            .Replace("mayAdd: []", "mayAdd: [brick]", StringComparison.Ordinal)
+            .Replace("gatesRequired: []", "gatesRequired: [tests]", StringComparison.Ordinal);
         PolicyLoader.TryLoad(policy, out _, out reason).Should().BeTrue(reason);
         File.WriteAllText(Path.Combine(_project, "ashlar.yaml"), manifest);
         File.WriteAllText(Path.Combine(_project, "ashlar.policy.yaml"), policy);
