@@ -11,12 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: 'd9ca9892b739fd40fa56e6f4a7eb569cb00bcff4'
+          ref: '1ea95ad13fd2655d6500112480b5142913d1bf4f'
           fetch-depth: 0
       - name: Verify exact source
         run: |
-          test "$(git rev-parse HEAD)" = 'd9ca9892b739fd40fa56e6f4a7eb569cb00bcff4'
-          test "$(git rev-parse HEAD^{tree})" = '61445e871a3d88f6e89a522a92fa61545a324d0f'
+          test "$(git rev-parse HEAD)" = '1ea95ad13fd2655d6500112480b5142913d1bf4f'
+          test "$(git rev-parse HEAD^{tree})" = '5085c80cba6c6a7b31baf44a0ba40ca703c68749'
       - name: Focused import and package suites
         shell: bash
         run: |
@@ -43,6 +43,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: import-integrity-d9ca9892b739fd40fa56e6f4a7eb569cb00bcff4
+          name: import-integrity-1ea95ad13fd2655d6500112480b5142913d1bf4f
           path: ${{ runner.temp }}/import-integrity
           if-no-files-found: error
