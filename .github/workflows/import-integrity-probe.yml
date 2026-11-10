@@ -11,24 +11,29 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: 'e683d4cc74437efcae5c4c967c9e4548b0f9e92b'
+          ref: '5e7b2ab48eb387a868eebc03111ac788e9cba375'
           fetch-depth: 0
       - name: Verify exact source
         run: |
-          test "$(git rev-parse HEAD)" = 'e683d4cc74437efcae5c4c967c9e4548b0f9e92b'
-          test "$(git rev-parse HEAD^{tree})" = '17c1234d49d119d1c6db5ec1a2a7bdb22dfc72ae'
+          test "$(git rev-parse HEAD)" = '5e7b2ab48eb387a868eebc03111ac788e9cba375'
+          test "$(git rev-parse HEAD^{tree})" = 'e210b0793464d536b9422e1777cee6e50ba21602'
       - name: Focused import and package suites
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/import-integrity"
           bash scripts/test-in-container.sh --project application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj --filter 'FullyQualifiedName~PackageImportIntegrityTests|FullyQualifiedName~PkgCommandTests|FullyQualifiedName~MeshAutoPullServiceTests|FullyQualifiedName~PackageDisplaySecurityTests' 2>&1 | tee "${RUNNER_TEMP}/import-integrity/focused.log"
+      - name: Forge durability boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/test-in-container.sh --project src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj --filter 'FullyQualifiedName~ChangeProposalDurabilityTests|FullyQualifiedName~ChangeProposalStoreTests' 2>&1 | tee "${RUNNER_TEMP}/import-integrity/forge.log"
       - name: Product loop end to end
         shell: bash
         run: |
           set -euo pipefail
           bash scripts/test-in-container.sh -- 'bash scripts/e2e-loop.sh' 2>&1 | tee "${RUNNER_TEMP}/import-integrity/e2e.log"
-      - name: Ten mutation proofs
+      - name: Twelve mutation proofs
         shell: bash
         run: |
           set -euo pipefail
@@ -43,6 +48,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: import-integrity-e683d4cc74437efcae5c4c967c9e4548b0f9e92b
+          name: import-integrity-5e7b2ab48eb387a868eebc03111ac788e9cba375
           path: ${{ runner.temp }}/import-integrity
           if-no-files-found: error
