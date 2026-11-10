@@ -25,7 +25,7 @@ static partial class Program
         // Global options
         var jsonOpt = new Option<bool>(
             name: "--format-json",
-            description: "Emit machine-readable JSON (stderr still carries logs)."
+            description: "Emit JSON on supported commands (logs on stderr); unsupported commands refuse before execution."
         );
 
         root.AddGlobalOption(jsonOpt);
@@ -45,7 +45,7 @@ static partial class Program
                 getDefaultValue: () => new DirectoryInfo(Environment.CurrentDirectory)
             )
         };
-        analyzeCmd.SetHandler(
+        analyzeCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="path">Path.</param>
             /// <param name="json">Json.</param>
@@ -66,7 +66,7 @@ static partial class Program
         {
             new Option<string?>("--filter", "Optional test filter (Category/Trait)")
         };
-        validateCmd.SetHandler(
+        validateCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="filter">Filter.</param>
             /// <param name="json">Json.</param>
@@ -87,7 +87,7 @@ static partial class Program
             new Option<string>("--name", "Agent name") { IsRequired = true },
             new Option<FileInfo?>("--input", "Optional input file")
         };
-        agentCmd.SetHandler(
+        agentCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="name">Name.</param>
             /// <param name="input">Input.</param>
@@ -106,7 +106,7 @@ static partial class Program
 
         // ashlar agent list
         var listAgentsCmd = new Command("list", "List available agents");
-        listAgentsCmd.SetHandler(
+        listAgentsCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="json">Json.</param>
             /// <param name="verbose">Verbose.</param>
@@ -123,7 +123,7 @@ static partial class Program
         // ashlar config
         var configCmd = new Command("config", "View or manage configuration");
         var configShowCmd = new Command("show", "Show current configuration");
-        configShowCmd.SetHandler(
+        configShowCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="json">Json.</param>
             /// <param name="verbose">Verbose.</param>
@@ -137,7 +137,7 @@ static partial class Program
             verboseOpt);
         configCmd.AddCommand(configShowCmd);
         var configValidateCmd = new Command("validate", "Validate configuration");
-        configValidateCmd.SetHandler(
+        configValidateCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="json">Json.</param>
             /// <param name="verbose">Verbose.</param>
@@ -152,7 +152,7 @@ static partial class Program
         configCmd.AddCommand(configValidateCmd);
         var configExportPathOpt = new Option<FileInfo>("--path", "Output file path") { IsRequired = true };
         var configExportCmd = new Command("export", "Export configuration to file") { configExportPathOpt };
-        configExportCmd.SetHandler(
+        configExportCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="path">Path.</param>
             /// <param name="json">Json.</param>
@@ -169,7 +169,7 @@ static partial class Program
         configCmd.AddCommand(configExportCmd);
         var configImportPathOpt = new Option<FileInfo>("--path", "Input file path") { IsRequired = true };
         var configImportCmd = new Command("import", "Import and validate configuration from file") { configImportPathOpt };
-        configImportCmd.SetHandler(
+        configImportCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="path">Path.</param>
             /// <param name="json">Json.</param>
@@ -206,7 +206,7 @@ static partial class Program
             configSetModeStepArg,
             configSetModeModeArg);
         configCmd.AddCommand(configSetModeCmd);
-        configCmd.SetHandler(
+        configCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="json">Json.</param>
             /// <param name="verbose">Verbose.</param>
@@ -254,7 +254,7 @@ static partial class Program
         testCmd.AddOption(visualOpt);
         testCmd.AddOption(ephemeralOpt);
 
-        testCmd.SetHandler(async (InvocationContext ctx) =>
+        testCmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var platforms = ctx.ParseResult.GetValueForOption(platformsOpt) ?? Array.Empty<string>();
             var project = ctx.ParseResult.GetValueForOption(projectOpt);
@@ -278,7 +278,7 @@ static partial class Program
         {
             new Option<string?>("--filter", "Filter tests by name or category")
         };
-        testLocalCmd.SetHandler(
+        testLocalCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="filter">Filter.</param>
             /// <param name="json">Json.</param>
@@ -340,7 +340,7 @@ static partial class Program
         orchestrateCmd.AddOption(preferredRegionOpt);
         orchestrateCmd.AddOption(orchestrateEphemeralOpt);
 
-        orchestrateCmd.SetHandler(async context =>
+        orchestrateCmd.WithJsonOutput().SetHandler(async context =>
         {
             var request = context.ParseResult.GetValueForArgument(
                 orchestrateCmd.Arguments[0] as Argument<string> ?? throw new InvalidOperationException());
@@ -384,7 +384,7 @@ static partial class Program
         var pipelineValidateCmd = new Command("validate", "Validate a pipeline template file.");
         var pipelineValidateTemplateOpt = new Option<FileInfo>("--template", "Pipeline template JSON file") { IsRequired = true };
         pipelineValidateCmd.AddOption(pipelineValidateTemplateOpt);
-        pipelineValidateCmd.SetHandler(
+        pipelineValidateCmd.WithJsonOutput().SetHandler(
             (FileInfo template, bool json, bool verbose) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<PipelineCommand>();
@@ -410,7 +410,7 @@ static partial class Program
         pipelineRunCmd.AddOption(pipelineResumeRunIdOpt);
         pipelineRunCmd.AddOption(pipelineResumeFailedOpt);
         pipelineRunCmd.AddOption(pipelineInputOpt);
-        pipelineRunCmd.SetHandler(
+        pipelineRunCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="template">Template.</param>
             /// <param name="runId">Run id.</param>
@@ -444,7 +444,7 @@ static partial class Program
         pipelineCmd.AddCommand(pipelineRunCmd);
 
         var pipelineDiagnosticsCmd = new Command("diagnostics", "Show resolved pipeline runtime configuration.");
-        pipelineDiagnosticsCmd.SetHandler(
+        pipelineDiagnosticsCmd.WithJsonOutput().SetHandler(
             (bool json) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<PipelineCommand>();
@@ -460,7 +460,7 @@ static partial class Program
         
         // ashlar escalate list
         var escalateListCmd = new Command("list", "List all pending escalations");
-        escalateListCmd.SetHandler(
+        escalateListCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="json">Json.</param>
             /// <param name="verbose">Verbose.</param>
@@ -477,7 +477,7 @@ static partial class Program
         // ashlar escalate show
         var escalateShowCmd = new Command("show", "Show details for a specific escalation");
         escalateShowCmd.AddArgument(new Argument<string>("id", "Escalation ID"));
-        escalateShowCmd.SetHandler(
+        escalateShowCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="json">Json.</param>
@@ -497,7 +497,7 @@ static partial class Program
         var escalateResolveCmd = new Command("resolve", "Resolve an escalation");
         escalateResolveCmd.AddArgument(new Argument<string>("id", "Escalation ID"));
         escalateResolveCmd.AddOption(new Option<string?>("--resolution", "Resolution description"));
-        escalateResolveCmd.SetHandler(
+        escalateResolveCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="resolution">Resolution.</param>
@@ -519,7 +519,7 @@ static partial class Program
         var escalateDismissCmd = new Command("dismiss", "Dismiss an escalation");
         escalateDismissCmd.AddArgument(new Argument<string>("id", "Escalation ID"));
         escalateDismissCmd.AddOption(new Option<string?>("--reason", "Dismissal reason"));
-        escalateDismissCmd.SetHandler(
+        escalateDismissCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="reason">Reason.</param>
@@ -540,7 +540,7 @@ static partial class Program
         // ashlar escalate list-by-severity
         var escalateListBySeverityCmd = new Command("list-by-severity", "List escalations filtered by severity");
         escalateListBySeverityCmd.AddArgument(new Argument<string>("severity", "Severity level (Low, Medium, High, Critical)"));
-        escalateListBySeverityCmd.SetHandler(
+        escalateListBySeverityCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="severity">Severity.</param>
             /// <param name="json">Json.</param>
@@ -570,7 +570,7 @@ static partial class Program
         var repoOpt = new Option<string?>("--repo", "Repository root for context");
         maintenanceCleanCmd.AddOption(strategyOpt);
         maintenanceCleanCmd.AddOption(repoOpt);
-        maintenanceCleanCmd.SetHandler(
+        maintenanceCleanCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="strategy">Strategy.</param>
             /// <param name="repo">Repo.</param>
@@ -628,6 +628,7 @@ static partial class Program
         root.AddCommand(escalateCmd);
         root.AddCommand(metricsCmd);
 
+        CommandExecutionSupport.ApplyJsonOutputContract(root);
         return root;
     }
 }

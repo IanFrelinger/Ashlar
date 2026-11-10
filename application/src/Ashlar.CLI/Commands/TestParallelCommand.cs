@@ -31,21 +31,21 @@ public sealed class TestParallelCommand : Command
             var path = ctx.ParseResult.GetValueForOption(pathOpt);
             var count = ctx.ParseResult.GetValueForOption(countOpt);
             var filters = ctx.ParseResult.GetValueForOption(filterOpt) ?? Array.Empty<string>();
-            await ExecuteAsync(path, count, filters);
+            await ExecuteAsync(ctx, path, count, filters);
         });
     }
 
     /// <summary>Creates a new CreateCommand instance.</summary>
     public static Command CreateCommand() => new TestParallelCommand();
 
-    private static async Task ExecuteAsync(string? path, int count, string[] filters)
+    private static async Task ExecuteAsync(InvocationContext ctx, string? path, int count, string[] filters)
     {
         var repoRoot = RepoPathResolver.FindRepoRoot();
         var targetPath = path ?? Path.Combine(repoRoot, "src", "Ashlar.Tests.Infrastructure", "Ashlar.Tests.Infrastructure.csproj");
         if (!File.Exists(targetPath))
             targetPath = Path.Combine(repoRoot, "Ashlar.sln");
 
-        var services = new ServiceCollection()
+        using var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole())
             .AddParallelTestingInfrastructure()
             .BuildServiceProvider();
@@ -72,6 +72,6 @@ public sealed class TestParallelCommand : Command
         Console.WriteLine($"Results: {aggregated.Results.Count(i => i.Passed)}/{aggregated.Results.Count} passed");
         if (aggregated.BestCandidate != null)
             Console.WriteLine($"  Best: {aggregated.BestCandidate.InstanceId} (filter: {aggregated.BestCandidate.ParameterSet.Overrides.GetValueOrDefault("filter", "-")})");
-        Environment.ExitCode = aggregated.AllPassed ? 0 : 1;
+        ctx.ExitCode = aggregated.AllPassed ? 0 : 1;
     }
 }

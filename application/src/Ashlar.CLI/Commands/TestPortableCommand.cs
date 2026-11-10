@@ -26,13 +26,13 @@ public class TestPortableCommand
             scopeOpt
         };
 
-        cmd.SetHandler(async (InvocationContext ctx) =>
+        cmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var list = ctx.ParseResult.GetValueForOption(listOpt);
             var scope = ctx.ParseResult.GetValueForOption(scopeOpt) ?? "persistence";
             var rootCommand = ctx.ParseResult.RootCommandResult.Command;
-            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--format-json");
-            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--verbose");
+            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--format-json"));
+            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--verbose"));
             var json = jsonOpt != null && ctx.ParseResult.GetValueForOption(jsonOpt);
             var verbose = verboseOpt != null && ctx.ParseResult.GetValueForOption(verboseOpt);
 
@@ -53,6 +53,12 @@ public class TestPortableCommand
         {
             ListTargets(host, console, json);
             return 0;
+        }
+
+        if (json && scope.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine("test portable --scope all has no single JSON rendering; choose smoke, persistence, or trust.");
+            return 1;
         }
 
         if (!json && console != null)
@@ -177,33 +183,12 @@ public class TestPortableCommand
         return process.ExitCode;
     }
 
-    private static async Task<int> RunPersistenceMultiEnvAsync(CliConsole? console, bool json, bool verbose)
+    private static Task<int> RunPersistenceMultiEnvAsync(CliConsole? console, bool json, bool verbose)
     {
-        // Delegate to multi-env with suite persistence (same as test-persistence-multi-env.sh)
-        var root = DiscoverProjectRoot();
-        if (string.IsNullOrEmpty(root)) return 1;
-
-        // Run via dotnet run to avoid circular ref: ashlar test multi-env --suite persistence --all
-        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:dotnet")).ThrowIfRefused();
-        var psi = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = $"run --project \"{Path.Combine(root, "src", "Ashlar.CLI", "Ashlar.CLI.csproj")}\" -- test multi-env --suite persistence --all",
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var process = Process.Start(psi);
-        if (process == null) return 1;
-        var stdout = await process.StandardOutput.ReadToEndAsync();
-        var stderr = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        if (!json && !string.IsNullOrEmpty(stdout)) console?.WriteLine(stdout);
-        if (process.ExitCode != 0 && !string.IsNullOrEmpty(stderr)) console?.WriteError(stderr);
-        return process.ExitCode;
+        // Use the same renderer directly, as the trust scope does. A nested dotnet run both
+        // depended on an obsolete CLI project path and discarded the JSON result on stdout.
+        return TestMultiEnvCommand.ExecuteAsync("persistence", null, true,
+            ephemeral: false, noNetwork: false, json, verbose);
     }
 
     private static string GetHostOs()

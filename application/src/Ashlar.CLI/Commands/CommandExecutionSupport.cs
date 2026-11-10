@@ -1,5 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.CommandLine.Invocation;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using Ashlar.CLI.Formatting;
 using Ashlar.Core.Application.Common.Models;
@@ -9,24 +11,64 @@ namespace Ashlar.CLI.Commands;
 /// <summary>Command execution support.</summary>
 internal static class CommandExecutionSupport
 {
-    /// <summary>
-    /// True when the caller asked for machine-readable output with the root's global
-    /// <c>--format-json</c>.
-    ///
-    /// <para>The option is located by ALIAS, never by name alone. System.CommandLine strips the
-    /// leading <c>--</c> from an option's Name, so the <c>o.Name == "--format-json"</c> lookup used in
-    /// DockerCommand, TestPortableCommand and TestMultiEnvCommand matches nothing and reports "no JSON
-    /// asked for" on every invocation — those commands ignore the very flag they believe they are
-    /// reading. Both spellings are matched here so this helper cannot fail the same silent way.</para>
-    /// </summary>
+    private static readonly ConditionalWeakTable<Command, object> JsonCommands = new();
+
+    /// <summary>Opt this handler (not its descendants) into the global JSON contract.</summary>
+    internal static Command WithJsonOutput(this Command command)
+    {
+        JsonCommands.GetValue(command, _ => new object());
+        return command;
+    }
+
+    internal static bool SupportsJson(Command command) => JsonCommands.TryGetValue(command, out _);
+
+    /// <summary>Read parsed values, including response files, explicit booleans and local aliases.</summary>
     internal static bool WantsJson(ParseResult parseResult)
     {
-        var formatJson = parseResult.RootCommandResult.Command.Options
-            .OfType<Option<bool>>()
-            .FirstOrDefault(o => o.HasAlias("--format-json")
-                              || string.Equals(o.Name, "format-json", StringComparison.Ordinal));
+        for (var result = parseResult.CommandResult; result is not null; result = result.Parent as CommandResult)
+        {
+            foreach (var option in result.Command.Options.OfType<Option<bool>>().Where(o => o.HasAlias("--format-json")))
+            {
+                if (parseResult.GetValueForOption(option)) return true;
+            }
+        }
+        return false;
+    }
 
-        return formatJson is not null && parseResult.GetValueForOption(formatJson);
+    /// <summary>
+    /// Wrap handlers after registration so unknown/new commands refuse JSON before side effects.
+    /// Help and parse errors remain System.CommandLine's responsibility and do not execute handlers.
+    /// </summary>
+    internal static void ApplyJsonOutputContract(Command command)
+    {
+        if (command.Handler is { } handler)
+        {
+            command.Handler = new JsonOutputHandler(command, handler);
+            if (!SupportsJson(command))
+                command.Description += " (--format-json is unsupported and refuses before execution.)";
+        }
+        foreach (var child in command.Subcommands)
+            ApplyJsonOutputContract(child);
+    }
+
+    private sealed class JsonOutputHandler(Command command, ICommandHandler handler) : ICommandHandler
+    {
+        private bool Refused(InvocationContext context)
+        {
+            // The host is lazy: set logging mode from the parser before any handler resolves it.
+            Program.JsonOutputMode = WantsJson(context.ParseResult);
+            if (!Program.JsonOutputMode || SupportsJson(command)) return false;
+            context.Console.Error.Write($"`{command.Name}` has no JSON rendering, so --format-json cannot be honoured here. "
+                + "Refusing rather than printing prose a JSON reader cannot parse." + Environment.NewLine);
+            context.ExitCode = 1;
+            return true;
+        }
+
+        public int Invoke(InvocationContext context) => Refused(context) ? context.ExitCode : handler.Invoke(context);
+
+        public Task<int> InvokeAsync(InvocationContext context) => Refused(context)
+            ? Task.FromResult(context.ExitCode)
+            : handler.InvokeAsync(context);
     }
 
     /// <summary>

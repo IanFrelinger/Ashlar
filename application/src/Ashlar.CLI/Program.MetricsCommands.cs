@@ -15,7 +15,7 @@ static partial class Program
         
         // ashlar metrics report
         var metricsReportCmd = new Command("report", "Show performance report");
-        metricsReportCmd.SetHandler(
+        metricsReportCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="json">Json.</param>
             /// <param name="verbose">Verbose.</param>
@@ -32,7 +32,7 @@ static partial class Program
         // ashlar metrics agent
         var metricsAgentCmd = new Command("agent", "Show metrics for a specific agent");
         metricsAgentCmd.AddArgument(new Argument<string>("id", "Agent ID"));
-        metricsAgentCmd.SetHandler(
+        metricsAgentCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="json">Json.</param>
@@ -52,7 +52,7 @@ static partial class Program
         var metricsTracesCmd = new Command("traces", "Show trace spans");
         metricsTracesCmd.AddOption(new Option<string?>("--correlation-id", "Filter by correlation ID"));
         metricsTracesCmd.AddOption(new Option<string?>("--operation", "Filter by operation name"));
-        metricsTracesCmd.SetHandler(
+        metricsTracesCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="correlationId">Correlation id.</param>
             /// <param name="operation">Operation.</param>
@@ -72,7 +72,7 @@ static partial class Program
 
         // ashlar metrics clear
         var metricsClearCmd = new Command("clear", "Clear all collected metrics");
-        metricsClearCmd.SetHandler(
+        metricsClearCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="json">Json.</param>
             /// <param name="verbose">Verbose.</param>
@@ -88,7 +88,7 @@ static partial class Program
 
         // ashlar metrics self-improvement (P3.4: holdout pass rate)
         var metricsSelfImprovementCmd = new Command("self-improvement", "Show self-improvement metrics (holdout pass rate, etc.)");
-        metricsSelfImprovementCmd.SetHandler(
+        metricsSelfImprovementCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="json">Json.</param>
             async (bool json) =>

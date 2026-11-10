@@ -62,7 +62,7 @@ public sealed class ChatCommand : Command
                 yes,
                 demoLocal,
                 ctx.GetCancellationToken()).ConfigureAwait(false);
-            Environment.ExitCode = exitCode;
+            ctx.ExitCode = exitCode;
         });
     }
 

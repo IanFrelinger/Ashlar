@@ -51,7 +51,10 @@ internal static class DogfoodBlock1Command
                 store,
                 null);
 
-            var loggerFactory = LoggerFactory.Create(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning));
+            using var loggerFactory = LoggerFactory.Create(b => b.AddConsole(o =>
+            {
+                if (json) o.LogToStandardErrorThreshold = LogLevel.Trace;
+            }).SetMinimumLevel(LogLevel.Warning));
             var fileSource = new FileSystemEventSource(
                 new[] { srcDir },
                 repoRoot,

@@ -16,9 +16,15 @@ namespace Ashlar.CLI.Commands;
 /// </summary>
 public class DockerCommand : Command
 {
+    private readonly Func<ILogger<DockerService>, IDockerService> _createDockerService;
+
     /// <summary>Creates a new DockerCommand instance.</summary>
-    public DockerCommand() : base("docker", "Docker operations (build, run, clean, ps, images)")
+    public DockerCommand() : this(logger => new DockerService(logger)) { }
+
+    internal DockerCommand(Func<ILogger<DockerService>, IDockerService> createDockerService) : base("docker", "Docker operations (build, run, clean, ps, images)")
     {
+        _createDockerService = createDockerService;
+
         // ashlar docker build
         var buildCmd = new Command("build", "Build a Docker image from a Dockerfile");
         var dockerfileOpt = new Option<FileInfo>(
@@ -47,18 +53,18 @@ public class DockerCommand : Command
         buildCmd.AddOption(contextOpt);
         buildCmd.AddOption(buildArgOpt);
 
-        buildCmd.SetHandler(async (InvocationContext ctx) =>
+        buildCmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var dockerfile = ctx.ParseResult.GetValueForOption(dockerfileOpt) ?? throw new InvalidOperationException("--dockerfile is required");
             var tag = ctx.ParseResult.GetValueForOption(tagOpt) ?? throw new InvalidOperationException("--tag is required");
             var context = ctx.ParseResult.GetValueForOption(contextOpt) ?? new DirectoryInfo(Environment.CurrentDirectory);
             var buildArgs = ctx.ParseResult.GetValueForOption(buildArgOpt) ?? Array.Empty<string>();
             var rootCommand = ctx.ParseResult.RootCommandResult.Command;
-            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--format-json");
-            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--verbose");
+            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--format-json"));
+            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--verbose"));
             var json = jsonOpt != null ? ctx.ParseResult.GetValueForOption(jsonOpt) : false;
             var verbose = verboseOpt != null ? ctx.ParseResult.GetValueForOption(verboseOpt) : false;
-            await BuildAsync(dockerfile, tag, context, buildArgs, json, verbose);
+            await BuildAsync(ctx, dockerfile, tag, context, buildArgs, json, verbose);
         });
 
         // ashlar docker run
@@ -105,7 +111,7 @@ public class DockerCommand : Command
         runCmd.AddOption(workdirOpt);
         runCmd.AddOption(rmImageOpt);
 
-        runCmd.SetHandler(async (InvocationContext ctx) =>
+        runCmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var image = ctx.ParseResult.GetValueForOption(imageOpt) ?? throw new InvalidOperationException("--image is required");
             var command = ctx.ParseResult.GetValueForOption(commandOpt) ?? Array.Empty<string>();
@@ -114,11 +120,11 @@ public class DockerCommand : Command
             var workdir = ctx.ParseResult.GetValueForOption(workdirOpt);
             var rmImage = ctx.ParseResult.GetValueForOption(rmImageOpt);
             var rootCommand = ctx.ParseResult.RootCommandResult.Command;
-            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--format-json");
-            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--verbose");
+            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--format-json"));
+            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--verbose"));
             var json = jsonOpt != null ? ctx.ParseResult.GetValueForOption(jsonOpt) : false;
             var verbose = verboseOpt != null ? ctx.ParseResult.GetValueForOption(verboseOpt) : false;
-            await RunAsync(image, command, env, volume, workdir, rmImage, json, verbose);
+            await RunAsync(ctx, image, command, env, volume, workdir, rmImage, json, verbose);
         });
 
         // ashlar docker clean
@@ -141,17 +147,17 @@ public class DockerCommand : Command
         cleanCmd.AddOption(containerIdOpt);
         cleanCmd.AddOption(allOpt);
 
-        cleanCmd.SetHandler(async (InvocationContext ctx) =>
+        cleanCmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var imageTag = ctx.ParseResult.GetValueForOption(imageTagOpt);
             var containerId = ctx.ParseResult.GetValueForOption(containerIdOpt);
             var all = ctx.ParseResult.GetValueForOption(allOpt);
             var rootCommand = ctx.ParseResult.RootCommandResult.Command;
-            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--format-json");
-            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--verbose");
+            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--format-json"));
+            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--verbose"));
             var json = jsonOpt != null ? ctx.ParseResult.GetValueForOption(jsonOpt) : false;
             var verbose = verboseOpt != null ? ctx.ParseResult.GetValueForOption(verboseOpt) : false;
-            await CleanAsync(imageTag, containerId, all, json, verbose);
+            await CleanAsync(ctx, imageTag, containerId, all, json, verbose);
         });
 
         // ashlar docker ps
@@ -164,28 +170,28 @@ public class DockerCommand : Command
 
         psCmd.AddOption(allContainersOpt);
 
-        psCmd.SetHandler(async (InvocationContext ctx) =>
+        psCmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var all = ctx.ParseResult.GetValueForOption(allContainersOpt);
             var rootCommand = ctx.ParseResult.RootCommandResult.Command;
-            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--format-json");
-            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--verbose");
+            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--format-json"));
+            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--verbose"));
             var json = jsonOpt != null ? ctx.ParseResult.GetValueForOption(jsonOpt) : false;
             var verbose = verboseOpt != null ? ctx.ParseResult.GetValueForOption(verboseOpt) : false;
-            await ListContainersAsync(all, json, verbose);
+            await ListContainersAsync(ctx, all, json, verbose);
         });
 
         // ashlar docker images
         var imagesCmd = new Command("images", "List images");
 
-        imagesCmd.SetHandler(async (InvocationContext ctx) =>
+        imagesCmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var rootCommand = ctx.ParseResult.RootCommandResult.Command;
-            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--format-json");
-            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--verbose");
+            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--format-json"));
+            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--verbose"));
             var json = jsonOpt != null ? ctx.ParseResult.GetValueForOption(jsonOpt) : false;
             var verbose = verboseOpt != null ? ctx.ParseResult.GetValueForOption(verboseOpt) : false;
-            await ListImagesAsync(json, verbose);
+            await ListImagesAsync(ctx, json, verbose);
         });
 
         AddCommand(buildCmd);
@@ -195,7 +201,8 @@ public class DockerCommand : Command
         AddCommand(imagesCmd);
     }
 
-    private static async Task BuildAsync(
+    private async Task BuildAsync(
+        InvocationContext ctx,
         FileInfo dockerfile,
         string tag,
         DirectoryInfo context,
@@ -204,10 +211,10 @@ public class DockerCommand : Command
         bool verbose)
     {
         var console = json ? null : new CliConsole(verbose);
-        var services = CreateServiceProvider();
+        using var services = CreateServiceProvider(json);
         var loggerFactory = services.GetRequiredService<ILoggerFactory>();
         var dockerLogger = loggerFactory.CreateLogger<DockerService>();
-        var dockerService = new DockerService(dockerLogger);
+        var dockerService = _createDockerService(dockerLogger);
 
         try
         {
@@ -235,7 +242,7 @@ public class DockerCommand : Command
                 {
                     console.WriteError("Docker is not available. Is Docker running?");
                 }
-                Environment.ExitCode = 1;
+                ctx.ExitCode = 1;
                 return;
             }
 
@@ -281,7 +288,7 @@ public class DockerCommand : Command
                         duration = result.Duration.TotalSeconds
                     }));
                 }
-                Environment.ExitCode = 0;
+                ctx.ExitCode = 0;
             }
             else
             {
@@ -297,7 +304,7 @@ public class DockerCommand : Command
                 {
                     console.WriteError($"❌ Build failed: {result.ErrorMessage}");
                 }
-                Environment.ExitCode = 1;
+                ctx.ExitCode = 1;
             }
         }
         catch (Exception ex)
@@ -310,15 +317,16 @@ public class DockerCommand : Command
             {
                 console.WriteError($"Error: {ex.Message}");
             }
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
         }
         finally
         {
-            dockerService.Dispose();
+            (dockerService as IDisposable)?.Dispose();
         }
     }
 
-    private static async Task RunAsync(
+    private async Task RunAsync(
+        InvocationContext ctx,
         string image,
         string[] command,
         string[] env,
@@ -329,10 +337,10 @@ public class DockerCommand : Command
         bool verbose)
     {
         var console = json ? null : new CliConsole(verbose);
-        var services = CreateServiceProvider();
+        using var services = CreateServiceProvider(json);
         var loggerFactory = services.GetRequiredService<ILoggerFactory>();
         var dockerLogger = loggerFactory.CreateLogger<DockerService>();
-        var dockerService = new DockerService(dockerLogger);
+        var dockerService = _createDockerService(dockerLogger);
 
         try
         {
@@ -366,7 +374,7 @@ public class DockerCommand : Command
                 {
                     console.WriteError("Docker is not available. Is Docker running?");
                 }
-                Environment.ExitCode = 1;
+                ctx.ExitCode = 1;
                 return;
             }
 
@@ -438,7 +446,7 @@ public class DockerCommand : Command
                         duration = result.Duration.TotalSeconds
                     }));
                 }
-                Environment.ExitCode = result.ExitCode;
+                ctx.ExitCode = result.ExitCode;
             }
             else
             {
@@ -461,7 +469,7 @@ public class DockerCommand : Command
                     }
                     console.WriteError($"❌ Container failed (exit code: {result.ExitCode})");
                 }
-                Environment.ExitCode = result.ExitCode != 0 ? result.ExitCode : 1;
+                ctx.ExitCode = result.ExitCode != 0 ? result.ExitCode : 1;
             }
         }
         catch (Exception ex)
@@ -474,15 +482,16 @@ public class DockerCommand : Command
             {
                 console.WriteError($"Error: {ex.Message}");
             }
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
         }
         finally
         {
-            dockerService.Dispose();
+            (dockerService as IDisposable)?.Dispose();
         }
     }
 
-    private static async Task CleanAsync(
+    private async Task CleanAsync(
+        InvocationContext ctx,
         string? imageTag,
         string? containerId,
         bool all,
@@ -490,10 +499,10 @@ public class DockerCommand : Command
         bool verbose)
     {
         var console = json ? null : new CliConsole(verbose);
-        var services = CreateServiceProvider();
+        using var services = CreateServiceProvider(json);
         var loggerFactory = services.GetRequiredService<ILoggerFactory>();
         var dockerLogger = loggerFactory.CreateLogger<DockerService>();
-        var dockerService = new DockerService(dockerLogger);
+        var dockerService = _createDockerService(dockerLogger);
 
         try
         {
@@ -514,7 +523,7 @@ public class DockerCommand : Command
                 {
                     console.WriteError("Docker is not available. Is Docker running?");
                 }
-                Environment.ExitCode = 1;
+                ctx.ExitCode = 1;
                 return;
             }
 
@@ -589,7 +598,7 @@ public class DockerCommand : Command
                 }));
             }
 
-            Environment.ExitCode = 0;
+            ctx.ExitCode = 0;
         }
         catch (Exception ex)
         {
@@ -601,15 +610,15 @@ public class DockerCommand : Command
             {
                 console.WriteError($"Error: {ex.Message}");
             }
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
         }
         finally
         {
-            dockerService.Dispose();
+            (dockerService as IDisposable)?.Dispose();
         }
     }
 
-    private static async Task ListContainersAsync(bool all, bool json, bool verbose)
+    private static async Task ListContainersAsync(InvocationContext ctx, bool all, bool json, bool verbose)
     {
         var console = json ? null : new CliConsole(verbose);
 
@@ -654,7 +663,7 @@ public class DockerCommand : Command
                 dockerClient.Dispose();
             }
 
-            Environment.ExitCode = 0;
+            ctx.ExitCode = 0;
         }
         catch (Exception ex)
         {
@@ -666,11 +675,11 @@ public class DockerCommand : Command
             {
                 console.WriteError($"Error: {ex.Message}");
             }
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
         }
     }
 
-    private static async Task ListImagesAsync(bool json, bool verbose)
+    private static async Task ListImagesAsync(InvocationContext ctx, bool json, bool verbose)
     {
         var console = json ? null : new CliConsole(verbose);
 
@@ -716,7 +725,7 @@ public class DockerCommand : Command
                 dockerClient.Dispose();
             }
 
-            Environment.ExitCode = 0;
+            ctx.ExitCode = 0;
         }
         catch (Exception ex)
         {
@@ -728,7 +737,7 @@ public class DockerCommand : Command
             {
                 console.WriteError($"Error: {ex.Message}");
             }
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
         }
     }
 
@@ -745,10 +754,13 @@ public class DockerCommand : Command
         return $"{len:0.##} {sizes[order]}";
     }
 
-    private static IServiceProvider CreateServiceProvider()
+    private static ServiceProvider CreateServiceProvider(bool json)
     {
         var services = new ServiceCollection();
-        services.AddLogging(b => b.AddConsole());
+        services.AddLogging(b => b.AddConsole(o =>
+        {
+            if (json) o.LogToStandardErrorThreshold = LogLevel.Trace;
+        }));
         return services.BuildServiceProvider();
     }
 }

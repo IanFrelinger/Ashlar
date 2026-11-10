@@ -45,7 +45,7 @@ static partial class Program
         trustCmd.AddCommand(trustAuditCmd);
         var trustPauseCmd = new Command("pause", "Pause observation (halt all data collection)");
         trustPauseCmd.AddOption(jsonOpt);
-        trustPauseCmd.SetHandler(
+        trustPauseCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="formatJson">Format json.</param>
             async (bool formatJson) =>
@@ -57,7 +57,7 @@ static partial class Program
         trustCmd.AddCommand(trustPauseCmd);
         var trustResumeCmd = new Command("resume", "Resume observation");
         trustResumeCmd.AddOption(jsonOpt);
-        trustResumeCmd.SetHandler(
+        trustResumeCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="formatJson">Format json.</param>
             async (bool formatJson) =>
@@ -72,7 +72,7 @@ static partial class Program
         trustAllowCmd.AddOption(new Option<string?>("--source", "Source to allow (e.g. git, vscode)"));
         trustAllowCmd.AddOption(new Option<string?>("--project", "Project path for override (requires --source)"));
         trustAllowCmd.AddOption(jsonOpt);
-        trustAllowCmd.SetHandler(
+        trustAllowCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="category">Category.</param>
             /// <param name="source">Source.</param>
@@ -93,7 +93,7 @@ static partial class Program
         trustDenyCmd.AddOption(new Option<string?>("--source", "Source to deny"));
         trustDenyCmd.AddOption(new Option<string?>("--project", "Project path for override (requires --source)"));
         trustDenyCmd.AddOption(jsonOpt);
-        trustDenyCmd.SetHandler(
+        trustDenyCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="category">Category.</param>
             /// <param name="source">Source.</param>
@@ -110,7 +110,7 @@ static partial class Program
             trustDenyCmd.Options[3] as Option<bool> ?? throw new InvalidOperationException());
         trustCmd.AddCommand(trustDenyCmd);
         var trustBoundaryCmd = new Command("boundary", "Show access boundary status");
-        trustBoundaryCmd.SetHandler(
+        trustBoundaryCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="formatJson">Format json.</param>
             async (bool formatJson) =>
@@ -123,7 +123,7 @@ static partial class Program
         var trustDashboardCmd = new Command("dashboard", "Compliance dashboard: boundary status + audit summary");
         trustDashboardCmd.AddOption(new Option<int>("--count", () => 50, "Max audit entries to include"));
         trustDashboardCmd.AddOption(jsonOpt);
-        trustDashboardCmd.SetHandler(
+        trustDashboardCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="count">Count.</param>
             /// <param name="formatJson">Format json.</param>
@@ -139,7 +139,7 @@ static partial class Program
         var trustPackCmd = new Command("pack", "Manage regulated trust policy packs");
         var trustPackListCmd = new Command("list", "List available trust policy packs");
         trustPackListCmd.AddOption(jsonOpt);
-        trustPackListCmd.SetHandler(
+        trustPackListCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="formatJson">Format json.</param>
             async (bool formatJson) =>
@@ -154,7 +154,7 @@ static partial class Program
         var trustPackDescribeIdArg = new Argument<string>("packId", "Policy pack id");
         trustPackDescribeCmd.AddArgument(trustPackDescribeIdArg);
         trustPackDescribeCmd.AddOption(jsonOpt);
-        trustPackDescribeCmd.SetHandler(
+        trustPackDescribeCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="packId">Pack id.</param>
             /// <param name="formatJson">Format json.</param>
@@ -172,7 +172,7 @@ static partial class Program
         trustPackIdOpt.IsRequired = true;
         trustPackApplyCmd.AddOption(trustPackIdOpt);
         trustPackApplyCmd.AddOption(jsonOpt);
-        trustPackApplyCmd.SetHandler(
+        trustPackApplyCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="formatJson">Format json.</param>

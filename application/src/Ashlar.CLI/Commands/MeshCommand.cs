@@ -138,7 +138,13 @@ public sealed class MeshCommand : Command
             var advertise = ctx.ParseResult.GetValueForOption(advertiseOpt);
             var capability = ctx.ParseResult.GetValueForOption(capabilityOpt);
             var setTrustTier = ctx.ParseResult.GetValueForOption(setTrustTierOpt);
-            await ExecuteAsync(discover, advertise, capability, setTrustTier);
+            if (!discover && !advertise && string.IsNullOrEmpty(capability) && string.IsNullOrWhiteSpace(setTrustTier))
+            {
+                Console.Error.WriteLine("Choose a mesh subcommand or use --discover, --advertise, --capability, or --set-trust-tier.");
+                ctx.ExitCode = 1;
+                return;
+            }
+            await ExecuteAsync(ctx, discover, advertise, capability, setTrustTier);
         });
     }
 
@@ -160,7 +166,6 @@ public sealed class MeshCommand : Command
         Console.WriteLine($"  HasWasmRuntime: {caps.HasWasmRuntime}");
         Console.WriteLine($"  IsAirGapped: {caps.IsAirGapped}");
         Console.WriteLine($"  Available components: {string.Join(", ", caps.AvailableComponents)}");
-        Environment.ExitCode = 0;
     }
 
     private static async Task ExecuteSyncAsync()
@@ -184,7 +189,6 @@ public sealed class MeshCommand : Command
             if (ok) adopted++;
         }
         Console.WriteLine($"Adopted {adopted}/{entries.Count}.");
-        Environment.ExitCode = 0;
     }
 
     private static async Task<int> ExecuteExportAsync(string outputPath, string? componentId = null)
@@ -230,17 +234,16 @@ public sealed class MeshCommand : Command
         var transport = services.GetRequiredService<ISneakernetTransport>();
         var adopted = await transport.ImportAsync(inputPath).ConfigureAwait(false);
         Console.WriteLine($"Imported {adopted} adaptation(s) from {inputPath}");
-        Environment.ExitCode = 0;
     }
 
-    private static async Task ExecuteAsync(bool discover, bool advertise, string? capability, string? setTrustTier)
+    private static async Task ExecuteAsync(InvocationContext ctx, bool discover, bool advertise, string? capability, string? setTrustTier)
     {
         if (!string.IsNullOrWhiteSpace(setTrustTier))
         {
             if (!TryParseTrustTierChange(setTrustTier, out var peerId, out var trustTier))
             {
                 Console.Error.WriteLine("Invalid --set-trust-tier value. Use <peerId>:<trusted|untrusted|unknown>.");
-                Environment.ExitCode = 1;
+                ctx.ExitCode = 1;
                 return;
             }
 
@@ -248,7 +251,7 @@ public sealed class MeshCommand : Command
             if (!updated)
             {
                 Console.Error.WriteLine($"Peer '{peerId}' not found in instances.json.");
-                Environment.ExitCode = 1;
+                ctx.ExitCode = 1;
                 return;
             }
 
@@ -292,7 +295,6 @@ public sealed class MeshCommand : Command
                 "Use --discover, --advertise, --capability <name>, --set-trust-tier <peerId>:<tier>, " +
                 "mesh peers, mesh health, mesh admit, or mesh revoke (local instances.json). " +
                 "Fleet director HTTP (register, admit, list-nodes) lives in commercial/src/Ashlar.Commercial.MeshDirector.");
-        Environment.ExitCode = 0;
     }
 
     private static void ExecutePeers()
@@ -312,7 +314,6 @@ public sealed class MeshCommand : Command
                 $"  {p.PeerId,-24} {p.Endpoint,-40} tier={p.TrustTier,-10} admitted={p.Admitted}");
         }
 
-        Environment.ExitCode = 0;
     }
 
     /// <summary>

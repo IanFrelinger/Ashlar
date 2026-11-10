@@ -91,7 +91,7 @@ public sealed class CertifyCommand : Command
             brickDirArg, witnessOpt, recordOpt
         };
 
-        cmd.SetHandler(async (InvocationContext ctx) =>
+        cmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var brickDir = ctx.ParseResult.GetValueForArgument(brickDirArg);
             var witness = ctx.ParseResult.GetValueForOption(witnessOpt);

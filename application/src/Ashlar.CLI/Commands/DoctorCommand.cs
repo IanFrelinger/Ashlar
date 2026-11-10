@@ -39,7 +39,7 @@ public sealed class DoctorCommand : Command
         AddOption(yesOpt);
         AddOption(pathOpt);
 
-        this.SetHandler(async (InvocationContext ctx) =>
+        this.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var includeOptional = ctx.ParseResult.GetValueForOption(includeOptionalOpt);
             var profile = ctx.ParseResult.GetValueForOption(profileOpt) ?? "demo";

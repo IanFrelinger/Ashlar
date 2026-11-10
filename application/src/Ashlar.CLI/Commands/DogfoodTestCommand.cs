@@ -23,11 +23,11 @@ internal static class DogfoodTestCommand
         cmd.AddOption(jsonOpt);
         var verboseOpt = new Option<bool>("--verbose", () => false, "Stream test output to console");
         cmd.AddOption(verboseOpt);
-        cmd.SetHandler(async (InvocationContext ctx) =>
+        cmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
-            var json = ctx.ParseResult.GetValueForOption(jsonOpt);
+            var json = CommandExecutionSupport.WantsJson(ctx.ParseResult);
             var verbose = ctx.ParseResult.GetValueForOption(verboseOpt);
-            EgressCliInvocation.Exit(await ExecuteAsync(name, filter, json, verbose));
+            EgressCliInvocation.Exit(await ExecuteAsync(name, filter, json, verbose && !json));
         });
         return cmd;
     }

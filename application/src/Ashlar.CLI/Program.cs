@@ -46,12 +46,12 @@ namespace Ashlar.CLI;
 static partial class Program
 {
     /// <summary>
-    /// Set once in <see cref="Main"/> from the global <c>--format-json</c> flag. When true, the host's
+    /// Set by the invocation guard from the parsed global <c>--format-json</c> flag. When true, the host's
     /// console logger is routed to STDERR so STDOUT carries only the machine-readable JSON the flag
     /// promises — otherwise the framework's default console provider interleaves <c>info:</c> log lines
     /// with the JSON on STDOUT and the result is not parseable.
     /// </summary>
-    internal static bool JsonOutputMode { get; private set; }
+    internal static bool JsonOutputMode { get; set; }
 
     private static readonly Lazy<IHost> Host = new(() =>
         Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
@@ -80,9 +80,6 @@ static partial class Program
     /// <returns>Exit code (0 for success, non-zero for errors)</returns>
     static async Task<int> Main(string[] args)
     {
-        // Read the flag before the host is built (the host is lazy, and its logging config below
-        // reads this). A global option, so it can appear anywhere in the token stream.
-        JsonOutputMode = args.Contains("--format-json");
         var root = BuildRootCommand();
         return await EgressCliInvocation.InvokeAsync(root, args);
     }

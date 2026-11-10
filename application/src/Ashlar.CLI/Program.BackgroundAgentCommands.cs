@@ -17,7 +17,7 @@ static partial class Program
             new Option<string?>("--role", "Filter by role"),
             new Option<string?>("--sensitivity", "Filter by max sensitivity level")
         };
-        listBgCmd.SetHandler(
+        listBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="formatJson">Format json.</param>
             /// <param name="status">Status.</param>
@@ -37,7 +37,7 @@ static partial class Program
 
         var showBgIdOpt = new Option<string>("--id", "Agent ID") { IsRequired = true };
         var showBgCmd = new Command("show", "Show details for a background agent") { showBgIdOpt };
-        showBgCmd.SetHandler(
+        showBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="formatJson">Format json.</param>
@@ -53,7 +53,7 @@ static partial class Program
 
         var startBgIdOpt = new Option<string>("--id", "Agent ID") { IsRequired = true };
         var startBgCmd = new Command("start", "Start a background agent") { startBgIdOpt };
-        startBgCmd.SetHandler(
+        startBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="formatJson">Format json.</param>
@@ -69,7 +69,7 @@ static partial class Program
 
         var stopBgIdOpt = new Option<string>("--id", "Agent ID") { IsRequired = true };
         var stopBgCmd = new Command("stop", "Stop a background agent") { stopBgIdOpt };
-        stopBgCmd.SetHandler(
+        stopBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="formatJson">Format json.</param>
@@ -85,7 +85,7 @@ static partial class Program
 
         var restartBgIdOpt = new Option<string>("--id", "Agent ID") { IsRequired = true };
         var restartBgCmd = new Command("restart", "Restart a background agent") { restartBgIdOpt };
-        restartBgCmd.SetHandler(
+        restartBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="formatJson">Format json.</param>
@@ -116,7 +116,7 @@ static partial class Program
             autoscaleApplyUnitsOpt,
             autoscaleApplyIdleOpt
         };
-        autoscaleApplyCmd.SetHandler(
+        autoscaleApplyCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="role">Role.</param>
             /// <param name="demand">Demand.</param>
@@ -144,7 +144,7 @@ static partial class Program
         var executeBgIdOpt = new Option<string>("--id", "Agent ID") { IsRequired = true };
         var executeBgAsyncOpt = new Option<bool>("--async", "Run execution asynchronously (don't wait)");
         var executeBgCmd = new Command("execute", "Manually run one execution of a background agent") { executeBgIdOpt, executeBgAsyncOpt };
-        executeBgCmd.SetHandler(
+        executeBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="runAsync">Run async.</param>
@@ -166,7 +166,7 @@ static partial class Program
             new Option<string?>("--level", "Filter by level (Debug, Info, Warning, Error)"),
             new Option<string?>("--since", "Show logs since duration (e.g. 1h, 30m)")
         };
-        logsBgCmd.SetHandler(
+        logsBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="tail">Tail.</param>
@@ -189,7 +189,7 @@ static partial class Program
         // ashlar background-agent metrics
         var metricsBgIdOpt = new Option<string>("--id", "Agent ID") { IsRequired = true };
         var metricsBgCmd = new Command("metrics", "Show agent performance metrics") { metricsBgIdOpt };
-        metricsBgCmd.SetHandler(
+        metricsBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="id">Id.</param>
             /// <param name="formatJson">Format json.</param>
@@ -211,7 +211,7 @@ static partial class Program
             statsRoleOpt,
             statsSinceOpt
         };
-        statsBgCmd.SetHandler(
+        statsBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="agent">Agent.</param>
             /// <param name="role">Role.</param>
@@ -235,7 +235,7 @@ static partial class Program
         {
             reportSinceOpt, reportProjectOpt
         };
-        reportBgCmd.SetHandler(
+        reportBgCmd.WithJsonOutput().SetHandler(
             async (double? since, string? project, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ReportBackgroundAgentCommand>();
@@ -258,7 +258,7 @@ static partial class Program
         {
             obsSourceOpt, obsKindOpt, obsSinceOpt, obsTailOpt, obsSummaryOpt
         };
-        observationsBgCmd.SetHandler(
+        observationsBgCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="source">Source.</param>
             /// <param name="kind">Kind.</param>
@@ -287,7 +287,7 @@ static partial class Program
         {
             objListStatusOpt, objListTagOpt
         };
-        objListCmd.SetHandler(async (string? status, string? tag, bool formatJson) =>
+        objListCmd.WithJsonOutput().SetHandler(async (string? status, string? tag, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.ListAsync(status, tag, formatJson));
@@ -296,7 +296,7 @@ static partial class Program
 
         var objShowIdArg = new Argument<string>("id", "Objective id");
         var objShowCmd = new Command("show", "Show one objective's full body and metadata") { objShowIdArg };
-        objShowCmd.SetHandler(async (string id, bool formatJson) =>
+        objShowCmd.WithJsonOutput().SetHandler(async (string id, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.ShowAsync(id, formatJson));
@@ -313,7 +313,7 @@ static partial class Program
         {
             objAddIdOpt, objAddTitleOpt, objAddPriorityOpt, objAddTagsOpt, objAddBodyOpt, objAddBodyFileOpt
         };
-        objAddCmd.SetHandler(async (string id, string title, int priority, string[] tags, string? body, string? bodyFile, bool formatJson) =>
+        objAddCmd.WithJsonOutput().SetHandler(async (string id, string title, int priority, string[] tags, string? body, string? bodyFile, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.AddAsync(id, title, priority, tags, body, bodyFile, formatJson));
@@ -326,7 +326,7 @@ static partial class Program
         {
             objCompleteIdArg, objCompleteNoteOpt
         };
-        objCompleteCmd.SetHandler(async (string id, string? note, bool formatJson) =>
+        objCompleteCmd.WithJsonOutput().SetHandler(async (string id, string? note, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.CompleteAsync(id, note, formatJson));
@@ -339,7 +339,7 @@ static partial class Program
         {
             objBlockIdArg, objBlockReasonOpt
         };
-        objBlockCmd.SetHandler(async (string id, string reason, bool formatJson) =>
+        objBlockCmd.WithJsonOutput().SetHandler(async (string id, string reason, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.BlockAsync(id, reason, formatJson));
@@ -348,7 +348,7 @@ static partial class Program
 
         var objUnblockIdArg = new Argument<string>("id", "Objective id");
         var objUnblockCmd = new Command("unblock", "Move a blocked objective back to Pending") { objUnblockIdArg };
-        objUnblockCmd.SetHandler(async (string id, bool formatJson) =>
+        objUnblockCmd.WithJsonOutput().SetHandler(async (string id, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.UnblockAsync(id, formatJson));
@@ -362,7 +362,7 @@ static partial class Program
         {
             objReportIdOpt, objReportStatusOpt, objReportSinceOpt
         };
-        objReportCmd.SetHandler(async (string? id, string? status, double? since, bool formatJson) =>
+        objReportCmd.WithJsonOutput().SetHandler(async (string? id, string? status, double? since, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.ReportAsync(id, status, since, formatJson));
@@ -370,7 +370,7 @@ static partial class Program
         objectivesBgCmd.AddCommand(objReportCmd);
 
         var objStatsCmd = new Command("stats", "Per-status counts and per-tag breakdown of the backlog");
-        objStatsCmd.SetHandler(async (bool formatJson) =>
+        objStatsCmd.WithJsonOutput().SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ObjectivesBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.StatsAsync(formatJson));
@@ -390,7 +390,7 @@ static partial class Program
         {
             propListStatusOpt, propListTargetOpt
         };
-        propListCmd.SetHandler(async (string? status, string? targetPrefix, bool formatJson) =>
+        propListCmd.WithJsonOutput().SetHandler(async (string? status, string? targetPrefix, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.ListAsync(status, targetPrefix, formatJson));
@@ -403,7 +403,7 @@ static partial class Program
         {
             propShowIdArg, propShowDiffOpt
         };
-        propShowCmd.SetHandler(async (string id, bool showDiff, bool formatJson) =>
+        propShowCmd.WithJsonOutput().SetHandler(async (string id, bool showDiff, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.ShowAsync(id, showDiff, formatJson));
@@ -417,7 +417,7 @@ static partial class Program
         {
             propApproveIdArg, propApproveByOpt, propApproveNoteOpt
         };
-        propApproveCmd.SetHandler(async (string id, string? approver, string? note, bool formatJson) =>
+        propApproveCmd.WithJsonOutput().SetHandler(async (string id, string? approver, string? note, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.ApproveAsync(id, approver, note, formatJson));
@@ -431,7 +431,7 @@ static partial class Program
         {
             propRejectIdArg, propRejectByOpt, propRejectNoteOpt
         };
-        propRejectCmd.SetHandler(async (string id, string? reviewer, string? note, bool formatJson) =>
+        propRejectCmd.WithJsonOutput().SetHandler(async (string id, string? reviewer, string? note, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.RejectAsync(id, reviewer, note, formatJson));
@@ -447,7 +447,7 @@ static partial class Program
         {
             propApplyIdArg, propApplyRootOpt, propApplyForceOpt, propApplyVerifyBuildOpt, propApplyVerifyTestOpt
         };
-        propApplyCmd.SetHandler(async (string id, string root, bool force, bool verifyBuild, bool verifyTest, bool formatJson) =>
+        propApplyCmd.WithJsonOutput().SetHandler(async (string id, string root, bool force, bool verifyBuild, bool verifyTest, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.ApplyAsync(id, root, force, formatJson, verifyBuild, verifyTest));
@@ -459,7 +459,7 @@ static partial class Program
         {
             propBuildRootOpt
         };
-        propBuildCmd.SetHandler(async (string root, bool formatJson) =>
+        propBuildCmd.WithJsonOutput().SetHandler(async (string root, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.BuildAsync(root, formatJson));
@@ -471,7 +471,7 @@ static partial class Program
         {
             propTestRootOpt
         };
-        propTestCmd.SetHandler(async (string root, bool formatJson) =>
+        propTestCmd.WithJsonOutput().SetHandler(async (string root, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.TestAsync(root, formatJson));
@@ -484,7 +484,7 @@ static partial class Program
         {
             propJanProposedOpt, propJanApprovedOpt
         };
-        propJanitorCmd.SetHandler(async (double? proposedTtl, double? approvedTtl, bool formatJson) =>
+        propJanitorCmd.WithJsonOutput().SetHandler(async (double? proposedTtl, double? approvedTtl, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.JanitorAsync(proposedTtl, approvedTtl, formatJson));
@@ -492,7 +492,7 @@ static partial class Program
         proposalsBgCmd.AddCommand(propJanitorCmd);
 
         var propStatsCmd = new Command("stats", "Per-status counts of the proposal queue");
-        propStatsCmd.SetHandler(async (bool formatJson) =>
+        propStatsCmd.WithJsonOutput().SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ProposalsBackgroundAgentCommand>();
             EgressCliInvocation.Exit(await cmd.StatsAsync(formatJson));
@@ -504,7 +504,7 @@ static partial class Program
         // ashlar background-agent mode
         var modeCmd = new Command("mode", "Get or set aggressiveness mode (passive, semi-active, active, ambient)");
         var modeGetCmd = new Command("get", "Get current mode");
-        modeGetCmd.SetHandler(
+        modeGetCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="formatJson">Format json.</param>
             async (bool formatJson) =>
@@ -516,7 +516,7 @@ static partial class Program
         modeCmd.AddCommand(modeGetCmd);
         var modeSetValueOpt = new Option<string>("--value", "Mode: passive, semi-active, active, ambient") { IsRequired = true };
         var modeSetCmd = new Command("set", "Set mode (switchable at runtime without restart)") { modeSetValueOpt };
-        modeSetCmd.SetHandler(
+        modeSetCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="value">Value.</param>
             /// <param name="formatJson">Format json.</param>
@@ -538,7 +538,7 @@ static partial class Program
         {
             disarmReasonOpt
         };
-        disarmCmd.SetHandler(
+        disarmCmd.WithJsonOutput().SetHandler(
             async (string? reason, bool formatJson) =>
             {
                 var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.ModeBackgroundAgentCommand>();
@@ -550,7 +550,7 @@ static partial class Program
         // ashlar background-agent sensitivity
         var sensitivityCmd = new Command("sensitivity", "Manage data sensitivity levels");
         var sensListCmd = new Command("list", "List sensitivity levels");
-        sensListCmd.SetHandler(async (bool formatJson) =>
+        sensListCmd.WithJsonOutput().SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.SensitivityCommand>();
             EgressCliInvocation.Exit(await cmd.ListAsync(formatJson));
@@ -558,7 +558,7 @@ static partial class Program
         sensitivityCmd.AddCommand(sensListCmd);
         var sensShowNameOpt = new Option<string>("--name", "Sensitivity level name") { IsRequired = true };
         var sensShowCmd = new Command("show", "Show a sensitivity level") { sensShowNameOpt };
-        sensShowCmd.SetHandler(async (string name, bool formatJson) =>
+        sensShowCmd.WithJsonOutput().SetHandler(async (string name, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.SensitivityCommand>();
             EgressCliInvocation.Exit(await cmd.ShowAsync(name, formatJson));
@@ -576,7 +576,7 @@ static partial class Program
             new Option<bool>("--allows-network-exports", () => false),
             sensAddDescOpt
         };
-        sensAddCmd.SetHandler(
+        sensAddCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="name">Name.</param>
             /// <param name="value">Value.</param>
@@ -608,7 +608,7 @@ static partial class Program
             new Option<bool>("--allows-network-exports", () => false),
             new Option<string>("--description", "Description")
         };
-        sensUpdateCmd.SetHandler(
+        sensUpdateCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="name">Name.</param>
             /// <param name="value">Value.</param>
@@ -633,7 +633,7 @@ static partial class Program
         sensitivityCmd.AddCommand(sensUpdateCmd);
         var sensRemoveNameOpt = new Option<string>("--name", "Level name") { IsRequired = true };
         var sensRemoveCmd = new Command("remove", "Remove a custom sensitivity level") { sensRemoveNameOpt };
-        sensRemoveCmd.SetHandler(async (string name, bool formatJson) =>
+        sensRemoveCmd.WithJsonOutput().SetHandler(async (string name, bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.SensitivityCommand>();
             EgressCliInvocation.Exit(await cmd.RemoveAsync(name, formatJson));
@@ -646,7 +646,7 @@ static partial class Program
         var ragIndexPathsOpt = new Option<string[]>("--paths", "Paths to index (files or directories)") { IsRequired = true, AllowMultipleArgumentsPerToken = true };
         var ragIndexSensOpt = new Option<string?>("--sensitivity", "Sensitivity level for the indexed documents (required; e.g. Public, Internal, Confidential, Secret, TopSecret). Omitting it indexes nothing");
         var ragIndexCmd = new Command("index", "Index paths into RAG store") { ragIndexPathsOpt, ragIndexSensOpt };
-        ragIndexCmd.SetHandler(
+        ragIndexCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="paths">Paths.</param>
             /// <param name="sensitivity">Sensitivity.</param>
@@ -666,7 +666,7 @@ static partial class Program
             new Option<double>("--min-score", () => 0.0, "Min similarity score"),
             new Option<string?>("--max-sensitivity", "Max sensitivity level for results (your clearance). Omitted means the floor, Public; an unknown level is refused")
         };
-        ragSearchCmd.SetHandler(
+        ragSearchCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="query">Query.</param>
             /// <param name="maxResults">Max results.</param>
@@ -685,14 +685,14 @@ static partial class Program
             jsonOpt);
         ragCmd.AddCommand(ragSearchCmd);
         var ragStatsCmd = new Command("stats", "Show RAG store statistics");
-        ragStatsCmd.SetHandler(async (bool formatJson) =>
+        ragStatsCmd.WithJsonOutput().SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.RAGCommand>();
             EgressCliInvocation.Exit(await cmd.StatsAsync(formatJson));
         }, jsonOpt);
         ragCmd.AddCommand(ragStatsCmd);
         var ragClearCmd = new Command("clear", "Clear RAG store");
-        ragClearCmd.SetHandler(async (bool formatJson) =>
+        ragClearCmd.WithJsonOutput().SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.RAGCommand>();
             EgressCliInvocation.Exit(await cmd.ClearAsync(formatJson));
@@ -703,7 +703,7 @@ static partial class Program
         // ashlar background-agent websearch
         var webSearchCmd = new Command("websearch", "Web search configuration and test");
         var webSearchConfigureCmd = new Command("configure", "Show web search configuration");
-        webSearchConfigureCmd.SetHandler(async (bool formatJson) =>
+        webSearchConfigureCmd.WithJsonOutput().SetHandler(async (bool formatJson) =>
         {
             var cmd = ServiceProvider.GetRequiredService<Ashlar.CLI.Commands.BackgroundAgent.WebSearchCommand>();
             EgressCliInvocation.Exit(await cmd.ConfigureAsync(formatJson));
@@ -714,7 +714,7 @@ static partial class Program
             new Option<string>("--query", () => "Ashlar framework", "Search query"),
             new Option<int>("--max-results", () => 5, "Max results")
         };
-        webSearchTestCmd.SetHandler(
+        webSearchTestCmd.WithJsonOutput().SetHandler(
             /// <summary>Async.</summary>
             /// <param name="query">Query.</param>
             /// <param name="maxResults">Max results.</param>
