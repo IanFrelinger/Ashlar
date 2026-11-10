@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -30,5 +30,21 @@
     <ProjectReference Include="..\Ashlar.Tools.Assembly\Ashlar.Tools.Assembly.csproj" />
     <ProjectReference Include="..\Ashlar.Tools.Dev\Ashlar.Tools.Dev.csproj" />
   </ItemGroup>
+
+  <!-- The runtime switch is read at process startup, so these regressions use a tiny child host. -->
+  <ItemGroup>
+    <ProjectReference Include="../../tools/InputSafetyProbe/InputSafetyProbe.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Target Name="CopyInputSafetyProbe" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
+    <ItemGroup>
+      <!-- Literal output roots keep the readiness build-input lens auditable. -->
+      <InputSafetyProbeFiles Include="../../tools/InputSafetyProbe/bin/Debug/net8.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Debug|net8.0'" />
+      <InputSafetyProbeFiles Include="../../tools/InputSafetyProbe/bin/Debug/net10.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Debug|net10.0'" />
+      <InputSafetyProbeFiles Include="../../tools/InputSafetyProbe/bin/Release/net8.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Release|net8.0'" />
+      <InputSafetyProbeFiles Include="../../tools/InputSafetyProbe/bin/Release/net10.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Release|net10.0'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(InputSafetyProbeFiles)"
+          DestinationFiles="@(InputSafetyProbeFiles->'$(OutDir)InputSafetyProbe/%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
 
 </Project>

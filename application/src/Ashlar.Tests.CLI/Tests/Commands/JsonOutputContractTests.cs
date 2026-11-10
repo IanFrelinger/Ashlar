@@ -35,14 +35,18 @@ public sealed class JsonOutputContractTests
         observed.Should().Be(expected);
     }
 
-    [Fact]
-    public async Task Response_file_controls_logging_before_handler()
+    [Theory]
+    [InlineData("--format-json=true", true)]
+    [InlineData("--format-json false", false)]
+    [InlineData("--format-json=false", false)]
+    [InlineData("--format-json:false", false)]
+    public async Task Response_file_controls_logging_before_handler(string option, bool expected)
     {
         var path = Path.GetTempFileName();
         try
         {
-            await File.WriteAllTextAsync(path, "probe\n--format-json=true\n");
-            await Parsed_boolean_controls_logging_before_handler($"@{path}", true);
+            await File.WriteAllTextAsync(path, $"probe\n{option}\n");
+            await Parsed_boolean_controls_logging_before_handler($"@{path}", expected);
         }
         finally { File.Delete(path); }
     }
@@ -127,24 +131,35 @@ public sealed class JsonOutputContractTests
     [Fact]
     public async Task Portable_list_emits_one_document_and_all_refuses_before_work()
     {
+        var root = Program.BuildRootCommand();
+        var list = await CaptureInvocation(root, "test portable --list --format-json");
+        list.ExitCode.Should().Be(0);
+        using (var doc = JsonDocument.Parse(list.Stdout))
+            doc.RootElement.GetProperty("host").GetString().Should().NotBeNullOrEmpty();
+
+        var multiEnv = await CaptureInvocation(root, "test multi-env --env unknown-json-contract-environment --format-json:true");
+        multiEnv.ExitCode.Should().Be(1);
+        using (var doc = JsonDocument.Parse(multiEnv.Stdout))
+            doc.RootElement.GetProperty("error").GetString().Should().NotBeNullOrEmpty();
+
+        var all = await CaptureInvocation(root, "test portable --scope all --format-json");
+        all.ExitCode.Should().Be(1);
+        all.Stdout.Should().BeEmpty();
+        all.Stderr.Should().Contain("no single JSON rendering");
+    }
+
+    private static async Task<(int ExitCode, string Stdout, string Stderr)> CaptureInvocation(RootCommand root, string args)
+    {
         var stdout = new StringWriter();
         var stderr = new StringWriter();
         Console.SetOut(stdout);
         Console.SetError(stderr);
         try
         {
-            var root = Program.BuildRootCommand();
-            (await root.InvokeAsync("test portable --list --format-json")).Should().Be(0);
-            using (var doc = JsonDocument.Parse(stdout.ToString()))
-                doc.RootElement.GetProperty("host").GetString().Should().NotBeNullOrEmpty();
-            stdout.GetStringBuilder().Clear();
-            (await root.InvokeAsync("test multi-env --env unknown-json-contract-environment --format-json:true")).Should().Be(1);
-            using (var doc = JsonDocument.Parse(stdout.ToString()))
-                doc.RootElement.GetProperty("error").GetString().Should().NotBeNullOrEmpty();
-            stdout.GetStringBuilder().Clear();
-            (await root.InvokeAsync("test portable --scope all --format-json")).Should().Be(1);
-            stdout.ToString().Should().BeEmpty();
-            stderr.ToString().Should().Contain("no single JSON rendering");
+            // Capture only the command. Assertion libraries may print first-use diagnostics,
+            // which must not become part of the command output under an isolated test filter.
+            var exitCode = await root.InvokeAsync(args);
+            return (exitCode, stdout.ToString(), stderr.ToString());
         }
         finally
         {

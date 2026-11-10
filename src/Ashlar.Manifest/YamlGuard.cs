@@ -7,7 +7,7 @@ namespace Ashlar.Manifest;
 /// <summary>
 /// Pre-parse guards both loaders apply before YAML ever reaches the deserializer.
 ///
-/// <para>Three rules, all fail-closed. SIZE: a manifest or policy over 1 MB is rejected —
+/// <para>Four rules, all fail-closed. SIZE: a manifest or policy over 1 MB is rejected —
 /// no honest configuration document is that large, and the cap bounds parser work on
 /// garbage. ALIASES: YAML anchors/aliases are rejected outright, because YamlDotNet
 /// expands them and a small document can be crafted to expand exponentially (the classic
@@ -18,12 +18,16 @@ namespace Ashlar.Manifest;
 /// twice is refused rather than resolved last-one-wins. The safety documents are the one
 /// place an ambiguity must never quietly pick the more permissive reading — a duplicate
 /// <c>mode:</c> in a merge-conflicted or tampered policy would otherwise silently arm the
-/// second value.</para>
+/// second value. DEPTH: at most 64 nested mappings/sequences are allowed, counted in the
+/// iterative event scan before a deserializer can exhaust the process stack.</para>
 /// </summary>
 public static partial class YamlGuard
 {
     /// <summary>1 MB. Configuration, not cargo.</summary>
     public const int MaxBytes = 1024 * 1024;
+
+    /// <summary>Maximum number of simultaneously open YAML mappings and sequences.</summary>
+    public const int MaxDepth = 64;
 
     [GeneratedRegex(@"(^|[\s\[,{])[&*][A-Za-z0-9_]", RegexOptions.Multiline)]
     private static partial Regex AnchorOrAlias();
@@ -49,11 +53,8 @@ public static partial class YamlGuard
             return false;
         }
 
-        if (HasDuplicateKey(yaml, out var duplicateKey))
+        if (!CheckStructure(yaml, documentName, out reason))
         {
-            reason = $"REJECTED: {documentName} defines the key '{duplicateKey}' more than once in the same mapping. "
-                   + "The safety envelope must be unambiguous — a duplicate key is refused, not silently resolved to "
-                   + "the last value. Remove the duplicate (a stray one is usually a merge-conflict artifact).";
             return false;
         }
 
@@ -62,14 +63,13 @@ public static partial class YamlGuard
     }
 
     /// <summary>
-    /// True when any mapping in the document repeats a scalar key. Walks the YAML event
-    /// stream so it sees every nesting level, and fails closed: if the document cannot be
-    /// scanned at all, we say "no duplicate found" and let the deserializer produce the real
-    /// parse error (a malformed document is rejected downstream regardless).
+    /// Walks the event stream without recursive deserialization. Rejects excessive container
+    /// depth and duplicate scalar keys. Malformed YAML is left to the loader's parse-error
+    /// handling, but a depth violation already observed is never passed to the deserializer.
     /// </summary>
-    private static bool HasDuplicateKey(string yaml, out string duplicateKey)
+    private static bool CheckStructure(string yaml, string documentName, out string reason)
     {
-        duplicateKey = string.Empty;
+        reason = string.Empty;
         try
         {
             var parser = new Parser(new StringReader(yaml));
@@ -80,6 +80,13 @@ public static partial class YamlGuard
 
             while (parser.MoveNext())
             {
+                if (parser.Current is MappingStart or SequenceStart && stack.Count >= MaxDepth)
+                {
+                    reason = $"REJECTED: {documentName} exceeds the YAML nesting depth limit of {MaxDepth}. "
+                           + "Reduce nested mappings and sequences before loading this document.";
+                    return false;
+                }
+
                 switch (parser.Current)
                 {
                     case MappingStart:
@@ -99,8 +106,10 @@ public static partial class YamlGuard
                         {
                             if (!frame.Keys.Add(scalar.Value))
                             {
-                                duplicateKey = scalar.Value;
-                                return true;
+                                reason = $"REJECTED: {documentName} defines the key '{scalar.Value}' more than once in the same mapping. "
+                                       + "The safety envelope must be unambiguous — a duplicate key is refused, not silently resolved to "
+                                       + "the last value. Remove the duplicate (a stray one is usually a merge-conflict artifact).";
+                                return false;
                             }
                             frame.ExpectingKey = false;   // the next scalar/container is this key's value
                         }
@@ -114,10 +123,10 @@ public static partial class YamlGuard
         }
         catch (YamlException)
         {
-            return false;   // let the deserializer report the malformed-document error
+            return true;   // let the deserializer report the malformed-document error
         }
 
-        return false;
+        return true;
     }
 
     // After a mapping value (scalar, or a whole nested container) is consumed, the parent

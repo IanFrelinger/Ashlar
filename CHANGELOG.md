@@ -17,6 +17,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Security — YAML depth and runtime locking
+
+- Manifest and policy loaders reject YAML deeper than 64 open mappings/sequences before recursive deserialization, with a reason rather than process termination.
+- Gate stores and instance ledgers test runtime file-lock exclusivity once per process and fail closed when it is disabled, naming `DOTNET_SYSTEM_IO_DISABLEFILELOCKING`. The check does not certify every filesystem or defend against an actor who can replace the store lock file.
+- Fresh-process regressions exercise extreme YAML, disabled locking and cross-process contention on both supported runtimes.
+
 ### Added — isolated code tasks
 
 - Hosts can opt into `IIsolatedTaskRunner` with `AddAshlarIsolatedTasks`: one temporary

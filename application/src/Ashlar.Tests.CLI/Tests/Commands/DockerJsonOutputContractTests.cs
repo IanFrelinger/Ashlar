@@ -23,6 +23,7 @@ public sealed class DockerJsonOutputContractTests
         Directory.CreateDirectory(directory);
         var stdout = new StringWriter();
         var stderr = new StringWriter();
+        int exitCode;
         Console.SetOut(TextWriter.Synchronized(stdout));
         Console.SetError(TextWriter.Synchronized(stderr));
         try
@@ -42,12 +43,9 @@ public sealed class DockerJsonOutputContractTests
                 args = ["@" + response];
             }
 
-            (await root.InvokeAsync(args)).Should().Be(1);
-            // DockerCommand disposes its service provider before returning, draining the real console logger.
-            using var document = JsonDocument.Parse(stdout.ToString());
-            document.RootElement.GetProperty("error").GetString().Should().Contain("Docker is not available");
-            stdout.ToString().Should().NotContain("docker-json-log-fixture");
-            stderr.ToString().Should().Contain("docker-json-log-fixture");
+            // Do not run assertions under redirected stdout: FluentAssertions can print a
+            // first-use diagnostic when this method runs alone in a mutation baseline.
+            exitCode = await root.InvokeAsync(args);
         }
         finally
         {
@@ -55,6 +53,13 @@ public sealed class DockerJsonOutputContractTests
             Console.SetError(ConsoleCapture.Error);
             Directory.Delete(directory, recursive: true);
         }
+
+        exitCode.Should().Be(1);
+        // DockerCommand disposes its service provider before returning, draining the real console logger.
+        using var document = JsonDocument.Parse(stdout.ToString());
+        document.RootElement.GetProperty("error").GetString().Should().Contain("Docker is not available");
+        stdout.ToString().Should().NotContain("docker-json-log-fixture");
+        stderr.ToString().Should().Contain("docker-json-log-fixture");
     }
 
     private sealed class LoggingUnavailableDockerService(ILogger<DockerService> logger) : IDockerService

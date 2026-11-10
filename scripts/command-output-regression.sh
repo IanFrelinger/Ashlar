@@ -23,7 +23,7 @@ import xml.etree.ElementTree as ET
 root = ET.parse(sys.argv[1]).getroot()
 expected = {
     "CommandExitCodeContractTests": 27,
-    "JsonOutputContractTests": 35,
+    "JsonOutputContractTests": 38,
     "DockerJsonOutputContractTests": 4,
     "EgressCliExitCodeTests": 7,
     "RootCommandRegistrationTests": 11,

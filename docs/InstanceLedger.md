@@ -72,6 +72,25 @@ fresh valid-looking entry can never be used to bury a broken one.
    `Subject` is the current documents' hash, and render **CERTIFIED · signed ed25519:… · #Seq**.
    With no key, render **VERIFIED · unsigned** exactly as today.
 
+## Locking prerequisites and limits
+
+Before either the gate store or ledger is constructed, a shared, once-per-process
+self-test opens a private temporary probe with `FileShare.None` and requires a second open to
+fail with a sharing/lock violation (Windows) or `EWOULDBLOCK` (Unix). Unrelated I/O errors
+fail closed rather than counting as successful exclusion. Both success and failure are
+cached. If exclusivity is disabled (for example by
+`DOTNET_SYSTEM_IO_DISABLEFILELOCKING=1` on Unix), construction fails loudly, naming the switch; unset it or
+set it to `0` and restart. Failure to create the probe also refuses construction. The same
+guard precedes every write-lock acquisition. Existing records are unchanged, but store-based
+reads also require successful construction. This checks runtime behavior on the temporary filesystem, not locking
+semantics on every possible store filesystem.
+
+The store leaves its `.lock` file in place after closing the handle. Deleting a shared lock
+file on release would allow contenders to lock different inodes. This does **not** defend
+against a same-user actor who can unlink or replace `.lock` while another writer holds it.
+Store directories must be trusted and must use a filesystem that supports local exclusive
+file locks; the probe does not establish a hostile-directory or network-filesystem guarantee.
+
 ## Why it mirrors the gate store
 
 Both are admission-boundary records with the same hazards — two writers racing a sequence, a
