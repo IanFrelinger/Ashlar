@@ -31,6 +31,9 @@ public sealed class DockerSandboxedSessionRunner : ISandboxedSessionRunner
     /// </summary>
     public static readonly TimeSpan DefaultSessionLifetime = TimeSpan.FromMinutes(30);
 
+    /// <summary>Maximum time spent removing a session before the reaper becomes the cleanup backstop.</summary>
+    public static readonly TimeSpan TeardownTimeout = TimeSpan.FromSeconds(10);
+
     private readonly IProcessCommandRunner _processRunner;
     private readonly TimeProvider _clock;
     private readonly ISessionProvenanceSink? _provenance;
@@ -74,13 +77,29 @@ public sealed class DockerSandboxedSessionRunner : ISandboxedSessionRunner
         var deadline = _clock.GetUtcNow() + (spec.Limits?.Timeout is { } t && t > TimeSpan.Zero ? t : DefaultSessionLifetime);
         var args = BuildStartArguments(spec, sessionId, deadline.ToUnixTimeSeconds());
 
-        _logger?.LogDebug("Sandbox session start via docker: {Args}", string.Join(' ', args));
-        var result = await _processRunner.RunAsync("docker", args, cancellationToken).ConfigureAwait(false);
-        if (!result.Succeeded)
+        // Own the name before launch: Docker can create the container even when the CLI
+        // fails or cancellation interrupts its response. There is then no returned handle
+        // for the caller to dispose, so startup itself must attempt bounded cleanup.
+        var session = new DockerSandboxedSession(
+            sessionId, spec, _processRunner, _clock, RecordProvenance, _logger, _expectedImageDigest);
+        try
         {
-            // Fail-closed: no session means no work happens — never fall back to the host.
-            throw new InvalidOperationException(
-                $"Sandbox session '{sessionId}' failed to start (exit {result.ExitCode}): {result.StdErr}");
+            _logger?.LogDebug("Sandbox session start via docker: {Args}", string.Join(' ', args));
+            var result = await _processRunner.RunAsync("docker", args, cancellationToken).ConfigureAwait(false);
+            if (!result.Succeeded)
+            {
+                // Fail-closed: no session means no work happens — never fall back to the host.
+                throw new InvalidOperationException(
+                    $"Sandbox session '{sessionId}' failed to start (exit {result.ExitCode}): {result.StdErr}");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        catch
+        {
+            // Do not inherit the cancelled launch token; teardown has its own deadline.
+            await session.StopAsync().ConfigureAwait(false);
+            throw;
         }
 
         RecordProvenance(new SessionProvenanceEvent
@@ -91,8 +110,7 @@ public sealed class DockerSandboxedSessionRunner : ISandboxedSessionRunner
             Image = spec.Image,
         });
 
-        return new DockerSandboxedSession(
-            sessionId, spec, _processRunner, _clock, RecordProvenance, _logger, _expectedImageDigest);
+        return session;
     }
 
     private void RecordProvenance(SessionProvenanceEvent provenanceEvent)
@@ -285,7 +303,7 @@ public sealed class DockerSandboxedSessionRunner : ISandboxedSessionRunner
         IReadOnlyList<string> DroppedCapabilities,
         IReadOnlyList<string> SecurityOptions);
 
-    private sealed class DockerSandboxedSession : ISandboxedSession
+    private sealed class DockerSandboxedSession : IBoundedOutputSandboxedSession
     {
         private readonly SandboxSpec _spec;
         private readonly IProcessCommandRunner _processRunner;
@@ -388,15 +406,35 @@ public sealed class DockerSandboxedSessionRunner : ISandboxedSessionRunner
             IReadOnlyList<string> command,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfStopped();
+            var args = BuildExecArguments(SessionId, command);
+            return await _processRunner.RunAsync("docker", args, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<ProcessCommandResult> ExecBoundedAsync(
+            IReadOnlyList<string> command,
+            int maxOutputBytes,
+            CancellationToken cancellationToken = default)
+        {
+            ThrowIfStopped();
+            if (maxOutputBytes < 1 || maxOutputBytes > 16 * 1024 * 1024)
+                throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
+            if (_processRunner is not IBoundedOutputProcessCommandRunner boundedProcess)
+                throw new NotSupportedException("Isolated tasks require a process runner with bounded host output capture.");
+
+            var args = BuildExecArguments(SessionId, command);
+            return await boundedProcess.RunBoundedAsync("docker", args, maxOutputBytes, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        private void ThrowIfStopped()
+        {
             if (Volatile.Read(ref _stopped) != 0)
             {
                 throw new InvalidOperationException(
                     $"Sandbox session '{SessionId}' has been stopped; executing against a torn-down "
                     + "session must be loud, never silently re-created.");
             }
-
-            var args = BuildExecArguments(SessionId, command);
-            return await _processRunner.RunAsync("docker", args, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken = default)
@@ -404,10 +442,12 @@ public sealed class DockerSandboxedSessionRunner : ISandboxedSessionRunner
             if (Interlocked.Exchange(ref _stopped, 1) != 0)
                 return;
 
+            using var deadline = new CancellationTokenSource(TeardownTimeout, _clock);
+            using var teardown = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
             try
             {
                 var result = await _processRunner
-                    .RunAsync("docker", new[] { "rm", "-f", SessionId }, cancellationToken)
+                    .RunAsync("docker", new[] { "rm", "-f", SessionId }, teardown.Token)
                     .ConfigureAwait(false);
                 if (!result.Succeeded)
                 {
@@ -430,9 +470,21 @@ public sealed class DockerSandboxedSessionRunner : ISandboxedSessionRunner
                     Reason = result.Succeeded ? null : result.StdErr,
                 });
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                throw;
+                // A timed-out or explicitly cancelled cleanup must not replace the work's
+                // exception/result. The deadline label lets the reaper retry the removal.
+                _logger?.LogWarning(ex, "Sandbox session '{SessionId}' teardown cancelled or exceeded {Timeout}",
+                    SessionId, TeardownTimeout);
+                _recordProvenance(new SessionProvenanceEvent
+                {
+                    SessionId = SessionId,
+                    Outcome = SessionProvenanceOutcomes.TeardownFailed,
+                    Timestamp = _clock.GetUtcNow(),
+                    Image = _spec.Image,
+                    FailureCode = "cancelled",
+                    Reason = "Session teardown was cancelled or exceeded its cleanup timeout; the reaper must retry.",
+                });
             }
             catch (Exception ex)
             {

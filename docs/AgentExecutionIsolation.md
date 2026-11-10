@@ -4,6 +4,9 @@ Orchestration can declare **how strongly** each spawned agent should be isolated
 
 This is **orthogonal** to model routing (for example NCR / peer / cloud in `docs/runtime/ExecutionRouting.md`). Isolation describes the **sandbox around the agent invocation**, not which GPU or region serves a model.
 
+For an explicit, implemented boundary around one code task, see [Isolated code tasks](IsolatedCodeTasks.md).
+Its opt-in runner reuses Docker sessions; it does not automatically enact the transport tiers below.
+
 ## Isolation tiers
 
 Defined in `Ashlar.Abstractions.Execution.AgentExecutionIsolationLevel`:

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 namespace Ashlar.Infrastructure.Preflight;
@@ -50,13 +49,16 @@ public sealed class DependencyPreflight
     private readonly IReadOnlyDictionary<string, DependencyProbe> _probes;
     private readonly TimeSpan _probeTimeout;
     private readonly TimeSpan _operationTimeout;
+    private readonly TimeProvider _timeProvider;
 
     public DependencyPreflight(
         IEnumerable<DependencyProbe> probes,
         TimeSpan? probeTimeout = null,
-        TimeSpan? operationTimeout = null)
+        TimeSpan? operationTimeout = null,
+        TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(probes);
+        _timeProvider = timeProvider ?? TimeProvider.System;
         _probeTimeout = ValidateTimeout(probeTimeout ?? TimeSpan.FromSeconds(8), nameof(probeTimeout));
         _operationTimeout = ValidateTimeout(operationTimeout ?? TimeSpan.FromSeconds(30), nameof(operationTimeout));
         var registry = new Dictionary<string, DependencyProbe>(StringComparer.Ordinal);
@@ -91,13 +93,13 @@ public sealed class DependencyPreflight
         }
 
         var checks = new List<DependencyCheckResult>();
-        var timer = Stopwatch.StartNew();
+        var started = _timeProvider.GetTimestamp();
         var budgetExhausted = false;
         foreach (var (id, required) in selected)
         {
             cancellationToken.ThrowIfCancellationRequested();
             DependencyObservation observation;
-            var remaining = _operationTimeout - timer.Elapsed;
+            var remaining = _operationTimeout - _timeProvider.GetElapsedTime(started);
             if (!enabled)
                 observation = new(DependencyAvailability.NotChecked, "Optional preflight was disabled; no readiness evidence.");
             else if (budgetExhausted || remaining <= TimeSpan.Zero)
@@ -109,7 +111,7 @@ public sealed class DependencyPreflight
                 var limitedByOperation = remaining <= _probeTimeout;
                 var observed = await ObserveAsync(probe, limitedByOperation ? remaining : _probeTimeout, cancellationToken).ConfigureAwait(false);
                 observation = observed.Observation;
-                // Timers may round below the remaining Stopwatch duration. Once the operation's
+                // Timers may round below the remaining elapsed duration. Once the operation's
                 // own deadline fires, do not spend that sub-millisecond remainder on another probe.
                 budgetExhausted = limitedByOperation && observed.DeadlineExpired;
             }
@@ -118,10 +120,10 @@ public sealed class DependencyPreflight
         return new(operation, enabled, checks.AsReadOnly());
     }
 
-    private static async Task<(DependencyObservation Observation, bool DeadlineExpired)> ObserveAsync(DependencyProbe probe, TimeSpan timeout, CancellationToken ct)
+    private async Task<(DependencyObservation Observation, bool DeadlineExpired)> ObserveAsync(DependencyProbe probe, TimeSpan timeout, CancellationToken ct)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        deadline.CancelAfter(timeout);
+        using var timeoutSource = new CancellationTokenSource(timeout, _timeProvider);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutSource.Token);
         var pending = probe.CheckAsync(deadline.Token);
         ArgumentNullException.ThrowIfNull(pending);
         try

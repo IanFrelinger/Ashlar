@@ -57,7 +57,9 @@ Runtime JSON uses `preflightRan: false` and `preflightOk: null` when optional pr
 was skipped; operation success is separate from preflight evidence.
 
 Each probe has an eight-second default deadline and the operation a thirty-second total
-budget, both configurable up to five minutes. Caller cancellation propagates. Probes must
+budget, both configurable up to five minutes. An optional `TimeProvider` controls both elapsed
+budget and deadline timers; production defaults to `TimeProvider.System`. Caller cancellation
+propagates. Probes must
 return an asynchronous task promptly and honor cancellation; the runner bounds its wait
 for a defective adapter but cannot forcibly stop arbitrary in-process code. I/O adapters
 must use cancellable, bounded existing mechanisms. The visual adapters reuse `TimedProcess`,

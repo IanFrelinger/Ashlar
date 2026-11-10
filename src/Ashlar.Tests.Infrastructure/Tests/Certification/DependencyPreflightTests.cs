@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Ashlar.Infrastructure.Preflight;
 using Xunit;
@@ -91,30 +90,59 @@ public sealed class DependencyPreflightTests
     [Fact]
     public async Task Probe_deadline_cancels_adapter_and_does_not_block_later_dependencies()
     {
+        var clock = new ManualClock();
         CancellationToken probeToken = default;
         var runner = new DependencyPreflight([
             new("hung", async ct => { probeToken = ct; await Task.Delay(Timeout.InfiniteTimeSpan, ct); return new(DependencyAvailability.Available, "unreachable"); }),
             new("healthy", _ => Available())
-        ], probeTimeout: TimeSpan.FromMilliseconds(50));
-        var timer = Stopwatch.StartNew();
-        var report = await runner.RunAsync("operation", [new("hung"), new("healthy")]);
+        ], probeTimeout: TimeSpan.FromMilliseconds(50), timeProvider: clock);
+        var running = runner.RunAsync("operation", [new("hung"), new("healthy")]);
+        Assert.True(probeToken.CanBeCanceled);
+        Assert.Equal(1, clock.TimerCount);
+        clock.Advance(TimeSpan.FromMilliseconds(49));
+        Assert.False(running.IsCompleted);
+        Assert.False(probeToken.IsCancellationRequested);
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+        Assert.True(probeToken.IsCancellationRequested);
+        var report = await running.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Equal(DependencyAvailability.TimedOut, report.Checks[0].Availability);
         Assert.True(probeToken.IsCancellationRequested);
         Assert.True(report.Checks[1].Available);
         Assert.False(report.RequiredAvailable);
-        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(3));
+        Assert.Equal(0, clock.TimerCount);
+    }
+
+    [Fact]
+    public async Task Default_system_clock_enforces_the_probe_deadline()
+    {
+        CancellationToken probeToken = default;
+        var runner = new DependencyPreflight([new("hung", async ct => {
+            probeToken = ct;
+            await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+            return new(DependencyAvailability.Available, "unreachable");
+        })], probeTimeout: TimeSpan.FromMilliseconds(50));
+
+        var report = await runner.RunAsync("operation", [new("hung")]).WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(DependencyAvailability.TimedOut, Assert.Single(report.Checks).Availability);
+        Assert.True(probeToken.IsCancellationRequested);
+        Assert.False(report.RequiredAvailable);
     }
 
     [Fact]
     public async Task Runner_wait_is_bounded_even_when_adapter_ignores_cancellation()
     {
         var pending = new TaskCompletionSource<DependencyObservation>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var clock = new ManualClock();
         CancellationToken probeToken = default;
         var runner = new DependencyPreflight([new("hung", ct => { probeToken = ct; return pending.Task; })],
-            probeTimeout: TimeSpan.FromMilliseconds(50));
+            probeTimeout: TimeSpan.FromMilliseconds(50), timeProvider: clock);
         try
         {
-            var report = await runner.RunAsync("operation", [new("hung")]).WaitAsync(TimeSpan.FromSeconds(3));
+            var running = runner.RunAsync("operation", [new("hung")]);
+            clock.Advance(TimeSpan.FromMilliseconds(50));
+            Assert.True(probeToken.IsCancellationRequested);
+            var report = await running.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal(DependencyAvailability.TimedOut, Assert.Single(report.Checks).Availability);
             Assert.True(probeToken.IsCancellationRequested);
         }
@@ -125,19 +153,56 @@ public sealed class DependencyPreflightTests
     public async Task Operation_budget_leaves_unreached_checks_explicitly_unverified()
     {
         var pending = new TaskCompletionSource<DependencyObservation>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var clock = new ManualClock();
         var laterRan = false;
         var runner = new DependencyPreflight([
             new("hung", _ => pending.Task),
             new("later", _ => { laterRan = true; return Available(); })
-        ], probeTimeout: TimeSpan.FromSeconds(1), operationTimeout: TimeSpan.FromMilliseconds(50));
+        ], probeTimeout: TimeSpan.FromSeconds(1), operationTimeout: TimeSpan.FromMilliseconds(50), timeProvider: clock);
         try
         {
-            var report = await runner.RunAsync("operation", [new("hung"), new("later")]);
+            var running = runner.RunAsync("operation", [new("hung"), new("later")]);
+            // A timer can fire before the elapsed-time clock reaches the exact budget boundary.
+            // The fired operation deadline must still prevent a later probe from starting.
+            clock.Advance(TimeSpan.FromMilliseconds(49));
+            clock.FireNextTimer();
+            var report = await running.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal(DependencyAvailability.TimedOut, report.Checks[0].Availability);
             Assert.Equal(DependencyAvailability.NotChecked, report.Checks[1].Availability);
             Assert.False(laterRan);
             Assert.False(report.Complete);
             Assert.False(report.RequiredAvailable);
+        }
+        finally { pending.TrySetResult(new(DependencyAvailability.Available, "late")); }
+    }
+
+    [Fact]
+    public async Task Later_probe_gets_only_the_remaining_operation_budget()
+    {
+        var clock = new ManualClock();
+        var pending = new TaskCompletionSource<DependencyObservation>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken laterToken = default;
+        var runner = new DependencyPreflight([
+            new("first", _ => { clock.Advance(TimeSpan.FromMilliseconds(30)); return Available(); }),
+            new("later", ct => { laterToken = ct; return pending.Task; }),
+            new("unreached", _ => throw new InvalidOperationException("Operation budget was exhausted."))
+        ], probeTimeout: TimeSpan.FromSeconds(1), operationTimeout: TimeSpan.FromMilliseconds(50), timeProvider: clock);
+        try
+        {
+            var running = runner.RunAsync("operation", [new("first"), new("later"), new("unreached")]);
+            Assert.True(laterToken.CanBeCanceled);
+            clock.Advance(TimeSpan.FromMilliseconds(19));
+            Assert.False(running.IsCompleted);
+            Assert.False(laterToken.IsCancellationRequested);
+            clock.Advance(TimeSpan.FromMilliseconds(1));
+            var report = await running.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.True(report.Checks[0].Available);
+            Assert.Equal(DependencyAvailability.TimedOut, report.Checks[1].Availability);
+            Assert.True(laterToken.IsCancellationRequested);
+            Assert.Equal(DependencyAvailability.NotChecked, report.Checks[2].Availability);
+            Assert.False(report.Complete);
+            Assert.False(report.RequiredAvailable);
+            Assert.Equal(0, clock.TimerCount);
         }
         finally { pending.TrySetResult(new(DependencyAvailability.Available, "late")); }
     }
@@ -218,6 +283,71 @@ public sealed class DependencyPreflightTests
         var encoded = JsonSerializer.Serialize(report);
         Assert.Contains("\"Availability\":\"NotRegistered\"", encoded, StringComparison.Ordinal);
         Assert.Contains("\"RequiredAvailable\":false", encoded, StringComparison.Ordinal);
+    }
+
+    // Advance only from the test. A healthy probe never loses its 50 ms budget to host scheduling.
+    // Real-time WaitAsync calls above remain watchdogs for broken cancellation, not test clocks.
+    private sealed class ManualClock : TimeProvider
+    {
+        private readonly object _gate = new();
+        private readonly List<ManualTimer> _timers = [];
+        private long _timestamp;
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        public override long GetTimestamp() { lock (_gate) return _timestamp; }
+        public int TimerCount { get { lock (_gate) return _timers.Count; } }
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            var timer = new ManualTimer(this, callback, state);
+            lock (_gate)
+            {
+                timer.Change(dueTime, period);
+                _timers.Add(timer);
+            }
+            return timer;
+        }
+
+        public void Advance(TimeSpan amount)
+        {
+            List<ManualTimer> due;
+            lock (_gate)
+            {
+                _timestamp += amount.Ticks;
+                due = _timers.Where(timer => timer.Active && timer.Due <= _timestamp).ToList();
+                foreach (var timer in due) timer.Active = false;
+            }
+            foreach (var timer in due) timer.Fire();
+        }
+
+        public void FireNextTimer()
+        {
+            ManualTimer timer;
+            lock (_gate)
+            {
+                timer = Assert.Single(_timers.Where(candidate => candidate.Active));
+                timer.Active = false;
+            }
+            timer.Fire();
+        }
+
+        private sealed class ManualTimer(ManualClock clock, TimerCallback callback, object? state) : ITimer
+        {
+            public bool Active { get; set; }
+            public long Due { get; private set; }
+            public bool Change(TimeSpan dueTime, TimeSpan period)
+            {
+                Assert.Equal(Timeout.InfiniteTimeSpan, period);
+                lock (clock._gate)
+                {
+                    Active = dueTime != Timeout.InfiniteTimeSpan;
+                    Due = clock._timestamp + (Active ? dueTime.Ticks : 0);
+                }
+                return true;
+            }
+            public void Fire() => callback(state);
+            public void Dispose() { lock (clock._gate) { Active = false; clock._timers.Remove(this); } }
+            public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+        }
     }
 
     private static Task<DependencyObservation> Available() => Task.FromResult(new DependencyObservation(DependencyAvailability.Available, "Ready."));
