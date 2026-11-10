@@ -1,0 +1,66 @@
+name: Nonpublishing RC package rehearsal
+
+on:
+  push:
+    branches: ['codex/rc-package-validation-*']
+    paths:
+      - '.github/workflows/rc-package-validation.yml'
+      - 'scripts/release-candidate-validation/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc-package-validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package-install-upgrade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - name: Checkout validation harness
+        uses: actions/checkout@v7
+        with:
+          path: harness
+      - name: Checkout exact product source
+        uses: actions/checkout@v7
+        with:
+          ref: 9baa650dadb1ebd9d2a301d77d1b48031b825d32
+          path: product
+          fetch-depth: 0
+      - name: Verify fail-closed evidence checks
+        run: python3 -m unittest discover -s harness/scripts/release-candidate-validation -p 'test_*.py' -v
+      - name: Pack, clean install, upgrade, and test remote mount migration
+        shell: bash
+        env:
+          PRODUCT_SHA: 9baa650dadb1ebd9d2a301d77d1b48031b825d32
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rc-evidence"
+          export RC_REAL_DOCKER="$(command -v docker)"
+          # Keep the product clone byte-for-byte unchanged. Add only a read-only harness
+          # and a separate writable artifact directory to the standard container runner.
+          docker() {
+            if [[ "${1:-}" == run ]]; then
+              shift
+              "$RC_REAL_DOCKER" run \
+                --mount "type=bind,src=$GITHUB_WORKSPACE/harness/scripts/release-candidate-validation,dst=/rc-harness,readonly" \
+                --mount "type=bind,src=$RUNNER_TEMP/rc-evidence,dst=/rc-evidence" "$@"
+            else
+              "$RC_REAL_DOCKER" "$@"
+            fi
+          }
+          export -f docker
+          bash product/scripts/test-in-container.sh --repo "$GITHUB_WORKSPACE/product" --ref "$PRODUCT_SHA" -- \
+            "bash /rc-harness/run.sh '$PRODUCT_SHA' /rc-evidence" \
+            2>&1 | tee "$RUNNER_TEMP/rc-evidence/container-run.log"
+      - name: Archive candidate packages and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc-package-rehearsal-9baa650dadb1
+          path: ${{ runner.temp }}/rc-evidence
+          if-no-files-found: error
+          retention-days: 30
