@@ -85,6 +85,30 @@
       "expected_failures": [
         "Construction_verifies_runtime_locking_before_creating_store_directories"
       ]
+    },
+    {
+      "id": "runtime-lock-failure-cache-disabled",
+      "file": "src/Ashlar.Manifest/Storage/FileLockSafety.cs",
+      "old": "private static readonly Lazy<bool> Verified = new(Verify);",
+      "new": "private static Lazy<bool> Verified => new(Verify);",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~FileLockSafetyTests",
+      "expected_failures": [
+        "Concurrent_first_construction_shares_the_runtime_verification"
+      ]
+    },
+    {
+      "id": "runtime-lock-probe-errors-ignored",
+      "file": "src/Ashlar.Manifest/Storage/FileLockSafety.cs",
+      "old": "throw new InvalidOperationException(\n                \"Could not verify FileShare.None exclusivity. Refusing gate-store and ledger initialization and writes. \" +\n                \"Check the temporary directory and DOTNET_SYSTEM_IO_DISABLEFILELOCKING, then restart the process.\", ex);",
+      "new": "return true;",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~FileLockSafetyTests",
+      "expected_failures": [
+        "An_unusable_probe_directory_fails_closed_during_construction"
+      ]
     }
   ]
 }
