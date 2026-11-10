@@ -134,6 +134,32 @@
         "Peer_daemon_counts_node_faults_as_errors_and_keeps_processing"
       ],
       "group": "import-integrity"
+    },
+    {
+      "id": "cleanup-only-published-ids",
+      "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
+      "old": "if (published) localForgeIds.Add(localId);",
+      "new": "localForgeIds.Add(localId);",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Forge_id_collision_preserves_the_unowned_row_and_cleans_up_only_this_attempt"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "report-publication-ownership",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "finally { published = committed; }",
+      "new": "finally { published = committed && proposal is null; }",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "expected_failures": [
+        "Add_reports_ownership_after_publication_even_when_returning_fails"
+      ],
+      "group": "import-integrity"
     }
   ]
 }

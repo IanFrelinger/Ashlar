@@ -85,6 +85,22 @@ public sealed class PackageImportIntegrityTests : IDisposable
 
     private void BreakGateWrite(string id) => Directory.CreateDirectory(Path.Combine(_project, ".ashlar", "gates", id + ".json"));
 
+    [Fact]
+    public async Task Forge_id_collision_preserves_the_unowned_row_and_cleans_up_only_this_attempt()
+    {
+        Forge.Add(new ChangeProposal
+        {
+            Id = "pkg-collision", TargetPath = "src/Unrelated.cs", NewContent = "// unrelated", Summary = "unrelated",
+        });
+        var original = Forge.Find("pkg-collision");
+        var ids = new Queue<string>(["pkg-owned", "pkg-collision"]);
+        var result = await PackageImport.SubmitAsync(_project, Package(), () => ids.Dequeue());
+        result.Outcome.Should().Be(PackageAdmission.Failed);
+        Forge.Find("pkg-collision").Should().BeEquivalentTo(original);
+        Forge.Find("pkg-owned")!.Status.Should().Be(ChangeProposalStatus.Rejected);
+        (await Gate.GetAsync("ext-shared")).Should().BeNull();
+    }
+
     [Theory]
     [InlineData("proposing", PackageAdmission.Held)]
     [InlineData("self-extending", PackageAdmission.Admitted)]

@@ -19,6 +19,9 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Fixed — package import integrity
 
+- Abort cleanup owns only forge rows atomically published by that import attempt. A local-id
+  collision cannot reject an unrelated proposal, and post-publication failures retain ownership.
+
 - Package imports now retain the verified package seal and sealer in a receiver-local receipt
   bound to the recorded proposal, outside the signed wire schema.
   A repeated identical package remains a no-op; a colliding proposal id with different content,

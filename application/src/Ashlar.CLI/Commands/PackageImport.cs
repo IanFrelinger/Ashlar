@@ -60,7 +60,12 @@ public sealed record PackageImportResult(
 /// </summary>
 public static class PackageImport
 {
-    public static async Task<PackageImportResult> SubmitAsync(string projectDir, string packageJson)
+    public static Task<PackageImportResult> SubmitAsync(string projectDir, string packageJson)
+        => SubmitAsync(projectDir, packageJson, () => "pkg-" + Guid.NewGuid().ToString("N")[..12]);
+
+    // Deterministic id seam for collision ownership tests, never configured by package input.
+    internal static async Task<PackageImportResult> SubmitAsync(string projectDir, string packageJson,
+        Func<string> nextForgeId)
     {
         if (!ExtensionPackaging.TryOpen(packageJson, out var pkg, out var reason))
         {
@@ -128,18 +133,26 @@ public static class PackageImport
             // admits. Propose → hold → apply holds for remote code exactly as for a local cycle.
             foreach (var pf in pkg.Files)
             {
-                var localId = "pkg-" + Guid.NewGuid().ToString("N")[..12];
-                // Track before Add: even a store failure after the durable write needs cleanup.
-                localForgeIds.Add(localId);
-                forge.Add(new ChangeProposal
+                var localId = nextForgeId();
+                var published = false;
+                try
                 {
-                    Id = localId,
-                    TargetPath = pf.Path.Replace('\\', '/'),
-                    NewContent = pf.Content,
-                    Summary = $"imported: {pkg.Record.Proposal.Summary}",
-                    Reason = $"package sealed by {Fingerprint(pkg.SealSigner)}",
-                    CreatedAt = DateTimeOffset.UtcNow,
-                });
+                    forge.Add(new ChangeProposal
+                    {
+                        Id = localId,
+                        TargetPath = pf.Path.Replace('\\', '/'),
+                        NewContent = pf.Content,
+                        Summary = $"imported: {pkg.Record.Proposal.Summary}",
+                        Reason = $"package sealed by {Fingerprint(pkg.SealSigner)}",
+                        CreatedAt = DateTimeOffset.UtcNow,
+                    }, out published);
+                }
+                finally
+                {
+                    // A collision or pre-write error owns nothing. A post-publication error
+                    // still owns its row and must include it in this attempt's abort cleanup.
+                    if (published) localForgeIds.Add(localId);
+                }
             }
 
             var proposal = pkg.Record.Proposal with { ForgeProposalIds = localForgeIds };
