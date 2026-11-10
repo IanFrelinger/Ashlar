@@ -1,3 +1,4 @@
+using Ashlar.CLI.Commands;
 using System.CommandLine;
 using Microsoft.Extensions.DependencyInjection;
 using Ashlar.CLI.Commands.BackgroundAgent;
