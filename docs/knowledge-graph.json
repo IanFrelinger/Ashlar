@@ -20,9 +20,9 @@
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 851,
-    "declared_facts": 5651,
-    "workflows": 65
+    "test_files_declaring_facts": 852,
+    "declared_facts": 5673,
+    "workflows": 66
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -3777,6 +3777,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.BackgroundAgents/Forge/ChangeProposalDurabilityTests.cs",
+      "project": "Ashlar.Tests.BackgroundAgents",
+      "namespace": "Ashlar.Tests.BackgroundAgents.Forge",
+      "declared_facts": 18,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.BackgroundAgents/Forge/ChangeProposalStoreTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.Forge",
@@ -4137,7 +4144,7 @@
       "file": "src/Ashlar.Tests.BackgroundAgents/SelfExtend/SelfExtendInvariantDRecursionCeilingTests.cs",
       "project": "Ashlar.Tests.BackgroundAgents",
       "namespace": "Ashlar.Tests.BackgroundAgents.SelfExtend",
-      "declared_facts": 13,
+      "declared_facts": 17,
       "in_cert_gate_filter": false
     },
     {
@@ -8947,6 +8954,14 @@
       "name": "layer-boundary",
       "triggers": [
         "pull_request"
+      ]
+    },
+    {
+      "file": ".github/workflows/lineage-proposal-regression.yml",
+      "name": "Lineage and proposal durability",
+      "triggers": [
+        "pull_request",
+        "workflow_dispatch"
       ]
     },
     {

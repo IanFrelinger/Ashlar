@@ -8,6 +8,9 @@ namespace Ashlar.BackgroundAgents.Registry;
 /// </summary>
 public class BackgroundAgentInstance
 {
+    // Set only by registry admission; never derive authority from the mutable public config.
+    internal string? RegisteredId { get; init; }
+
     /// <summary>
     /// The agent instance.
     /// </summary>

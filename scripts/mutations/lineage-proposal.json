@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "note": "Pending execution. Exact production targets; failing assertion names are required.",
+  "mutations": [
+    {
+      "id": "lineage-authority-erased",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "lineageDepth = _lineageDepths[agentId];",
+      "new": "lineageDepth = 0;",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~SelfExtendInvariantDRecursionCeilingTests",
+      "expected_failures": [
+        "Lineage_cannot_be_laundered_by_mutation_or_reregistration"
+      ]
+    },
+    {
+      "id": "lineage-history-erased",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "if (!string.IsNullOrWhiteSpace(config.ParentId)) parents.Add(config.ParentId);",
+      "new": "parents.Clear();\n            if (!string.IsNullOrWhiteSpace(config.ParentId)) parents.Add(config.ParentId);",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~SelfExtendInvariantDRecursionCeilingTests",
+      "expected_failures": [
+        "Later_parent_registration_and_deepening_propagate_through_historical_edges"
+      ]
+    },
+    {
+      "id": "agent-budget-widened",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "ceiling = _agentCeilings[agentId].NarrowedBy(instance.Config);",
+      "new": "ceiling = _extensionCeiling.NarrowedBy(instance.Config);",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~SelfExtendInvariantDRecursionCeilingTests",
+      "expected_failures": [
+        "Admitted_parameter_ceiling_survives_mutation_and_reregistration"
+      ]
+    },
+    {
+      "id": "proposal-recovery-disabled",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "            Recover();",
+      "new": "            // recovery disabled",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "expected_failures": [
+        "Interrupted_committed_transition_recovers_one_complete_decision"
+      ]
+    },
+    {
+      "id": "proposal-status-not-checked",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "proposal.Id != Path.GetFileNameWithoutExtension(path) || proposal.Status != status",
+      "new": "proposal.Id != Path.GetFileNameWithoutExtension(path)",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "expected_failures": [
+        "Duplicate_or_misfiled_rows_are_corruption"
+      ]
+    },
+    {
+      "id": "proposal-source-not-removed",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "if (hasSource) File.Delete(source);",
+      "new": "// source deletion disabled",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "expected_failures": [
+        "Interrupted_committed_transition_recovers_one_complete_decision"
+      ]
+    },
+    {
+      "id": "proposal-journal-not-published",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "WriteAtomic(journal, intent, \"journal\");",
+      "new": "// intent publication disabled",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "expected_failures": [
+        "Interrupted_committed_transition_recovers_one_complete_decision"
+      ]
+    },
+    {
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "id": "proposal-corruption-hidden",
+      "old": "            return action();",
+      "new": "            try { return action(); }\n            catch (InvalidDataException) { return default!; }",
+      "expected_failures": [
+        "Corruption_is_not_missing_or_an_empty_queue"
+      ]
+    },
+    {
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "id": "proposal-io-misclassified",
+      "old": "            WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, \"add\");",
+      "new": "            try { WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, \"add\"); }\n            catch (IOException) { throw new InvalidOperationException(\"Proposal already exists\"); }",
+      "expected_failures": [
+        "Failed_add_does_not_publish_partial_json_or_misreport_collision"
+      ]
+    },
+    {
+      "id": "registration-config-not-snapshotted",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "        config = config.SnapshotForRegistration();",
+      "new": "        // caller config retained by reference",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~RagProviderContractTests",
+      "expected_failures": [
+        "Supported_provider_survives_loading_spec_building_and_registration"
+      ]
+    },
+    {
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "id": "proposal-bsd-contention-not-recognized",
+      "old": "if (platform == OSPlatform.OSX || platform == OSPlatform.FreeBSD) return error == 35;",
+      "new": "if (platform == OSPlatform.OSX || platform == OSPlatform.FreeBSD) return false;",
+      "expected_failures": [
+        "Lock_errors_are_classified_in_their_native_platform_namespace"
+      ]
+    },
+    {
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "id": "proposal-lock-errors-pooled",
+      "old": "if (platform == OSPlatform.Linux) return error == 11;",
+      "new": "if (platform == OSPlatform.Linux) return (error & 0xffff) is 11 or 32 or 33 or 35;",
+      "expected_failures": [
+        "Lock_errors_are_classified_in_their_native_platform_namespace",
+        "Non_contention_lock_failures_surface_without_retrying_or_publishing"
+      ]
+    },
+    {
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "id": "proposal-lock-retry-disabled",
+      "old": "IsSharingViolation(ex) && wait.Elapsed < TimeSpan.FromSeconds(10)",
+      "new": "IsSharingViolation(ex) && wait.Elapsed < TimeSpan.Zero",
+      "expected_failures": [
+        "Held_lock_retries_without_publishing_until_its_owner_releases_it"
+      ]
+    }
+  ]
+}

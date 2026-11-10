@@ -200,6 +200,113 @@ public sealed class SelfExtendInvariantDRecursionCeilingTests
         runner.CallCount.Should().Be(2, "a grandchild is refused: MaxLineageDepth 1");
     }
 
+    [Theory]
+    [InlineData("caller-child")]
+    [InlineData("caller-ancestor")]
+    [InlineData("instance-child")]
+    [InlineData("instance-ancestor")]
+    [InlineData("instance-id")]
+    [InlineData("reregister-child")]
+    [InlineData("reregister-ancestor")]
+    public async Task Lineage_cannot_be_laundered_by_mutation_or_reregistration(string attack)
+    {
+        var runner = new SelfExtendAuditTestSupport.CountingSelfExtendRunner();
+        var registry = SelfExtendAuditTestSupport.CreateRegistry(
+            selfExtendRunner: runner, modeStore: SelfExtendAuditTestSupport.ActiveModeStore(),
+            extensionCeiling: new ExtensionCeiling(1, 100, 100));
+        var root = SelfExtendAuditTestSupport.ExtenderConfig("root", Environment.CurrentDirectory);
+        var child = SelfExtendAuditTestSupport.ExtenderConfig("child", Environment.CurrentDirectory);
+        child.ParentId = root.Id;
+        var leaf = SelfExtendAuditTestSupport.ExtenderConfig("leaf", Environment.CurrentDirectory);
+        leaf.ParentId = child.Id;
+        foreach (var config in new[] { root, child, leaf })
+            await registry.RegisterAuthoredAsync(
+                new GenericAgent(SelfExtendAuditTestSupport.BuildSpec(config), NullLogger<GenericAgent>.Instance), config);
+
+        switch (attack)
+        {
+            case "caller-child": leaf.ParentId = null; break;
+            case "caller-ancestor": child.ParentId = null; break;
+            case "instance-child": registry.GetAgent("leaf")!.Config.ParentId = null; break;
+            case "instance-ancestor": registry.GetAgent("child")!.Config.ParentId = null; break;
+            case "instance-id": registry.GetAgent("leaf")!.Config.Id = "root"; break;
+            default:
+                var replacement = attack == "reregister-child" ? leaf : child;
+                replacement.ParentId = null;
+                await registry.RegisterAuthoredAsync(
+                    new GenericAgent(SelfExtendAuditTestSupport.BuildSpec(replacement), NullLogger<GenericAgent>.Instance), replacement);
+                break;
+        }
+
+        await registry.ExecuteOnceAsync("leaf");
+        runner.CallCount.Should().Be(0, "admitted ancestry cannot be erased by an exposed config or re-registration");
+        registry.GetExtensionLedger("leaf").UnattendedCycles.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Later_parent_registration_and_deepening_propagate_through_historical_edges()
+    {
+        var runner = new SelfExtendAuditTestSupport.CountingSelfExtendRunner();
+        var registry = SelfExtendAuditTestSupport.CreateRegistry(
+            selfExtendRunner: runner, modeStore: SelfExtendAuditTestSupport.ActiveModeStore(),
+            extensionCeiling: new ExtensionCeiling(1, 100, 100));
+        var leaf = SelfExtendAuditTestSupport.ExtenderConfig("leaf", Environment.CurrentDirectory);
+        leaf.ParentId = "late-parent";
+        await registry.RegisterAuthoredAsync(
+            new GenericAgent(SelfExtendAuditTestSupport.BuildSpec(leaf), NullLogger<GenericAgent>.Instance), leaf);
+        registry.LineageDepth(leaf).Should().Be(1);
+        leaf.ParentId = null;
+        await registry.RegisterAuthoredAsync(
+            new GenericAgent(SelfExtendAuditTestSupport.BuildSpec(leaf), NullLogger<GenericAgent>.Instance), leaf);
+        var parent = SelfExtendAuditTestSupport.ExtenderConfig("late-parent", Environment.CurrentDirectory);
+        parent.ParentId = "unknown-root";
+        await registry.RegisterAuthoredAsync(
+            new GenericAgent(SelfExtendAuditTestSupport.BuildSpec(parent), NullLogger<GenericAgent>.Instance), parent);
+
+        registry.LineageDepth(leaf).Should().Be(2);
+        await registry.ExecuteOnceAsync("leaf");
+        runner.CallCount.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(100)]
+    [InlineData(int.MaxValue)]
+    public async Task Cyclic_lineage_fails_closed_even_with_a_large_configured_ceiling(int lineageCeiling)
+    {
+        var runner = new SelfExtendAuditTestSupport.CountingSelfExtendRunner();
+        var registry = SelfExtendAuditTestSupport.CreateRegistry(
+            selfExtendRunner: runner, modeStore: SelfExtendAuditTestSupport.ActiveModeStore(),
+            extensionCeiling: new ExtensionCeiling(lineageCeiling, 100, 100));
+        foreach (var (id, parent) in new[] { ("a", "b"), ("b", "a") })
+        {
+            var config = SelfExtendAuditTestSupport.ExtenderConfig(id, Environment.CurrentDirectory);
+            config.ParentId = parent;
+            await registry.RegisterAuthoredAsync(
+                new GenericAgent(SelfExtendAuditTestSupport.BuildSpec(config), NullLogger<GenericAgent>.Instance), config);
+        }
+        await registry.ExecuteOnceAsync("a");
+        await registry.ExecuteOnceAsync("b");
+        runner.CallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Admitted_parameter_ceiling_survives_mutation_and_reregistration()
+    {
+        var runner = new SelfExtendAuditTestSupport.CountingSelfExtendRunner();
+        var registry = SelfExtendAuditTestSupport.CreateRegistry(
+            selfExtendRunner: runner, modeStore: SelfExtendAuditTestSupport.ActiveModeStore(),
+            extensionCeiling: new ExtensionCeiling(1, 100, 100));
+        var config = SelfExtendAuditTestSupport.ExtenderConfig("narrow", Environment.CurrentDirectory);
+        config.Parameters![ExtensionCeiling.UnattendedCyclesParameter] = 0;
+        var agent = new GenericAgent(SelfExtendAuditTestSupport.BuildSpec(config), NullLogger<GenericAgent>.Instance);
+        await registry.RegisterAuthoredAsync(agent, config);
+        config.Parameters.Remove(ExtensionCeiling.UnattendedCyclesParameter);
+        registry.GetAgent(config.Id)!.Config.Parameters!.Remove(ExtensionCeiling.UnattendedCyclesParameter);
+        await registry.RegisterAuthoredAsync(agent, config);
+        await registry.ExecuteOnceAsync(config.Id);
+        runner.CallCount.Should().Be(0);
+    }
+
     [Fact]
     public void Environment_may_only_lower_the_ceiling_never_raise_it()
     {
