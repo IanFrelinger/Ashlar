@@ -170,6 +170,136 @@
         "Parallel_result_does_not_overwrite_process_global_status"
       ],
       "group": "exit-codes"
+    },
+    {
+      "id": "json-parsed-boolean",
+      "file": "application/src/Ashlar.CLI/Commands/CommandExecutionSupport.cs",
+      "old": "if (parseResult.GetValueForOption(option)) return true;",
+      "new": "if (parseResult.Tokens.Any(token => token.Value == \"--format-json\")) return true;",
+      "filter": "FullyQualifiedName~Parsed_boolean_controls_logging_before_handler",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Parsed_boolean_controls_logging_before_handler"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-response-file",
+      "file": "application/src/Ashlar.CLI/Commands/CommandExecutionSupport.cs",
+      "old": "if (parseResult.GetValueForOption(option)) return true;",
+      "new": "if (parseResult.Tokens.Any(token => token.Value == \"--format-json\")) return true;",
+      "filter": "FullyQualifiedName~Response_file_controls_logging_before_handler",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Response_file_controls_logging_before_handler"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-default-deny",
+      "file": "application/src/Ashlar.CLI/Commands/CommandExecutionSupport.cs",
+      "old": "if (!Program.JsonOutputMode || SupportsJson(command)) return false;",
+      "new": "if (!Program.JsonOutputMode || SupportsJson(command) || command.Name == \"probe\") return false;",
+      "filter": "FullyQualifiedName~Unmarked_handler_refuses_without_running",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Unmarked_handler_refuses_without_running"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-parent-marker-propagation",
+      "file": "application/src/Ashlar.CLI/Commands/CommandExecutionSupport.cs",
+      "old": "        foreach (var child in command.Subcommands)\n            ApplyJsonOutputContract(child);",
+      "new": "        foreach (var child in command.Subcommands)\n        {\n            if (SupportsJson(command)) child.WithJsonOutput();\n            ApplyJsonOutputContract(child);\n        }",
+      "filter": "FullyQualifiedName~Json_on_parent_does_not_opt_in_child_and_help_still_works",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Json_on_parent_does_not_opt_in_child_and_help_still_works"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-portable-alias",
+      "file": "application/src/Ashlar.CLI/Commands/TestPortableCommand.cs",
+      "old": "o.HasAlias(\"--format-json\")",
+      "new": "o.Name == \"--format-json\"",
+      "filter": "FullyQualifiedName~Portable_list_emits_one_document_and_all_refuses_before_work",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Portable_list_emits_one_document_and_all_refuses_before_work"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-multi-env-alias",
+      "file": "application/src/Ashlar.CLI/Commands/TestMultiEnvCommand.cs",
+      "old": "o.HasAlias(\"--format-json\")",
+      "new": "o.Name == \"--format-json\"",
+      "filter": "FullyQualifiedName~Portable_list_emits_one_document_and_all_refuses_before_work",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Portable_list_emits_one_document_and_all_refuses_before_work"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-docker-alias",
+      "file": "application/src/Ashlar.CLI/Commands/DockerCommand.cs",
+      "old": "            var buildArgs = ctx.ParseResult.GetValueForOption(buildArgOpt) ?? Array.Empty<string>();\n            var rootCommand = ctx.ParseResult.RootCommandResult.Command;\n            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias(\"--format-json\"));",
+      "new": "            var buildArgs = ctx.ParseResult.GetValueForOption(buildArgOpt) ?? Array.Empty<string>();\n            var rootCommand = ctx.ParseResult.RootCommandResult.Command;\n            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == \"--format-json\");",
+      "filter": "FullyQualifiedName~Docker_json_alias_forms_emit_one_document_and_actual_logs_on_stderr",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Docker_json_alias_forms_emit_one_document_and_actual_logs_on_stderr"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-docker-log-destination",
+      "file": "application/src/Ashlar.CLI/Commands/DockerCommand.cs",
+      "old": "if (json) o.LogToStandardErrorThreshold = LogLevel.Trace;",
+      "new": "if (json) o.LogToStandardErrorThreshold = LogLevel.None;",
+      "filter": "FullyQualifiedName~Docker_json_alias_forms_emit_one_document_and_actual_logs_on_stderr",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Docker_json_alias_forms_emit_one_document_and_actual_logs_on_stderr"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-portable-aggregate-refusal",
+      "file": "application/src/Ashlar.CLI/Commands/TestPortableCommand.cs",
+      "old": "            Console.Error.WriteLine(\"test portable --scope all has no single JSON rendering; choose smoke, persistence, or trust.\");\n            return 1;",
+      "new": "            Console.Error.WriteLine(\"test portable --scope all has no single JSON rendering; choose smoke, persistence, or trust.\");\n            return 0;",
+      "filter": "FullyQualifiedName~Portable_list_emits_one_document_and_all_refuses_before_work",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Portable_list_emits_one_document_and_all_refuses_before_work"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-existing-renderer-marker",
+      "file": "application/src/Ashlar.CLI/Program.CommandRegistration.cs",
+      "old": "        analyzeCmd.WithJsonOutput().SetHandler(",
+      "new": "        analyzeCmd.SetHandler(",
+      "filter": "FullyQualifiedName~Existing_json_renderers_remain_opted_in",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Existing_json_renderers_remain_opted_in"
+      ],
+      "group": "json-output"
     }
   ]
 }

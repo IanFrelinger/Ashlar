@@ -183,12 +183,54 @@ public class TestPortableCommand
         return process.ExitCode;
     }
 
-    private static Task<int> RunPersistenceMultiEnvAsync(CliConsole? console, bool json, bool verbose)
+    private static async Task<int> RunPersistenceMultiEnvAsync(CliConsole? console, bool json, bool verbose)
     {
-        // Use the same renderer directly, as the trust scope does. A nested dotnet run both
-        // depended on an obsolete CLI project path and discarded the JSON result on stdout.
-        return TestMultiEnvCommand.ExecuteAsync("persistence", null, true,
-            ephemeral: false, noNetwork: false, json, verbose);
+        // Delegate to multi-env with suite persistence (same as test-persistence-multi-env.sh)
+        var root = DiscoverProjectRoot();
+        if (string.IsNullOrEmpty(root)) return 1;
+
+        // Run via dotnet run to avoid circular ref: ashlar test multi-env --suite persistence --all
+        EgressGuard.ProcessDefault.Evaluate(new EgressRequest(EgressFamilies.Process, "EG-PROC-09", "process:dotnet")).ThrowIfRefused();
+        var psi = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"run --project \"{Path.Combine(root, "application", "src", "Ashlar.CLI", "Ashlar.CLI.csproj")}\" -- test multi-env --suite persistence --all" + (json ? " --format-json" : ""),
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(psi);
+        if (process == null) return 1;
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
+        if (json)
+        {
+            // Preserve the child's document without wrapping it or mixing diagnostics into stdout.
+            if (!string.IsNullOrEmpty(stderr)) Console.Error.Write(stderr);
+            try
+            {
+                using var document = JsonDocument.Parse(stdout);
+                Console.Out.Write(stdout);
+            }
+            catch (JsonException)
+            {
+                Console.Error.WriteLine("Portable persistence did not receive a single JSON document from multi-env.");
+                if (!string.IsNullOrEmpty(stdout)) Console.Error.Write(stdout);
+                return process.ExitCode != 0 ? process.ExitCode : 1;
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(stdout)) console?.WriteLine(stdout);
+            if (process.ExitCode != 0 && !string.IsNullOrEmpty(stderr)) console?.WriteError(stderr);
+        }
+        return process.ExitCode;
     }
 
     private static string GetHostOs()
