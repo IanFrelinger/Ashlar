@@ -1,0 +1,28 @@
+name: Input safety historical reproduction
+
+on:
+  push:
+    branches: ['probe/input-safety-baseline-5ca5968']
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Reproduce on original master in devtest container
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/test-in-container.sh -- 'python3 scripts/input-safety-baseline.py' 2>&1 | tee "${RUNNER_TEMP}/baseline.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: input-safety-historical-baseline
+          path: ${{ runner.temp }}/baseline.log
+          if-no-files-found: error
