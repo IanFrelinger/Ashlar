@@ -324,7 +324,7 @@ public sealed class DependencyPreflightTests
             ManualTimer timer;
             lock (_gate)
             {
-                timer = Assert.Single(_timers.Where(candidate => candidate.Active));
+                timer = Assert.Single(_timers, candidate => candidate.Active);
                 timer.Active = false;
             }
             timer.Fire();
