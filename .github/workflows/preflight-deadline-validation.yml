@@ -1,0 +1,100 @@
+name: Disposable preflight deadline evidence
+'on':
+  push:
+    branches:
+    - cursor/preflight-deadline-validation
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  mutation-evidence:
+    name: Preflight deadlines (${{ matrix.framework }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        framework:
+        - net8.0
+        - net10.0
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        ref: aad9e88ea0c3e96de28a8e02a492b4e17da1de10
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Verify supported container prerequisites
+      shell: bash
+      run: |
+        set -euo pipefail
+        command -v docker
+        timeout 30 docker info --format '{{.ServerVersion}}'
+    - name: Run exact-source mutation checks
+      shell: bash
+      env:
+        MUTATION_GROUP: timing
+        TEST_FRAMEWORK: ${{ matrix.framework }}
+      run: |
+        python3 - <<'PY'
+        import json, os, pathlib, shutil, subprocess, sys
+        source = 'aad9e88ea0c3e96de28a8e02a492b4e17da1de10'
+        expected_tree = '4ab703a0e82577a0c9e38da1833d1501e7ed3b6a'
+        assert subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip() == source
+        assert subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip() == expected_tree
+        root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "preflight-mutations"
+        proof = root / "proof" / os.environ["TEST_FRAMEWORK"]
+        proof.mkdir(parents=True, exist_ok=True)
+        mutations = [{'id': 'configured-clock-disconnected', 'group': 'timing', 'file': 'src/Ashlar.Infrastructure/Preflight/DependencyPreflight.cs', 'old': 'new CancellationTokenSource(timeout, _timeProvider)', 'new': 'new CancellationTokenSource(timeout, TimeProvider.System)'}, {'id': 'adapter-cancellation-disconnected', 'group': 'timing', 'file': 'src/Ashlar.Infrastructure/Preflight/DependencyPreflight.cs', 'old': 'CreateLinkedTokenSource(ct, timeoutSource.Token)', 'new': 'CreateLinkedTokenSource(ct)'}, {'id': 'elapsed-budget-ignored', 'group': 'timing', 'file': 'src/Ashlar.Infrastructure/Preflight/DependencyPreflight.cs', 'old': 'var remaining = _operationTimeout - _timeProvider.GetElapsedTime(started);', 'new': 'var remaining = _operationTimeout;'}, {'id': 'early-operation-expiry-ignored', 'group': 'timing', 'file': 'src/Ashlar.Infrastructure/Preflight/DependencyPreflight.cs', 'old': 'budgetExhausted = limitedByOperation && observed.DeadlineExpired;', 'new': 'budgetExhausted = false;'}]
+        reports = []
+        for mutation in mutations:
+            if mutation["group"] != os.environ["MUTATION_GROUP"]:
+                continue
+            name = mutation["id"]
+            directory = root / "work" / name
+            output = proof / name
+            output.mkdir(parents=True, exist_ok=True)
+            project = "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj"
+            framework = os.environ["TEST_FRAMEWORK"]
+            selection = "FullyQualifiedName~DependencyPreflightTests"
+            command = ["bash", "scripts/mutation-check.sh", "--repo", os.getcwd(), "--ref", source,
+                       "--id", name, "--file", mutation["file"], "--old", mutation["old"], "--new", mutation["new"],
+                       "--framework", framework, "--project", project, "--filter", selection,
+                       "--work-dir", str(directory), "--keep"]
+            environment = dict(os.environ)
+            environment.pop("ASHLAR_MUTATION_RUNNER", None)
+            print("Running " + name + " against " + source, flush=True)
+            with (output / "run.log").open("w") as log:
+                result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, env=environment, check=False)
+            for log_name in ("red.log", "green.log"):
+                if (directory / log_name).is_file():
+                    shutil.copyfile(directory / log_name, output / log_name)
+            lines = (output / "run.log").read_text().splitlines()
+            summaries = [line for line in lines if line.startswith("mutation " + name + ":")]
+            summary = summaries[-1] if summaries else "No mutation verdict produced."
+            clean = None
+            if (directory / "repo/.git").is_dir():
+                if result.returncode:
+                    # A failed harness may stop before restoration. Restore only the single known mutation
+                    # in this disposable clone. This cleanup never supplies missing red/green evidence.
+                    subprocess.run(["git", "-C", str(directory / "repo"), "restore", "--source=HEAD", "--", mutation["file"]], check=True)
+                clean = not subprocess.check_output(["git", "-C", str(directory / "repo"), "status", "--porcelain"], text=True).strip()
+            passed = result.returncode == 0 and ": KILLED " in summary and clean is True
+            report = dict(id=name, source_sha=source, source_tree=expected_tree, returncode=result.returncode,
+                          summary=summary, restored_clean=clean, verified=passed)
+            reports.append(report)
+            (output / "receipt.json").write_text(json.dumps(report, indent=2) + "\n")
+            print("\n".join(lines[-18:]), flush=True)
+        (proof / "report.json").write_text(json.dumps(reports, indent=2) + "\n")
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary_file:
+            summary_file.write("Source commit: " + source + "\n\n")
+            for report in reports:
+                summary_file.write("- " + report["summary"] + "\n")
+        sys.exit(0 if reports and all(report["verified"] for report in reports) else 1)
+        PY
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: preflight-deadline-evidence-${{ matrix.framework }}
+        path: ${{ runner.temp }}/preflight-mutations/proof/
+        if-no-files-found: error
+        retention-days: 30
