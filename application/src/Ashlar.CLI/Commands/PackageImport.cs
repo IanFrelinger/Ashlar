@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+using Ashlar.CLI.Packaging;
 using Ashlar.BackgroundAgents.Forge;
 using Ashlar.BackgroundAgents.HostRunners;
 using Ashlar.Manifest;
@@ -64,9 +67,13 @@ public static class PackageImport
             return new(PackageAdmission.Refused, reason, null, null, []);
         }
 
+        try { GateStore.ValidateProposalId(pkg!.Record.Proposal.Id); }
+        catch (ArgumentException ex) { return new(PackageAdmission.Refused, ex.Message, pkg, null, []); }
+
         ChangeProposalStore? forge = null;
         var localForgeIds = new List<string>();
         string? recordedId = null;
+        ProposalState? recordedState = null;
         try
         {
             var policyPath = Path.Combine(projectDir, "ashlar.policy.yaml");
@@ -100,15 +107,15 @@ public static class PackageImport
             // alone cannot distinguish independent origins or changed files from the same origin.
             if (await store.GetAsync(pkg!.Record.Proposal.Id) is { } existing)
             {
-                if (existing.Proposal.ImportedPackageSeal == pkg.Seal
-                    && existing.Proposal.ImportedPackageSigner == pkg.SealSigner)
+                var receipt = await ReadReceiptAsync(projectDir, existing.Proposal);
+                if (receipt?.Seal == pkg.Seal && receipt?.Signer == pkg.SealSigner)
                 {
                     return new(PackageAdmission.AlreadyImported,
                         $"already decided at this gate under id '{pkg.Record.Proposal.Id}'", pkg, pkg.Record.Proposal.Id, []);
                 }
 
-                var previousOrigin = existing.Proposal.ImportedPackageSigner is { } previous
-                    ? Fingerprint(previous) : "unknown (local or legacy record)";
+                var previousOrigin = receipt is not null
+                    ? Fingerprint(receipt.Signer) : "unknown (local or legacy record)";
                 return new(PackageAdmission.Refused,
                     $"proposal id '{pkg.Record.Proposal.Id}' collides: recorded origin {previousOrigin}; "
                     + $"incoming origin {sealer}. The recorded package is different or cannot be identified; use a new proposal id.",
@@ -133,15 +140,13 @@ public static class PackageImport
                 });
             }
 
-            // These receipt fields are derived HERE, never accepted from the incoming proposal.
-            var proposal = pkg.Record.Proposal with
-            {
-                ForgeProposalIds = localForgeIds,
-                ImportedPackageSeal = pkg.Seal,
-                ImportedPackageSigner = pkg.SealSigner,
-            };
+            var proposal = pkg.Record.Proposal with { ForgeProposalIds = localForgeIds };
             var record = await store.ProposeAsync(policy!, proposal, DateTimeOffset.UtcNow);
             recordedId = record.Proposal.Id;
+            recordedState = record.State;
+            // Receiver-only metadata stays outside the signed package wire schema. A crash before
+            // the atomic receipt write leaves an unknown collision, never a false duplicate.
+            await WriteReceiptAsync(projectDir, record.Proposal, pkg);
 
             switch (record.State)
             {
@@ -172,7 +177,9 @@ public static class PackageImport
             // Every failure, including I/O, timeout and cancellation, must attempt cleanup. A
             // second failure is reported explicitly; it must not hide the original node fault.
             var cleanupErrors = new List<string>();
-            if (forge is not null)
+            // Once a durable held/admitted decision owns the rows, preserve them for review or
+            // recovery. Only rows with no owning decision (or a rejection) need abort cleanup.
+            if (forge is not null && recordedState is not (ProposalState.Held or ProposalState.Admitted))
             {
                 foreach (var id in localForgeIds)
                 {
@@ -194,6 +201,45 @@ public static class PackageImport
                 message += ". Cleanup also failed: " + string.Join("; ", cleanupErrors);
             return new(PackageAdmission.Failed, message, pkg, recordedId, []);
         }
+    }
+
+    private sealed record ImportReceipt(string ProposalSha256, string Seal, string Signer);
+
+    private static string ProposalHash(ExtensionProposal proposal) =>
+        Convert.ToHexString(SHA256.HashData(CanonicalJson.Bytes(proposal)));
+
+    private static string ReceiptPath(string projectDir, string id) =>
+        Path.Combine(projectDir, ".ashlar", "import-receipts", id + ".json");
+
+    private static async Task<ImportReceipt?> ReadReceiptAsync(string projectDir, ExtensionProposal proposal)
+    {
+        var read = await SafePackageRead.TryReadTextAsync(ReceiptPath(projectDir, proposal.Id), 4096);
+        if (!read.Ok) return null;
+        try
+        {
+            var receipt = JsonSerializer.Deserialize<ImportReceipt>(read.Text!);
+            if (receipt is null || receipt.ProposalSha256 != ProposalHash(proposal)
+                || string.IsNullOrEmpty(receipt.Seal) || string.IsNullOrEmpty(receipt.Signer)) return null;
+            // Reject malformed sidecars rather than letting their display fingerprint throw.
+            if (Convert.FromBase64String(receipt.Signer).Length != 32
+                || Convert.FromBase64String(receipt.Seal).Length != 64) return null;
+            return receipt;
+        }
+        catch (Exception ex) when (ex is JsonException or FormatException) { return null; }
+    }
+
+    private static async Task WriteReceiptAsync(string projectDir, ExtensionProposal proposal, ExtensionPackage package)
+    {
+        var path = ReceiptPath(projectDir, proposal.Id);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            var receipt = new ImportReceipt(ProposalHash(proposal), package.Seal!, package.SealSigner!);
+            await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(receipt));
+            File.Move(temporary, path); // append-once, never replace a conflicting receipt
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
     /// <summary>Display fingerprint for a base64 public key, or a plain note when absent.</summary>

@@ -5,7 +5,7 @@
     {
       "id": "collision-is-not-duplicate",
       "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
-      "old": "if (existing.Proposal.ImportedPackageSeal == pkg.Seal\n                    && existing.Proposal.ImportedPackageSigner == pkg.SealSigner)",
+      "old": "if (receipt?.Seal == pkg.Seal && receipt?.Signer == pkg.SealSigner)",
       "new": "if (true)",
       "filter": "FullyQualifiedName~PackageImportIntegrityTests",
       "framework": "net10.0",
@@ -19,13 +19,13 @@
     {
       "id": "receipt-derived-locally",
       "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
-      "old": "ImportedPackageSeal = pkg.Seal,",
-      "new": "ImportedPackageSeal = pkg.Record.Proposal.ImportedPackageSeal,",
+      "old": "var receipt = new ImportReceipt(ProposalHash(proposal), package.Seal!, package.SealSigner!);",
+      "new": "var receipt = new ImportReceipt(\"unbound\", package.Seal!, package.SealSigner!);",
       "filter": "FullyQualifiedName~PackageImportIntegrityTests",
       "framework": "net10.0",
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
       "expected_failures": [
-        "Imported_receipt_is_derived_from_verified_package_not_inherited_from_sender",
+        "Imported_receipt_is_derived_locally_and_stays_outside_signed_wire_bytes",
         "Exact_package_reimport_preserves_record_and_queue"
       ],
       "group": "import-integrity"
@@ -46,7 +46,7 @@
     {
       "id": "cleanup-parked-rows",
       "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
-      "old": "if (forge is not null)",
+      "old": "if (forge is not null && recordedState is not (ProposalState.Held or ProposalState.Admitted))",
       "new": "if (false)",
       "filter": "FullyQualifiedName~PackageImportIntegrityTests",
       "framework": "net10.0",
@@ -93,6 +93,32 @@
       "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
       "expected_failures": [
         "Daemon_counts_node_faults_as_errors_and_keeps_processing"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "preserve-durable-ownership",
+      "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
+      "old": "if (forge is not null && recordedState is not (ProposalState.Held or ProposalState.Admitted))",
+      "new": "if (forge is not null)",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Receipt_write_failure_preserves_rows_owned_by_a_durable_decision"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "receipt-bound-to-proposal",
+      "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
+      "old": "receipt.ProposalSha256 != ProposalHash(proposal)",
+      "new": "false",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Unusable_receipt_is_an_unknown_collision_never_a_duplicate"
       ],
       "group": "import-integrity"
     }

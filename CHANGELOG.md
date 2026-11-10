@@ -19,13 +19,15 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ### Fixed — package import integrity
 
-- Package imports now retain the verified package seal and sealer in the receiver's gate record.
+- Package imports now retain the verified package seal and sealer in a receiver-local receipt
+  bound to the recorded proposal, outside the signed wire schema.
   A repeated identical package remains a no-op; a colliding proposal id with different content,
   signer, or no legacy receipt is refused before parking files, with both known origins named.
-  Old gate signatures remain valid; legacy collisions require a new proposal id rather than an
+  Old and new package signatures stay wire-compatible; local/legacy collisions require a new proposal id rather than an
   unverifiable duplicate claim.
 - All caught import failures attempt to reject every proposal parked by that attempt, including
-  I/O and timeout faults. Cleanup failures remain visible. CLI imports and pulls distinguish
+  I/O and timeout faults before a durable gate decision owns the rows. Held/admitted rows remain
+  available for recovery if receipt persistence fails. Cleanup failures remain visible. CLI imports and pulls distinguish
   node `ERROR` rows (exit 1) from package refusals (exit 65); batch pulls continue, and daemon
   summaries count node faults as errors. Process termination and an unavailable forge store can
   still prevent cleanup; a recorded admission is not rolled back by an import error.

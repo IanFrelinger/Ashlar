@@ -131,15 +131,84 @@ public sealed class PackageImportIntegrityTests : IDisposable
     }
 
     [Fact]
-    public async Task Imported_receipt_is_derived_from_verified_package_not_inherited_from_sender()
+    public async Task Imported_receipt_is_derived_locally_and_stays_outside_signed_wire_bytes()
     {
-        var json = Package(proposal: Proposal("ext-shared") with { ImportedPackageSeal = "invented", ImportedPackageSigner = _other.PublicKeyBase64 });
+        var json = Package();
         (await PackageImport.SubmitAsync(_project, json)).Outcome.Should().Be(PackageAdmission.Held);
         ExtensionPackaging.TryOpen(json, out var package, out _).Should().BeTrue();
         var recorded = (await Gate.GetAsync("ext-shared"))!.Proposal;
-        recorded.ImportedPackageSeal.Should().Be(package!.Seal);
-        recorded.ImportedPackageSigner.Should().Be(_origin.PublicKeyBase64);
+        var receipt = JsonNode.Parse(await File.ReadAllTextAsync(ReceiptPath))!;
+        receipt["Seal"]!.GetValue<string>().Should().Be(package!.Seal);
+        receipt["Signer"]!.GetValue<string>().Should().Be(_origin.PublicKeyBase64);
+        receipt["ProposalSha256"]!.GetValue<string>().Should().Be(Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(CanonicalJson.Bytes(recorded))));
+        Encoding.UTF8.GetString(CanonicalJson.Bytes(recorded)).Should().NotContain(package.Seal!);
+        Encoding.UTF8.GetString(CanonicalJson.Bytes(recorded)).Should().NotContain(_origin.PublicKeyBase64);
         (await PackageImport.SubmitAsync(_project, json)).Outcome.Should().Be(PackageAdmission.AlreadyImported);
+    }
+
+    private string ReceiptPath => Path.Combine(_project, ".ashlar", "import-receipts", "ext-shared.json");
+
+    [Fact]
+    public async Task Receipt_identity_survives_a_held_to_admitted_decision()
+    {
+        var json = Package();
+        (await PackageImport.SubmitAsync(_project, json)).Outcome.Should().Be(PackageAdmission.Held);
+        await Gate.DecideAsync("ext-shared", true, "operator", "reviewed", DateTimeOffset.UtcNow);
+        (await PackageImport.SubmitAsync(_project, json)).Outcome.Should().Be(PackageAdmission.AlreadyImported);
+        Forge.List().Should().HaveCount(2);
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("malformed")]
+    [InlineData("mismatched")]
+    [InlineData("bad-signer")]
+    public async Task Unusable_receipt_is_an_unknown_collision_never_a_duplicate(string damage)
+    {
+        var json = Package();
+        (await PackageImport.SubmitAsync(_project, json)).Outcome.Should().Be(PackageAdmission.Held);
+        if (damage == "missing") File.Delete(ReceiptPath);
+        else if (damage == "malformed") await File.WriteAllTextAsync(ReceiptPath, "invalid json");
+        else
+        {
+            var receipt = JsonNode.Parse(await File.ReadAllTextAsync(ReceiptPath))!;
+            receipt[damage == "mismatched" ? "ProposalSha256" : "Signer"] = "invalid";
+            await File.WriteAllTextAsync(ReceiptPath, receipt.ToJsonString());
+        }
+        var result = await PackageImport.SubmitAsync(_project, json);
+        result.Outcome.Should().Be(PackageAdmission.Refused);
+        result.Message.Should().Contain("collides").And.Contain("unknown");
+        Forge.List().Should().HaveCount(2);
+    }
+
+    [Theory]
+    [InlineData("proposing", ProposalState.Held)]
+    [InlineData("self-extending", ProposalState.Admitted)]
+    public async Task Receipt_write_failure_preserves_rows_owned_by_a_durable_decision(string mode, ProposalState expected)
+    {
+        SetMode(mode);
+        Directory.CreateDirectory(Path.Combine(_project, ".ashlar"));
+        await File.WriteAllTextAsync(Path.Combine(_project, ".ashlar", "import-receipts"), "not a directory");
+        var result = await PackageImport.SubmitAsync(_project, Package());
+        result.Outcome.Should().Be(PackageAdmission.Failed);
+        result.Message.Should().Contain("was recorded").And.Contain("inspect its apply state");
+        (await Gate.GetAsync("ext-shared"))!.State.Should().Be(expected);
+        Forge.List(ChangeProposalStatus.Proposed).Should().HaveCount(2);
+        Forge.List(ChangeProposalStatus.Rejected).Should().BeEmpty();
+        File.Exists(Path.Combine(_project, "src", "One.cs")).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("CON")]
+    [InlineData("bad/id")]
+    [InlineData("ext.traversal")]
+    public async Task Illegal_package_id_is_refused_before_creating_node_state(string id)
+    {
+        var result = await PackageImport.SubmitAsync(_project, Package(id));
+        result.Outcome.Should().Be(PackageAdmission.Refused);
+        result.Message.Should().Contain("Illegal proposal id");
+        Directory.Exists(Path.Combine(_project, ".ashlar")).Should().BeFalse();
     }
 
     [Fact]
