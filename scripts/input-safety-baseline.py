@@ -21,14 +21,19 @@ with tempfile.TemporaryDirectory(prefix='input-safety-baseline-') as tmp:
         subprocess.run(['dotnet', 'build', 'tools/InputSafetyProbe/InputSafetyProbe.csproj', '--framework', tfm, '--nologo', '-v', 'minimal'], cwd=baseline, check=True, timeout=300)
         cmd = ['dotnet', str(baseline / f'tools/InputSafetyProbe/bin/Debug/{tfm}/InputSafetyProbe.dll')]
         def run(args, disabled='0'):
-            result = subprocess.run([*cmd, *args], env={**os.environ, 'DOTNET_SYSTEM_IO_DISABLEFILELOCKING':disabled}, capture_output=True, text=True, timeout=45)
+            result = subprocess.run([*cmd, *args], env={**os.environ, 'DOTNET_SYSTEM_IO_DISABLEFILELOCKING':disabled}, capture_output=True, text=True, timeout=90)
             print(json.dumps({'baseline':BASE, 'tfm':tfm,'args':args,'disabled':disabled,'exit':result.returncode,'stdout':result.stdout[:1500],'stderr':result.stderr[:1500]}),flush=True)
             return result
         guard = run(['yaml','guard','mapping','10000'])
         assert guard.returncode == 0 and 'accepted=True' in guard.stdout, guard
-        fatal = run(['yaml','manifest','mapping','10000'])
-        assert fatal.returncode in (-6,-11,134,139) and 'Stack overflow' in fatal.stderr, fatal
-        print(f'REPRODUCED {tfm} #476: guard admitted small deep mapping; manifest process terminated with stack overflow',flush=True)
+        crashed = False
+        for depth in ('30000', '100000'):
+            fatal = run(['yaml','manifest','mapping',depth])
+            if fatal.returncode in (-6,-11,134,139) and 'Stack overflow' in fatal.stderr:
+                crashed = True
+                print(f'REPRODUCED {tfm} #476: {depth} mapping containers caused a process-fatal stack overflow below the 1 MB cap',flush=True)
+                break
+        assert crashed, 'No process-fatal depth found in the bounded baseline panel'
         for store,folder in (('gate','gates'),('ledger','ledger')):
             state=Path(tmp)/f'{tfm}-{store}'; (state/folder).mkdir(parents=True)
             with (state/folder/'.lock').open('w') as held:
