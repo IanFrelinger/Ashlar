@@ -1,4 +1,5 @@
 using System.Buffers;
+using Ashlar.CLI.Output;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
@@ -43,7 +44,7 @@ internal readonly record struct PackageReadResult(bool Ok, string? Text, string?
 /// on someone else's behalf. <c>ln -s /etc/passwd d-secret.ashpkg</c> inside the published directory
 /// is an ARBITRARY FILE READ over the network: the name passes the traversal-free pattern, and
 /// <see cref="Path.GetFullPath"/> does not resolve symlinks, so a containment check on the resolved
-/// path passes too. Refusing <see cref="FileSystemInfo.LinkTarget"/> is what closes it — one gate,
+/// path passes too. An atomic no-follow open is what closes it, including a leaf swapped after metadata — one gate,
 /// the same gate, for the reader and for the server.</para>
 ///
 /// <para>The fix is structural rather than a list of bad cases: this never issues an open that can
@@ -57,14 +58,14 @@ internal readonly record struct PackageReadResult(bool Ok, string? Text, string?
 ///     refuse a directory; refuse anything with a <see cref="FileSystemInfo.LinkTarget"/>, which
 ///     kills the link-to-device, link-to-huge-file and link-to-anywhere bypasses together.
 ///     <see cref="FileInfo.Length"/> is never read.</item>
-///   <item>AN OPEN THAT CANNOT BLOCK: on Unix <c>open(O_RDONLY|O_NONBLOCK|O_CLOEXEC)</c> returns a
+///   <item>AN OPEN THAT CANNOT BLOCK: on Unix <c>open(O_RDONLY|O_NONBLOCK|O_CLOEXEC|O_NOFOLLOW)</c> returns a
 ///     usable descriptor on a FIFO immediately, where every managed open blocks forever with no
 ///     exception and no timeout. On Windows the path is opened through the <c>\\?\</c> prefix, which
 ///     takes it out of DOS-device parsing entirely, and a path that normalizes into the <c>\\.\</c>
 ///     device namespace — which a BARE reserved name such as <c>CON</c> does, though a name with an
 ///     extension does not — is refused before any handle is opened.</item>
-///   <item>HANDLE TYPE: a handle that cannot seek is a fifo/socket/pipe; on Windows the handle must
-///     be <c>FILE_TYPE_DISK</c>.</item>
+///   <item>HANDLE TYPE: Unix fstat must identify a regular file; Windows requires a disk handle
+///     with neither directory attributes nor a name-surrogate reparse tag.</item>
 ///   <item>DECLARED LENGTH, taken from the OPENED HANDLE and not from a <see cref="FileInfo"/>: a
 ///     fast refusal, and the only length any caller may publish.</item>
 ///   <item>THE CAPPED READ — the gate that actually holds, for callers that read. A regular file's
@@ -73,8 +74,14 @@ internal readonly record struct PackageReadResult(bool Ok, string? Text, string?
 ///     metadata.</item>
 /// </list></para>
 /// </summary>
+// Parent directories are an operator-controlled trust boundary. A configured store directory may
+// itself be a symlink; only the package leaf is untrusted. Writers allowed to replace the store or
+// its ancestors can redirect that configured root and must not be granted that authority.
 internal static class SafePackageRead
 {
+    // A deterministic scheduling seam for race regressions. It cannot replace or skip any gate.
+    internal static Action<string>? BeforeOpenForTests { get; set; }
+
     /// <summary>
     /// Reads <paramref name="path"/> as text when it is a regular file of at most
     /// <paramref name="maxBytes"/>; otherwise returns the refusal. Never blocks on a FIFO, never
@@ -176,7 +183,7 @@ internal static class SafePackageRead
             // the operator whose honest workflow it just broke can see what to do instead — otherwise
             // the answer they find on their own is to turn the guard off.
             reason =
-                $"REFUSED: {name} is a symbolic link (-> {info.LinkTarget}), not a regular file. "
+                $"REFUSED: {name} is a symbolic link (-> {UntrustedText.ForConsole(info.LinkTarget)}), not a regular file. "
               + "A package must be the bytes themselves; a link is an instruction to go read something else. "
               + "Point at the real file instead — give --from or the path argument the directory the "
               + "package actually lives in, or copy it into the store rather than linking it. "
@@ -184,7 +191,11 @@ internal static class SafePackageRead
             return false;
         }
 
-        // ───── G1: an open that cannot block. ─────
+        // The metadata above is diagnostic only. The leaf can change at this exact point; the
+        // no-follow open and descriptor type check below are the security boundary.
+        BeforeOpenForTests?.Invoke(path);
+
+        // ───── G1: an open that cannot block or follow a swapped leaf. ─────
         SafeFileHandle handle;
         if (OperatingSystem.IsWindows())
         {
@@ -358,14 +369,14 @@ internal static class SafePackageRead
     private static string DisplayName(string path)
     {
         var name = Path.GetFileName(path);
-        return string.IsNullOrEmpty(name) ? path : name;
+        return UntrustedText.ForConsole(string.IsNullOrEmpty(name) ? path : name);
     }
 
     private const int FileTypeDisk = 0x0001;
 
     /// <summary>
     /// Windows has no FIFO reachable by an ordinary filename, so there is no unbounded-block
-    /// analogue of the Unix case and no P/Invoke is needed to open. Two Windows-specific hazards
+    /// analogue of the Unix case. A native no-follow open also rejects swapped reparse leaves. Two Windows-specific hazards
     /// remain and are closed here: the reserved DOS device names (NUL, CON, AUX, PRN, COM1-9,
     /// LPT1-9) and named pipes.
     ///
@@ -417,7 +428,14 @@ internal static class SafePackageRead
 
         try
         {
-            handle = File.OpenHandle(win, FileMode.Open, FileAccess.Read, FileShare.Read);
+            handle = CreateFile(win, 0x80000000, 1, IntPtr.Zero, 3, 0x00200000, IntPtr.Zero);
+            if (handle.IsInvalid)
+            {
+                var error = Marshal.GetLastPInvokeError();
+                handle.Dispose();
+                refusal = Refuse($"REFUSED: {name} could not be opened (Win32 {error}).");
+                return false;
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
                                      or ArgumentException or NotSupportedException)
@@ -438,9 +456,36 @@ internal static class SafePackageRead
             return false;
         }
 
+        // OPEN_REPARSE_POINT opens the leaf itself, never its target. Query THIS handle rather
+        // than the pathname (which can already name a different file). Cloud placeholders are
+        // allowed, but every name-surrogate tag (including symlinks/junctions) is refused.
+        if (!GetFileInformationByHandleEx(handle, 9, out var info, (uint)Marshal.SizeOf<FileAttributeTagInfo>())
+            || (info.Attributes & 0x10) != 0 || (info.ReparseTag & 0x20000000) != 0)
+        {
+            handle.Dispose();
+            refusal = Refuse($"REFUSED: {name} is not a regular file, or its handle could not be verified.");
+            return false;
+        }
+
         refusal = default;
         return true;
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct FileAttributeTagInfo
+    {
+        public uint Attributes;
+        public uint ReparseTag;
+    }
+
+    [DllImport("kernel32.dll", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateFile(string path, uint access, uint share, IntPtr security,
+        uint disposition, uint flags, IntPtr template);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetFileInformationByHandleEx(SafeFileHandle handle, int informationClass,
+        out FileAttributeTagInfo information, uint size);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern int GetFileType(SafeFileHandle handle);
@@ -456,80 +501,74 @@ internal static class SafePackageRead
     /// </summary>
     private static class NativeOpen
     {
-        // O_NONBLOCK and O_CLOEXEC are DIFFERENT NUMBERS on Linux and on macOS, and this fleet is
-        // Windows plus M-series Macs — one hardcoded pair would silently open with the wrong flags
-        // on one of the two. Any other Unix (FreeBSD's O_CLOEXEC is 0x00100000, not macOS's
-        // 0x1000000) falls through to the Linux pair: none is a target platform here, and a guessed
-        // constant that opens with the WRONG flag is worse than an open that plainly fails.
-        private const int LinuxNonBlock = 0x800, LinuxCloExec = 0x80000;
-        private const int MacNonBlock = 0x0004, MacCloExec = 0x1000000;
+        // Explicit supported ABIs. Unknown systems fail closed instead of guessing flags or
+        // degrading to a managed open, which can follow symlinks and block forever on FIFOs.
+        private const int LinuxNonBlock = 0x800, LinuxCloExec = 0x80000, LinuxNoFollow = 0x20000;
+        private const int MacNonBlock = 0x0004, MacCloExec = 0x1000000, MacNoFollow = 0x0100;
         private const int Eintr = 4;
 
-        // glibc's open() is variadic. A two-argument declaration of a variadic function is undefined
-        // behaviour even where it happens to work, so the third (mode) parameter is declared and
-        // always passed as 0. It is never consulted: O_CREAT is never set.
         [DllImport("libc", EntryPoint = "open", SetLastError = true)]
         private static extern int Open(byte[] path, int flags, int mode);
 
-        private static volatile bool _libcUnavailable;
+        [DllImport("libc", EntryPoint = "fstat", SetLastError = true)]
+        private static extern int Fstat(SafeFileHandle handle, [Out] byte[] stat);
 
-        /// <summary>Opens for reading without blocking, or explains why it could not.</summary>
+        [DllImport("libc", EntryPoint = "fstat$INODE64", SetLastError = true)]
+        private static extern int MacFstat(SafeFileHandle handle, [Out] byte[] stat);
+
+        /// <summary>Opens a leaf without following links; only a verified regular file survives.</summary>
         public static bool TryOpen(string path, out SafeFileHandle handle, out string failure)
         {
             handle = null!;
             failure = string.Empty;
-            if (_libcUnavailable)
+            var mac = OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst();
+            var architecture = RuntimeInformation.ProcessArchitecture;
+            if ((!OperatingSystem.IsLinux() && !mac)
+                || (architecture != Architecture.X64 && architecture != Architecture.Arm64))
             {
-                return TryOpenManaged(path, out handle, out failure);
+                failure = "safe native package reads are unavailable on this platform";
+                return false;
             }
 
-            var flags = OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst()
-                ? MacNonBlock | MacCloExec
-                : LinuxNonBlock | LinuxCloExec;
-            var utf8 = new byte[Encoding.UTF8.GetByteCount(path) + 1];   // NUL-terminated for open(2)
+            var flags = mac ? MacNonBlock | MacCloExec | MacNoFollow
+                            : LinuxNonBlock | LinuxCloExec | LinuxNoFollow;
+            var utf8 = new byte[Encoding.UTF8.GetByteCount(path) + 1];
             Encoding.UTF8.GetBytes(path, utf8);
-
-            int fd;
             try
             {
-                do
-                {
-                    fd = Open(utf8, flags, 0);
-                }
+                int fd;
+                do { fd = Open(utf8, flags, 0); }
                 while (fd < 0 && Marshal.GetLastPInvokeError() == Eintr);
+                if (fd < 0)
+                {
+                    failure = $"errno {Marshal.GetLastPInvokeError()}";
+                    return false;
+                }
+                handle = new SafeFileHandle((IntPtr)fd, ownsHandle: true);
+
+                // stat is ABI-specific: Linux x86_64 st_mode is uint32 at 24, Linux aarch64
+                // uint32 at 16; Darwin stat64 st_mode is uint16 at 4 on both supported CPUs.
+                // Reserve more than every supported struct size (Linux 144/128; Darwin 144).
+                // No pathname metadata is consulted after open, so swapping the name cannot turn
+                // a checked file into a FIFO, device or directory at the subsequent read/serve.
+                var stat = new byte[512];
+                int result;
+                do { result = mac && architecture == Architecture.X64 ? MacFstat(handle, stat) : Fstat(handle, stat); }
+                while (result < 0 && Marshal.GetLastPInvokeError() == Eintr);
+                var mode = mac ? BitConverter.ToUInt16(stat, 4)
+                    : BitConverter.ToUInt32(stat, architecture == Architecture.X64 ? 24 : 16);
+                if (result != 0 || (mode & 0xF000) != 0x8000)
+                {
+                    handle.Dispose();
+                    failure = "not a regular file (fifo, socket or pipe, device, directory, or unverifiable handle)";
+                    return false;
+                }
+                return true;
             }
             catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
             {
-                // Nothing to bind to on this host. Refusing every package would be an outage, so
-                // fall back to the managed open — G0 has already refused symlinks and directories,
-                // so what is left unguarded is exactly the FIFO hang. Said out loud rather than
-                // hidden: this branch is a degradation, not an equivalent.
-                _libcUnavailable = true;
-                return TryOpenManaged(path, out handle, out failure);
-            }
-
-            if (fd < 0)
-            {
-                failure = $"errno {Marshal.GetLastPInvokeError()}";
-                return false;
-            }
-            handle = new SafeFileHandle((IntPtr)fd, ownsHandle: true);
-            return true;
-        }
-
-        private static bool TryOpenManaged(string path, out SafeFileHandle handle, out string failure)
-        {
-            handle = null!;
-            failure = string.Empty;
-            try
-            {
-                handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return true;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
-                                         or ArgumentException or NotSupportedException)
-            {
-                failure = ex.Message;
+                handle?.Dispose();
+                failure = "safe native package reads are unavailable on this platform";
                 return false;
             }
         }

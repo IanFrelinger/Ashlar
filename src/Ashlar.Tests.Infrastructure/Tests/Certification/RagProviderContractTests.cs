@@ -48,6 +48,10 @@ public class RagProviderContractTests
         var accepted = CreateConfig("in-memory");
         var existingAgent = Mock.Of<IAgent>();
         await registry.RegisterAsync(existingAgent, accepted, AgentRegistrationOrigin.Authored);
+        var admitted = registry.GetAgent(accepted.Id)!;
+        var admittedConfig = admitted.Config;
+        admittedConfig.Should().NotBeSameAs(accepted, "registration owns its identity snapshot");
+        admittedConfig.Should().BeEquivalentTo(accepted);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             registry.RegisterAsync(Mock.Of<IAgent>(), CreateConfig(provider), AgentRegistrationOrigin.Authored));
@@ -55,7 +59,9 @@ public class RagProviderContractTests
         AssertProviderError(error, provider);
         registry.GetAll().Should().ContainSingle();
         registry.GetAgent(accepted.Id)!.Agent.Should().BeSameAs(existingAgent);
-        registry.GetAgent(accepted.Id)!.Config.Should().BeSameAs(accepted);
+        registry.GetAgent(accepted.Id).Should().BeSameAs(admitted);
+        registry.GetAgent(accepted.Id)!.Config.Should().BeSameAs(admittedConfig);
+        admittedConfig.Should().BeEquivalentTo(accepted);
         scheduler.VerifyNoOtherCalls();
     }
 
@@ -74,7 +80,8 @@ public class RagProviderContractTests
         config.RAG!.VectorStoreProvider.Should().Be(provider);
         spec.Description.Should().Contain("RAG: Enabled");
         registry.GetAll().Should().ContainSingle();
-        registry.GetAgent(config.Id)!.Config.Should().BeSameAs(config);
+        registry.GetAgent(config.Id)!.Config.Should().NotBeSameAs(config);
+        registry.GetAgent(config.Id)!.Config.Should().BeEquivalentTo(config);
     }
 
     [Theory]

@@ -1,0 +1,66 @@
+name: Package security regression
+
+on:
+  pull_request:
+    paths:
+      - 'application/src/Ashlar.CLI/Packaging/**'
+      - 'application/src/Ashlar.CLI/Output/UntrustedText.cs'
+      - 'application/src/Ashlar.CLI/Commands/PkgCommand.cs'
+      - 'application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs'
+      - 'application/src/Ashlar.Tests.CLI/Tests/Commands/*Package*'
+      - 'application/src/Ashlar.Tests.CLI/Tests/Commands/PkgCommandTests.cs'
+      - 'application/src/Ashlar.Tests.CLI/Tests/Commands/MeshLanPartyTests.cs'
+      - 'application/src/Ashlar.Tests.CLI/Tests/Output/UntrustedTextTests.cs'
+      - 'scripts/mutations/package-security.json'
+      - '.github/workflows/package-security-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-security-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-and-mutations:
+    name: Package security endpoints and mutations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Real reads, HTTP serving, and signed-package command rendering
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/package-security"
+          bash scripts/test-in-container.sh --project application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj \
+            --filter 'FullyQualifiedName~SafePackageReadTests|FullyQualifiedName~MeshLanPartyTests|FullyQualifiedName~PackageDisplaySecurityTests|FullyQualifiedName~PkgCommandTests|FullyQualifiedName~UntrustedTextTests' \
+            2>&1 | tee "${RUNNER_TEMP}/package-security/focused.log"
+      - name: Prove atomic open, descriptor type, and renderer assertions fail under mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/test-in-container.sh -- \
+            'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/package-security.json --archive-stdout' \
+            2>&1 | tee "${RUNNER_TEMP}/package-security/mutations.log"
+      - name: Decode mutation evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "${RUNNER_TEMP}/package-security/mutations.log" ]; then
+            python3 scripts/decode-spec007-mutation-evidence.py \
+              --log "${RUNNER_TEMP}/package-security/mutations.log" \
+              --output "${RUNNER_TEMP}/package-security/mutation-evidence" --repo .
+          fi
+      - name: Upload exact-SHA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-security-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/package-security
+          if-no-files-found: error

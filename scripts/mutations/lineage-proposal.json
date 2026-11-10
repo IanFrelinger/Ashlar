@@ -85,6 +85,42 @@
       "expected_failures": [
         "Interrupted_committed_transition_recovers_one_complete_decision"
       ]
+    },
+    {
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "id": "proposal-corruption-hidden",
+      "old": "            return action();",
+      "new": "            try { return action(); }\n            catch (InvalidDataException) { return default!; }",
+      "expected_failures": [
+        "Corruption_is_not_missing_or_an_empty_queue"
+      ]
+    },
+    {
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "id": "proposal-io-misclassified",
+      "old": "            WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, \"add\");",
+      "new": "            try { WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, \"add\"); }\n            catch (IOException) { throw new InvalidOperationException(\"Proposal already exists\"); }",
+      "expected_failures": [
+        "Failed_add_does_not_publish_partial_json_or_misreport_collision"
+      ]
+    },
+    {
+      "id": "registration-config-not-snapshotted",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "        config = config.SnapshotForRegistration();",
+      "new": "        // caller config retained by reference",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~RagProviderContractTests",
+      "expected_failures": [
+        "Supported_provider_survives_loading_spec_building_and_registration"
+      ]
     }
   ]
 }
