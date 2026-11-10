@@ -204,19 +204,59 @@ public sealed class SafePackageReadTests : IDisposable
         result.Reason.Should().Contain("fifo, socket or pipe");
     }
 
-    [UnixOnlyFact("/dev/zero")]
-    public async Task ACharacterDevice_isBoundedByTheReadAndNotByItsDeclaredLength()
+    [UnixOnlyFact("ln -s")]
+    public async Task LeafSwappedAfterMetadata_isRefusedWithoutReadingTheTarget()
     {
-        // /dev/zero stats byte-for-byte like an empty regular file: Attributes Normal, Length 0,
-        // CanSeek true. Nothing before the read can tell it apart, so only the cap DURING the read
-        // stops it — and it must stop it in milliseconds rather than by exhausting memory.
+        var candidate = WriteBytes("swap.ashpkg", 10);
+        var outside = At("private-owned-marker.txt");
+        await File.WriteAllTextAsync(outside, "NOT_A_PACKAGE_PRIVATE_MARKER");
+        var swapped = false;
+        SafePackageRead.BeforeOpenForTests = path =>
+        {
+            if (path != candidate) return;
+            File.Delete(candidate);
+            File.CreateSymbolicLink(candidate, outside);
+            swapped = true;
+        };
+        try
+        {
+            var result = await SafePackageRead.TryReadTextAsync(candidate, Max);
+            swapped.Should().BeTrue("the swap must happen after the production metadata check");
+            result.Ok.Should().BeFalse();
+            result.Text.Should().BeNull("no bytes from the outside target may be returned");
+        }
+        finally { SafePackageRead.BeforeOpenForTests = null; }
+    }
+
+    [UnixOnlyFact("directory symlink")]
+    public async Task OperatorConfiguredSymlinkedStoreDirectory_stillWorks()
+    {
+        var real = Path.Combine(_dir, "real-store");
+        Directory.CreateDirectory(real);
+        await File.WriteAllTextAsync(Path.Combine(real, "good.ashpkg"), "package");
+        var configured = Path.Combine(_dir, "configured-store");
+        Directory.CreateSymbolicLink(configured, real);
+        var result = await SafePackageRead.TryReadTextAsync(Path.Combine(configured, "good.ashpkg"), Max);
+        result.Ok.Should().BeTrue();
+        result.Text.Should().Be("package");
+    }
+
+    [UnixOnlyFact("/dev/null")]
+    public async Task ASeekableCharacterDevice_isRefusedBeforeTheRead()
+    {
+        // /dev/null is seekable and immediately returns EOF. A byte limit alone accepts it.
+        var result = await SafePackageRead.TryReadTextAsync("/dev/null", Max);
+        result.Ok.Should().BeFalse();
+        result.Reason.Should().Contain("not a regular file");
+    }
+
+    [UnixOnlyFact("/dev/zero")]
+    public async Task ACharacterDevice_isRefusedBeforeTheRead()
+    {
         var clock = Stopwatch.StartNew();
         var result = await SafePackageRead.TryReadTextAsync("/dev/zero", Max);
-        clock.Stop();
-
         result.Ok.Should().BeFalse();
-        result.Reason.Should().Contain("past the limit");
-        clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(30),
-            "the refusal comes from a bounded read, not from running out of memory");
+        result.Reason.Should().Contain("not a regular file");
+        clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(30));
     }
 }

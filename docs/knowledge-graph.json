@@ -20,9 +20,9 @@
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 850,
-    "declared_facts": 5649,
-    "workflows": 64
+    "test_files_declaring_facts": 851,
+    "declared_facts": 5651,
+    "workflows": 65
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -2969,6 +2969,13 @@
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
       "declared_facts": 6,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/PackageDisplaySecurityTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 2,
       "in_cert_gate_filter": false
     },
     {
@@ -9026,6 +9033,14 @@
       "name": "Pack hosting graph alignment",
       "triggers": [
         "push",
+        "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/package-security-regression.yml",
+      "name": "Package security regression",
+      "triggers": [
+        "pull_request",
         "workflow_dispatch"
       ]
     },

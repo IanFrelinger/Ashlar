@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "note": "Linux Docker endpoint and signed-package display mutation proofs. Native Windows/macOS runtime behavior is not established by this lane.",
+  "mutations": [
+    {
+      "id": "leaf-nofollow-removed",
+      "file": "application/src/Ashlar.CLI/Packaging/SafePackageRead.cs",
+      "old": "LinuxNonBlock | LinuxCloExec | LinuxNoFollow",
+      "new": "LinuxNonBlock | LinuxCloExec",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~LeafSwappedAfterMetadata|FullyQualifiedName~Pkg_leafSwappedAfterMetadata",
+      "expected_failures": [
+        "LeafSwappedAfterMetadata_isRefusedWithoutReadingTheTarget",
+        "Pkg_leafSwappedAfterMetadata_returns404WithoutOutsideBytes"
+      ]
+    },
+    {
+      "id": "descriptor-type-removed",
+      "file": "application/src/Ashlar.CLI/Packaging/SafePackageRead.cs",
+      "old": "result != 0 || (mode & 0xF000) != 0x8000",
+      "new": "result != 0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~ASeekableCharacterDevice_isRefusedBeforeTheRead",
+      "expected_failures": [
+        "ASeekableCharacterDevice_isRefusedBeforeTheRead"
+      ]
+    },
+    {
+      "id": "signed-show-summary-raw",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "{Safe(r.Proposal.Summary)}",
+      "new": "{r.Proposal.Summary}",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Show_validSelfSignedPackage",
+      "expected_failures": [
+        "Show_validSelfSignedPackage_boundsAndEscapesEveryDisplayComponent"
+      ]
+    },
+    {
+      "id": "untrusted-import-preview-raw",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "{Safe(peek!.Record.Proposal.Summary)}",
+      "new": "{peek!.Record.Proposal.Summary}",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Import_untrustedSignerPreview",
+      "expected_failures": [
+        "Import_untrustedSignerPreview_isSafeBeforeTheTrustRefusal"
+      ]
+    },
+    {
+      "id": "signed-course-detail-raw",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "Dim(Safe(course.Detail))",
+      "new": "Dim(course.Detail)",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Show_validSelfSignedPackage",
+      "expected_failures": [
+        "Show_validSelfSignedPackage_boundsAndEscapesEveryDisplayComponent"
+      ]
+    },
+    {
+      "id": "signed-actor-raw",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "{Safe(r.Actor)}",
+      "new": "{r.Actor}",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Show_validSelfSignedPackage",
+      "expected_failures": [
+        "Show_validSelfSignedPackage_boundsAndEscapesEveryDisplayComponent"
+      ]
+    },
+    {
+      "id": "unicode-line-bidi-raw",
+      "file": "application/src/Ashlar.CLI/Output/UntrustedText.cs",
+      "old": "|| c == '\\u061C' || c == '\\u200E' || c == '\\u200F'\n        || c == '\\u2028' || c == '\\u2029'",
+      "new": "|| c == '\\u200E' || c == '\\u200F'",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Show_validSelfSignedPackage",
+      "expected_failures": [
+        "Show_validSelfSignedPackage_boundsAndEscapesEveryDisplayComponent"
+      ]
+    }
+  ]
+}
