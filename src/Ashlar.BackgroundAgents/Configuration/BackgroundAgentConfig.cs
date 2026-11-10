@@ -93,4 +93,13 @@ public class BackgroundAgentConfig
     /// Exfiltration prevention policy.
     /// </summary>
     public ExfiltrationPolicy ExfiltrationPolicy { get; set; } = new();
+    internal BackgroundAgentConfig SnapshotForRegistration()
+    {
+        var snapshot = (BackgroundAgentConfig)MemberwiseClone();
+        snapshot.Commands = new List<string>(Commands);
+        snapshot.Parameters = Parameters is null ? null : new Dictionary<string, object>(Parameters, Parameters.Comparer);
+        snapshot.AllowedDataSensitivityLevels = AllowedDataSensitivityLevels?.ToList();
+        return snapshot;
+    }
+
 }

@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "note": "Pending execution. Exact production targets; failing assertion names are required.",
+  "mutations": [
+    {
+      "id": "lineage-authority-erased",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "lineageDepth = _lineageDepths[agentId];",
+      "new": "lineageDepth = 0;",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~SelfExtendInvariantDRecursionCeilingTests",
+      "expected_failures": [
+        "Lineage_cannot_be_laundered_by_mutation_or_reregistration"
+      ]
+    },
+    {
+      "id": "lineage-history-erased",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "if (!string.IsNullOrWhiteSpace(config.ParentId)) parents.Add(config.ParentId);",
+      "new": "parents.Clear();\n            if (!string.IsNullOrWhiteSpace(config.ParentId)) parents.Add(config.ParentId);",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~SelfExtendInvariantDRecursionCeilingTests",
+      "expected_failures": [
+        "Later_parent_registration_and_deepening_propagate_through_historical_edges"
+      ]
+    },
+    {
+      "id": "agent-budget-widened",
+      "file": "src/Ashlar.BackgroundAgents/Registry/BackgroundAgentRegistry.cs",
+      "old": "ceiling = _agentCeilings[agentId].NarrowedBy(instance.Config);",
+      "new": "ceiling = _extensionCeiling.NarrowedBy(instance.Config);",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~SelfExtendInvariantDRecursionCeilingTests",
+      "expected_failures": [
+        "Admitted_parameter_ceiling_survives_mutation_and_reregistration"
+      ]
+    },
+    {
+      "id": "proposal-recovery-disabled",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "            Recover();",
+      "new": "            // recovery disabled",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "expected_failures": [
+        "Interrupted_committed_transition_recovers_one_complete_decision"
+      ]
+    },
+    {
+      "id": "proposal-status-not-checked",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "proposal.Id != Path.GetFileNameWithoutExtension(path) || proposal.Status != status",
+      "new": "proposal.Id != Path.GetFileNameWithoutExtension(path)",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "expected_failures": [
+        "Duplicate_or_misfiled_rows_are_corruption"
+      ]
+    },
+    {
+      "id": "proposal-source-not-removed",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "if (hasSource) File.Delete(source);",
+      "new": "// source deletion disabled",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "expected_failures": [
+        "Interrupted_committed_transition_recovers_one_complete_decision"
+      ]
+    },
+    {
+      "id": "proposal-journal-not-published",
+      "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
+      "old": "WriteAtomic(journal, intent, \"journal\");",
+      "new": "// intent publication disabled",
+      "project": "src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
+      "expected_failures": [
+        "Interrupted_committed_transition_recovers_one_complete_decision"
+      ]
+    }
+  ]
+}

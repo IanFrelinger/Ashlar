@@ -35,7 +35,7 @@ public sealed class AgentScheduler : IAgentScheduler
         if (executeOnce == null)
             throw new ArgumentNullException(nameof(executeOnce));
 
-        var agentId = instance.Config.Id;
+        var agentId = instance.RegisteredId ?? instance.Config.Id;
 
         if (_running.ContainsKey(agentId))
         {
