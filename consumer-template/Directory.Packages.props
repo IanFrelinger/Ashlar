@@ -2,7 +2,7 @@
   <!-- Copy into your solution root as Directory.Packages.props (central package management). -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <!-- Must match ci/published-version. 0.4.2 is the release-commit pin; nuget.org still lists 0.4.1 until v0.4.2 publishes. -->
+    <!-- Must match ci/published-version; check nuget.org for current public availability. -->
     <AshlarConsumerPackageVersion>0.4.2</AshlarConsumerPackageVersion>
   </PropertyGroup>
   <ItemGroup>

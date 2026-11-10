@@ -19,6 +19,7 @@ public sealed class RuntimeCommandTests : UnitTestBase
             await TestGateRequiresConsecutivePassStreakAsync().ConfigureAwait(false);
             await TestGateJsonIncludesSloEvidenceAsync().ConfigureAwait(false);
             await TestReleaseGateRejectsInvalidModeAsync().ConfigureAwait(false);
+            await TestEvaluateRejectsInvalidGoalsAndEmptyPoliciesAsync().ConfigureAwait(false);
             /// <summary>Test visual required auto uses strict benchmark set.</summary>
             TestVisualRequiredAutoUsesStrictBenchmarkSet();
 
@@ -173,6 +174,32 @@ public sealed class RuntimeCommandTests : UnitTestBase
             var lenientRoot = lenientPayload.RootElement;
             AssertTrue(lenientRoot.GetProperty("ok").GetBoolean());
             AssertEqual(2, lenientRoot.GetProperty("streak").GetInt32());
+        }
+        finally
+        {
+            if (Directory.Exists(repoRoot))
+                Directory.Delete(repoRoot, recursive: true);
+        }
+    }
+
+    private async Task TestEvaluateRejectsInvalidGoalsAndEmptyPoliciesAsync()
+    {
+        var repoRoot = CreateTempRepoRoot();
+        try
+        {
+            var (invalidGoalsExit, invalidGoalsOutput) = await InvokeRuntimeAsync(
+                "evaluate --goals-json invalid --policies demo --json").ConfigureAwait(false);
+            AssertEqual(1, invalidGoalsExit);
+            AssertTrue(invalidGoalsOutput.Contains("No goals provided for evaluation.", StringComparison.Ordinal),
+                "Evaluate must reject malformed goals through its active handler.");
+
+            var goalsFile = Path.Combine(repoRoot, "goals.txt");
+            await File.WriteAllLinesAsync(goalsFile, ["  build a tool  ", "", "BUILD A TOOL"]).ConfigureAwait(false);
+            var (emptyPoliciesExit, emptyPoliciesOutput) = await InvokeRuntimeAsync(
+                $"evaluate --goals-file \"{goalsFile}\" --policies ,,, --json").ConfigureAwait(false);
+            AssertEqual(1, emptyPoliciesExit);
+            AssertTrue(emptyPoliciesOutput.Contains("No valid policies provided for evaluation.", StringComparison.Ordinal),
+                "Evaluate must read its goals file and reject an empty policy list through its active handler.");
         }
         finally
         {

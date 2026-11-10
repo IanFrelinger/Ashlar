@@ -1,8 +1,8 @@
 # Consuming Ashlar packages (external product template)
 
-Starter pins for **ashlar-ai-director**-style repos: authored brick + thin host + HTTP client. Copy `nuget.config` and `Directory.Packages.props` from this folder into your solution root.
+Starter pins for **ashlar-ai-director**-style repos: authored brick + thin host + HTTP client. The quick start uses inline package versions and nuget.org. No configuration files need to be copied. For central package management or a private staging feed, use the optional setup below.
 
-**Package version:** `0.4.2` — the release-commit pin (`ci/published-version`, equal to repo `VERSION` on this commit). nuget.org still serves `0.4.1` until `v0.4.2` is published. Do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin.
+**Package version:** `0.4.2`, pinned by `ci/published-version`. Check the [Ashlar.Authoring version listing](https://www.nuget.org/packages/Ashlar.Authoring) for current public availability. Do not treat a later repo `VERSION` that has moved ahead of `ci/published-version` as the public pin.
 
 ## Quick Start: Complete Minimal Example
 
@@ -15,6 +15,7 @@ Here's a complete, copy-pasteable brick that external consumers can use immediat
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>
   
   <ItemGroup>
@@ -53,7 +54,7 @@ public sealed class HelloBrick : Brick
         IExecutionContext context,
         CancellationToken cancellationToken = default)
     {
-        var name = input.Get<string>("name");
+        var name = input.Get<string>("name", "world");
         var output = new BrickOutput { Summary = $"Greeted {name}." };
         output.Set("message", $"Hello, {name}!");
         return Task.FromResult(output);
@@ -156,7 +157,17 @@ That's it! The three things you need:
 </ItemGroup>
 ```
 
-With **central package management**, use `Directory.Packages.props` in this folder instead.
+### Central package management (optional)
+
+Copy `Directory.Packages.props` from this folder into your solution root. Remove the quick-start project's `ManagePackageVersionsCentrally` override and all inline `Version` attributes, so the copied central pins apply:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Ashlar.Authoring" />
+</ItemGroup>
+```
+
+Add other Ashlar references the same way, without a `Version` attribute. Do not combine the inline-version example with central management enabled.
 
 > **Note:** the `0.4.2` graph pins the `Microsoft.Extensions` hosting packages (`DependencyInjection`, `Hosting`, `Configuration`, `Logging`, `Http`, `Options`, and their abstractions) at `10.0.12`, unchanged from `0.2.0`, `0.3.0`, `0.4.0` and `0.4.1`. `Microsoft.Extensions.Diagnostics.HealthChecks` stays at `8.0.0`, and the `Microsoft.Extensions.AI` and vector packages stay at `10.10.x`. If your project explicitly references one of those hosting packages below `10.0.12`, restore fails with `NU1605` (package downgrade) — align those pins to `>= 10.0.12`.
 
@@ -195,8 +206,12 @@ Read from each project's `<TargetFrameworks>`; the `.csproj` is the authority if
 
 ## Feed and token
 
-1. Edit `nuget.config`: set `ashlar-staging` to your feed URL (see `docs/StagingFeed.md`).
-2. For private feeds, uncomment `packageSourceCredentials` in `nuget.config` and supply a read PAT via environment or local (untracked) config — **never commit tokens**.
+Public packages restore from nuget.org without a custom feed or token. The supplied `nuget.config` enables only nuget.org and can be copied if you want an explicit source list.
+
+For an optional private staging feed:
+
+1. Uncomment the `ashlar-staging` source in `nuget.config` and replace its placeholder with your real feed URL (see [`docs/StagingFeed.md`](../docs/StagingFeed.md)).
+2. Supply a read token via environment or local (untracked) configuration. The commented credentials example is optional; **never commit tokens**.
 3. Restore with `dotnet restore --configfile nuget.config`.
 
 ## Layout (typical PoP)

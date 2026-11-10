@@ -28,6 +28,35 @@ public sealed class HelloBrickTests
         output.Summary.Should().Contain("Ashlar");
     }
 
+    [Fact]
+    public async Task ExecuteAsync_uses_declared_default_when_name_is_omitted()
+    {
+        var brick = new HelloBrick();
+        var input = new BrickInput();
+
+        var output = await brick.ExecuteAsync(
+            input,
+            ImplementationType.Deterministic,
+            new TestExecutionContext());
+
+        output.Get<string>("message").Should().Be("Hello, world!");
+        input.ToDictionary().Should().BeEmpty("direct execution must not mutate the caller's inputs");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_returns_exactly_the_declared_outputs()
+    {
+        var brick = new HelloBrick();
+        var input = new BrickInput(new Dictionary<string, object> { ["name"] = "Ashlar" });
+
+        var output = await brick.ExecuteAsync(
+            input,
+            ImplementationType.Deterministic,
+            new TestExecutionContext());
+
+        output.ToDictionary().Keys.Should().BeEquivalentTo(brick.Interface.Outputs.Select(o => o.Name));
+    }
+
     /// <summary>Test execution context.</summary>
     private sealed class TestExecutionContext : IExecutionContext
     {
