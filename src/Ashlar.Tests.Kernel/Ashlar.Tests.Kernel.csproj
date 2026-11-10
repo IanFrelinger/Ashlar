@@ -37,7 +37,11 @@
   </ItemGroup>
   <Target Name="CopyInputSafetyProbe" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
     <ItemGroup>
-      <InputSafetyProbeFiles Include="$(MSBuildThisFileDirectory)../../tools/InputSafetyProbe/bin/$(Configuration)/$(TargetFramework)/**/*" />
+      <!-- Literal output roots keep the readiness build-input lens auditable. -->
+      <InputSafetyProbeFiles Include="../../tools/InputSafetyProbe/bin/Debug/net8.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Debug|net8.0'" />
+      <InputSafetyProbeFiles Include="../../tools/InputSafetyProbe/bin/Debug/net10.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Debug|net10.0'" />
+      <InputSafetyProbeFiles Include="../../tools/InputSafetyProbe/bin/Release/net8.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Release|net8.0'" />
+      <InputSafetyProbeFiles Include="../../tools/InputSafetyProbe/bin/Release/net10.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Release|net10.0'" />
     </ItemGroup>
     <Copy SourceFiles="@(InputSafetyProbeFiles)"
           DestinationFiles="@(InputSafetyProbeFiles->'$(OutDir)InputSafetyProbe/%(RecursiveDir)%(Filename)%(Extension)')" />

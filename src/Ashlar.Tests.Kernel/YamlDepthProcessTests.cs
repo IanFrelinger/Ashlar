@@ -23,7 +23,8 @@ public sealed class YamlDepthProcessTests
         };
         var probe = Path.Combine(AppContext.BaseDirectory, "InputSafetyProbe", "InputSafetyProbe.dll");
         File.Exists(probe).Should().BeTrue("the test build must include the child-process probe");
-        foreach (var argument in new[] { probe, "yaml", entrypoint, shape, "10000" })
+        // This 150,001-character mapping killed the original net8/net10 manifest process.
+        foreach (var argument in new[] { probe, "yaml", entrypoint, shape, "30000" })
             start.ArgumentList.Add(argument);
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start YAML probe.");
         var stdout = process.StandardOutput.ReadToEndAsync();
