@@ -95,7 +95,7 @@ public sealed class CommandExitCodeContractTests : IDisposable
             : new[] { "bricks", "--path", path };
         var result = await Invoke(command, args);
         result.ExitCode.Should().Be(expectedExitCode, result.Output);
-        result.Output.Should().Contain(clean ? "No violations found" : "EmptyCatch");
+        result.Output.Should().Contain(clean ? "No violations found" : improve ? "Found 1 violation(s)" : "EmptyCatch");
     }
 
     [Theory]
