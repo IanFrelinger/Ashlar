@@ -24,9 +24,12 @@ public enum PackageAdmission
     /// envelope) — nothing on disk.</summary>
     Rejected,
 
-    /// <summary>Its verdict id is already recorded at this gate — a re-pull of something already
-    /// decided here. Nothing is parked or changed (append-once history is not re-opened).</summary>
+    /// <summary>The same verified package seal and signer are already recorded at this gate —
+    /// a re-pull of something already decided here. Nothing is parked or changed (append-once history is not re-opened).</summary>
     AlreadyImported,
+
+    /// <summary>The receiving node failed while processing the package. This is not a policy verdict.</summary>
+    Failed,
 }
 
 /// <summary>The outcome of submitting one package, transport-agnostic. <see cref="Warning"/> is
@@ -61,65 +64,84 @@ public static class PackageImport
             return new(PackageAdmission.Refused, reason, null, null, []);
         }
 
-        var policyPath = Path.Combine(projectDir, "ashlar.policy.yaml");
-        if (!File.Exists(policyPath))
-        {
-            return new(PackageAdmission.Refused, "not an ashlar project (no ashlar.policy.yaml)", pkg, null, []);
-        }
-        if (!PolicyLoader.TryLoad(await File.ReadAllTextAsync(policyPath), out var policy, out var policyReason))
-        {
-            return new(PackageAdmission.Refused, policyReason, pkg, null, []);
-        }
-
-        // TRUST ROOT (Phase 3): a package sealed by a key this project does not trust never parks
-        // anything — the refusal comes BEFORE the forge queue, so a stranger cannot fill the disk by
-        // spamming pulls, and `× REFUSED` names the fingerprint to trust. The check is the sealer's
-        // fingerprint against the project policy's trustedSigners UNION the operator's local peers
-        // keychain (`ashlar keys trust <fp>`). Empty trust set ⇒ every import refused (fail-closed).
-        var sealer = Fingerprint(pkg!.SealSigner);
-        if (!OperatorKey.IsSignerTrusted(sealer, policy!.SelfExtend.TrustedSigners))
-        {
-            return new(PackageAdmission.Refused,
-                $"sealed by {sealer}, which is not a trusted signer. Read the fingerprint off the origin "
-                + "box's `ashlar keys show`, then `ashlar keys trust " + sealer + "` here — or list it under "
-                + "selfExtend.trustedSigners in ashlar.policy.yaml.",
-                pkg, null, []);
-        }
-
-        var forge = AshlarProjectMediation.ProjectStore(projectDir);
-        var store = new GateStore(Path.Combine(projectDir, ".ashlar"), OperatorKey.TryLoad());
-        // Declared out here so the catch can clean up anything parked before a failure — otherwise
-        // a routine re-pull (which parks fresh proposals, then hits append-once at ProposeAsync)
-        // would orphan them in the forge queue, accumulating without bound.
+        ChangeProposalStore? forge = null;
         var localForgeIds = new List<string>();
+        string? recordedId = null;
         try
         {
-            // A re-pull of something already decided at this gate is not re-opened — append-once
-            // history stands. Skip WITHOUT parking, so nothing accumulates across repeated pulls.
-            if (await store.GetAsync(pkg!.Record.Proposal.Id) is not null)
+            var policyPath = Path.Combine(projectDir, "ashlar.policy.yaml");
+            if (!File.Exists(policyPath))
             {
-                return new(PackageAdmission.AlreadyImported,
-                    $"already decided at this gate under id '{pkg.Record.Proposal.Id}'", pkg, pkg.Record.Proposal.Id, []);
+                return new(PackageAdmission.Refused, "not an ashlar project (no ashlar.policy.yaml)", pkg, null, []);
+            }
+            if (!PolicyLoader.TryLoad(await File.ReadAllTextAsync(policyPath), out var policy, out var policyReason))
+            {
+                return new(PackageAdmission.Refused, policyReason, pkg, null, []);
+            }
+
+            // TRUST ROOT (Phase 3): a package sealed by a key this project does not trust never parks
+            // anything — the refusal comes BEFORE the forge queue, so a stranger cannot fill the disk by
+            // spamming pulls, and `× REFUSED` names the fingerprint to trust. The check is the sealer's
+            // fingerprint against the project policy's trustedSigners UNION the operator's local peers
+            // keychain (`ashlar keys trust <fp>`). Empty trust set ⇒ every import refused (fail-closed).
+            var sealer = Fingerprint(pkg!.SealSigner);
+            if (!OperatorKey.IsSignerTrusted(sealer, policy!.SelfExtend.TrustedSigners))
+            {
+                return new(PackageAdmission.Refused,
+                    $"sealed by {sealer}, which is not a trusted signer. Read the fingerprint off the origin "
+                    + "box's `ashlar keys show`, then `ashlar keys trust " + sealer + "` here — or list it under "
+                    + "selfExtend.trustedSigners in ashlar.policy.yaml.",
+                    pkg, null, []);
+            }
+
+            forge = AshlarProjectMediation.ProjectStore(projectDir);
+            var store = new GateStore(Path.Combine(projectDir, ".ashlar"), OperatorKey.TryLoad());
+            // Only a receipt for this exact sealed package proves a re-import. Author-chosen ids
+            // alone cannot distinguish independent origins or changed files from the same origin.
+            if (await store.GetAsync(pkg!.Record.Proposal.Id) is { } existing)
+            {
+                if (existing.Proposal.ImportedPackageSeal == pkg.Seal
+                    && existing.Proposal.ImportedPackageSigner == pkg.SealSigner)
+                {
+                    return new(PackageAdmission.AlreadyImported,
+                        $"already decided at this gate under id '{pkg.Record.Proposal.Id}'", pkg, pkg.Record.Proposal.Id, []);
+                }
+
+                var previousOrigin = existing.Proposal.ImportedPackageSigner is { } previous
+                    ? Fingerprint(previous) : "unknown (local or legacy record)";
+                return new(PackageAdmission.Refused,
+                    $"proposal id '{pkg.Record.Proposal.Id}' collides: recorded origin {previousOrigin}; "
+                    + $"incoming origin {sealer}. The recorded package is different or cannot be identified; use a new proposal id.",
+                    pkg, null, []);
             }
 
             // Park the files as LOCAL forge proposals — nothing touches the tree until THIS gate
             // admits. Propose → hold → apply holds for remote code exactly as for a local cycle.
             foreach (var pf in pkg.Files)
             {
-                var parked = forge.Add(new ChangeProposal
+                var localId = "pkg-" + Guid.NewGuid().ToString("N")[..12];
+                // Track before Add: even a store failure after the durable write needs cleanup.
+                localForgeIds.Add(localId);
+                forge.Add(new ChangeProposal
                 {
-                    Id = "pkg-" + Guid.NewGuid().ToString("N")[..12],
+                    Id = localId,
                     TargetPath = pf.Path.Replace('\\', '/'),
                     NewContent = pf.Content,
                     Summary = $"imported: {pkg.Record.Proposal.Summary}",
                     Reason = $"package sealed by {Fingerprint(pkg.SealSigner)}",
                     CreatedAt = DateTimeOffset.UtcNow,
                 });
-                localForgeIds.Add(parked.Id);
             }
 
-            var proposal = pkg.Record.Proposal with { ForgeProposalIds = localForgeIds };
+            // These receipt fields are derived HERE, never accepted from the incoming proposal.
+            var proposal = pkg.Record.Proposal with
+            {
+                ForgeProposalIds = localForgeIds,
+                ImportedPackageSeal = pkg.Seal,
+                ImportedPackageSigner = pkg.SealSigner,
+            };
             var record = await store.ProposeAsync(policy!, proposal, DateTimeOffset.UtcNow);
+            recordedId = record.Proposal.Id;
 
             switch (record.State)
             {
@@ -145,15 +167,32 @@ public static class PackageImport
                     return new(PackageAdmission.Rejected, record.Reason, pkg, record.Proposal.Id, []);
             }
         }
-        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        catch (Exception ex)
         {
-            // Corrupt local key or store, or an unexpected propose failure. Anything parked in
-            // this attempt is rejected rather than left orphaned in the queue.
-            if (localForgeIds.Count > 0)
+            // Every failure, including I/O, timeout and cancellation, must attempt cleanup. A
+            // second failure is reported explicitly; it must not hide the original node fault.
+            var cleanupErrors = new List<string>();
+            if (forge is not null)
             {
-                ForgeApplier.RejectAll(forge, localForgeIds, "gate", "import aborted: " + ex.Message);
+                foreach (var id in localForgeIds)
+                {
+                    try { ForgeApplier.RejectAll(forge, [id], "gate", "import aborted: " + ex.Message); }
+                    catch (Exception cleanup) { cleanupErrors.Add($"{id}: {cleanup.Message}"); }
+                }
             }
-            return new(PackageAdmission.Refused, ex.Message, pkg, null, []);
+            if (ex is OperationCanceledException)
+            {
+                if (cleanupErrors.Count > 0)
+                    throw new OperationCanceledException("Import cancelled; cleanup also failed: "
+                        + string.Join("; ", cleanupErrors), ex);
+                throw;
+            }
+            var message = "node failed while importing: " + ex.Message;
+            if (recordedId is not null)
+                message += $". Gate decision '{recordedId}' was recorded; inspect its apply state.";
+            if (cleanupErrors.Count > 0)
+                message += ". Cleanup also failed: " + string.Join("; ", cleanupErrors);
+            return new(PackageAdmission.Failed, message, pkg, recordedId, []);
         }
     }
 

@@ -271,6 +271,9 @@ public sealed class PkgCommand : Command
                 Console.WriteLine($"  {Bad($"× REFUSED — {Safe(result.Message)}")}");
                 Console.WriteLine($"  {Dim("disk untouched")}");
                 return 65;
+            case PackageAdmission.Failed:
+                Console.Error.WriteLine($"  {Bad($"× ERROR — {Safe(result.Message)}")}");
+                return 1;
             default:
                 Console.Error.WriteLine(Safe(result.Message));
                 return 1;
@@ -655,11 +658,11 @@ public sealed class PkgCommand : Command
         Console.WriteLine($"  {Dim($"pulling {packages.Count} package(s) from {from.FullName} — each faces YOUR gate")}");
         Console.WriteLine();
 
-        int admitted = 0, held = 0, refused = 0, skipped = 0, warned = 0;
+        int admitted = 0, held = 0, refused = 0, skipped = 0, warned = 0, errors = 0;
         foreach (var path in packages)
         {
             // THE WHOLE ROW IS PROTECTED, not just the read. Anything this pass cannot get through
-            // refuses its own ROW; the pass continues. A mesh store is a plain synced directory, so
+            // reports its own ROW; the pass continues. A mesh store is a plain synced directory, so
             // anyone who can write to the share can drop one file into it — and a sync client leaves
             // half-arrived files and dangling links there without anyone's help. Ending the pass on
             // one of them lets a single file deny every legitimate package behind it, which is the
@@ -672,8 +675,8 @@ public sealed class PkgCommand : Command
             // there, and that one receiver denied every package behind the first row. The row
             // rendering is in here for the same reason: it reads result.Package fields.
             //
-            // A refused row still increments the counter, so the pass exits 65 and the summary names
-            // it: a refusal must never quietly become a skip.
+            // Refusals exit 65; node failures have a distinct error count and exit 1. Neither
+            // becomes a skip or prevents the pass from reaching later packages.
             try
             {
                 var read = await SafePackageRead.TryReadTextAsync(path, MaxPackageBytes);
@@ -729,6 +732,10 @@ public sealed class PkgCommand : Command
                         skipped++;
                         Console.WriteLine($"  {Dim("− already have  " + Safe(summary) + sealedBy)}");
                         break;
+                    case PackageAdmission.Failed:
+                        errors++;
+                        Console.WriteLine($"  {Bad("× ERROR")}    {Safe(summary)} {Dim($"{sealedBy} · {Safe(result.Message)}")}");
+                        break;
                     case PackageAdmission.Rejected:
                         refused++;
                         // BOTH HALVES. `summary` here came out of a package whose seal verified
@@ -775,15 +782,15 @@ public sealed class PkgCommand : Command
             // unanticipated exception type; for the submit it is the guarantee itself.
             catch (Exception ex)
             {
-                refused++;
-                Console.WriteLine($"  {Bad("× REFUSED")}  {Safe(Path.GetFileName(path))} {Dim(" · " + Safe(ex.Message))}");
+                errors++;
+                Console.WriteLine($"  {Bad("× ERROR")}    {Safe(Path.GetFileName(path))} {Dim(" · node failed: " + Safe(ex.Message))}");
             }
         }
 
         Console.WriteLine();
-        Console.WriteLine($"  {Dim($"pulled {packages.Count} · admitted {admitted} · held {held} · already-have {skipped} · refused/rejected {refused}")}");
+        Console.WriteLine($"  {Dim($"pulled {packages.Count} · admitted {admitted} · held {held} · already-have {skipped} · refused/rejected {refused} · errors {errors}")}");
         // A partial apply (admitted but not fully written) is a non-zero exit so a script notices.
-        if (warned > 0)
+        if (warned > 0 || errors > 0)
         {
             return 1;
         }

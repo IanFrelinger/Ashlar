@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "note": "Package identity, failure cleanup and node-error regressions. Execute in the devtest container; the manifest alone is not evidence of a kill.",
+  "mutations": [
+    {
+      "id": "collision-is-not-duplicate",
+      "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
+      "old": "if (existing.Proposal.ImportedPackageSeal == pkg.Seal\n                    && existing.Proposal.ImportedPackageSigner == pkg.SealSigner)",
+      "new": "if (true)",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Different_package_with_colliding_id_is_refused_before_parking",
+        "Legacy_record_without_package_receipt_is_not_called_a_duplicate"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "receipt-derived-locally",
+      "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
+      "old": "ImportedPackageSeal = pkg.Seal,",
+      "new": "ImportedPackageSeal = pkg.Record.Proposal.ImportedPackageSeal,",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Imported_receipt_is_derived_from_verified_package_not_inherited_from_sender",
+        "Exact_package_reimport_preserves_record_and_queue"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "all-failures-cleanup",
+      "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
+      "old": "catch (Exception ex)\n        {",
+      "new": "catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)\n        {",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Gate_io_failure_after_parking_rejects_every_attempt_and_reports_node_error"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "cleanup-parked-rows",
+      "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
+      "old": "if (forge is not null)",
+      "new": "if (false)",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Gate_io_failure_after_parking_rejects_every_attempt_and_reports_node_error"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "node-fault-not-refusal",
+      "file": "application/src/Ashlar.CLI/Commands/PackageImport.cs",
+      "old": "return new(PackageAdmission.Failed, message, pkg, recordedId, []);",
+      "new": "return new(PackageAdmission.Refused, message, pkg, recordedId, []);",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Corrupt_local_gate_is_a_node_error_not_a_package_refusal",
+        "Pull_reports_node_errors_separately_and_continues_to_good_and_refused_rows"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "pull-error-exit",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "if (warned > 0 || errors > 0)",
+      "new": "if (warned > 0)",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Pull_reports_node_errors_separately_and_continues_to_good_and_refused_rows"
+      ],
+      "group": "import-integrity"
+    },
+    {
+      "id": "daemon-error-count",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshAutoPullService.cs",
+      "old": "                var result = await PackageImport.SubmitAsync(projectDir, read.Text!).ConfigureAwait(false);\n                switch (result.Outcome)\n                {\n                    case PackageAdmission.Admitted: admitted++; break;\n                    case PackageAdmission.Held: held++; break;\n                    case PackageAdmission.Rejected: rejected++; break;\n                    case PackageAdmission.Refused: refused++; break;\n                    case PackageAdmission.Failed: errors++; break;\n                    case PackageAdmission.AlreadyImported: already++; break;\n                }",
+      "new": "                var result = await PackageImport.SubmitAsync(projectDir, read.Text!).ConfigureAwait(false);\n                switch (result.Outcome)\n                {\n                    case PackageAdmission.Admitted: admitted++; break;\n                    case PackageAdmission.Held: held++; break;\n                    case PackageAdmission.Rejected: rejected++; break;\n                    case PackageAdmission.Refused: refused++; break;\n                    case PackageAdmission.Failed: refused++; break;\n                    case PackageAdmission.AlreadyImported: already++; break;\n                }",
+      "filter": "FullyQualifiedName~PackageImportIntegrityTests",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Daemon_counts_node_faults_as_errors_and_keeps_processing"
+      ],
+      "group": "import-integrity"
+    }
+  ]
+}

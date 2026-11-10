@@ -58,6 +58,15 @@ public sealed record ExtensionProposal
         init => _files = value is { Count: 0 } ? null : value;
     }
 
+    /// <summary>Receiver-derived seal of the verified package imported into this gate. Together
+    /// with <see cref="ImportedPackageSigner"/>, distinguishes re-imports from colliding proposal
+    /// ids. Null on local and legacy records; omitted from their canonical signing bytes.</summary>
+    public string? ImportedPackageSeal { get; init; }
+
+    /// <summary>Receiver-derived public key of the imported package's sealer. Replaced on every
+    /// import, never trusted from the incoming proposal's own receipt metadata.</summary>
+    public string? ImportedPackageSigner { get; init; }
+
     private readonly IReadOnlyList<FileClaim>? _files;
 }
 
