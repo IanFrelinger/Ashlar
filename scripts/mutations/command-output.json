@@ -300,6 +300,19 @@
         "Existing_json_renderers_remain_opted_in"
       ],
       "group": "json-output"
+    },
+    {
+      "id": "mesh-usage-exit",
+      "file": "application/src/Ashlar.CLI/Commands/MeshCommand.cs",
+      "old": "Console.Error.WriteLine(\"Choose a mesh subcommand or use --discover, --advertise, --capability, or --set-trust-tier.\");\n                ctx.ExitCode = 1;",
+      "new": "Console.Error.WriteLine(\"Choose a mesh subcommand or use --discover, --advertise, --capability, or --set-trust-tier.\");\n                ctx.ExitCode = 0;",
+      "filter": "FullyQualifiedName~Mesh_without_operation_is_usage_error",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Mesh_without_operation_is_usage_error"
+      ],
+      "group": "json-output"
     }
   ]
 }
