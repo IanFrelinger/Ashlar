@@ -40,7 +40,8 @@ public static class MeshBeacon
     /// <summary>Largest datagram considered; anything bigger is ignored unparsed.</summary>
     public const int MaxDatagramBytes = 512;
 
-    private const int MaxNameLength = 64;
+    /// <summary>Longest name a beacon may announce; also the display bound `mesh lan` applies.</summary>
+    internal const int MaxNameLength = 64;
 
     /// <summary>Wire shape (short keys — this rides UDP).</summary>
     public sealed record Payload(

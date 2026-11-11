@@ -404,4 +404,73 @@ public sealed class PkgCommandTests : IDisposable
         showRc.Should().Be(65);
         showErr.Should().Contain("not a regular file");
     }
+
+    // ─────────── #492: a long symlink target must not cut the refusal's guidance ───────────
+
+    // The parts of the symlink refusal the operator ACTS on. They follow the quoted target, so they
+    // are what a line-level bound cuts first.
+    private static readonly string[] SymlinkGuidance =
+    [
+        "not a regular file",
+        "Point at the real file instead",
+        "a store DIRECTORY that is itself a symlink still works.",
+    ];
+
+    // About 3,000 characters: past UntrustedText.DefaultMaxChars on its own, and under Linux's
+    // 4,095-byte symlink target limit. It need not exist; the link is refused without being followed.
+    //
+    // LINUX ONLY, and not as a convenience. macOS caps a symlink target at 1,023 bytes, so this
+    // fixture cannot be created there (PathTooLongException). The cut it guards against needs a
+    // target past roughly 1,600 characters, so on macOS the bug cannot happen either.
+    private static string LongTarget() =>
+        "/" + string.Join("/", Enumerable.Repeat(new string('t', 200), 15)) + "/payload.ashpkg";
+
+    [LinuxOnlyFact("symlink target over 1,023 bytes")]
+    public async Task Import_ofASymlinkWithALongTarget_keepsTheExplanationAndRemediation()
+    {
+        var project = await ProjectAsync("proj-long-link");
+        var link = Path.Combine(_dir, "long-link.ashpkg");
+        var target = LongTarget();
+        target.Length.Should().BeGreaterThan(2000, "the fixture must exceed the line bound or it proves nothing");
+        File.CreateSymbolicLink(link, target);
+
+        var (rc, _, stderr) = await RunAsync("pkg", "import", link, "--path", project);
+
+        rc.Should().Be(65);
+        stderr.Should().Contain("is a symbolic link (-> /tttt");
+        stderr.Should().ContainAll(SymlinkGuidance);
+        stderr.Should().Contain("limit 256]", "the target is bounded as a component, and says so");
+        stderr.Should().NotContain(target, "the sender does not get to choose how much of the line it fills");
+        CountOf(stderr, "[truncated:").Should().Be(1, "only the target is cut; the composed refusal never reaches the line bound");
+    }
+
+    [LinuxOnlyFact("symlink target over 1,023 bytes")]
+    public async Task Pull_pastASymlinkWithALongTarget_keepsTheGuidanceOnTheRefusedRow()
+    {
+        // The pull row is a second renderer: "× REFUSED  <name> · <reason>", with the reason bounded
+        // on its own. Pinned separately so a fix in one renderer cannot hide a cut in the other.
+        var project = await ProjectAsync("proj-long-link-pull");
+        var store = Path.Combine(_dir, "long-link-store");
+        Directory.CreateDirectory(store);
+        File.CreateSymbolicLink(Path.Combine(store, "aaa-long.ashpkg"), LongTarget());
+
+        var (rc, stdout, _) = await RunAsync("pkg", "pull", "--from", store, "--path", project);
+
+        rc.Should().Be(65);
+        var row = stdout.Split('\n').Single(line => line.Contains("REFUSED", StringComparison.Ordinal)
+                                                     && line.Contains("aaa-long.ashpkg", StringComparison.Ordinal));
+        row.Should().ContainAll(SymlinkGuidance);
+        CountOf(row, "[truncated:").Should().Be(1, "only the target is cut; the row's reason never reaches the line bound");
+    }
+
+    private static int CountOf(string haystack, string needle)
+    {
+        var count = 0;
+        for (var at = haystack.IndexOf(needle, StringComparison.Ordinal); at >= 0;
+             at = haystack.IndexOf(needle, at + needle.Length, StringComparison.Ordinal))
+        {
+            count++;
+        }
+        return count;
+    }
 }

@@ -37,10 +37,24 @@ internal static class UntrustedText
     /// <summary>
     /// The default ceiling on one line of sender-chosen text. Comfortably above every refusal this
     /// CLI composes — the longest, SafePackageRead's symlink refusal, is about 450 characters with a
-    /// short target — so an honest message is never touched, while a sender who wants a megabyte on
+    /// short target and stays under 1,000 with its target at <see cref="ComponentMaxChars"/> and a
+    /// 255-character filename — so an honest message is never touched, while a sender who wants a megabyte on
     /// the operator's screen gets a bounded line and a count instead.
     /// </summary>
     public const int DefaultMaxChars = 2000;
+
+    /// <summary>
+    /// The ceiling on ONE sender-chosen component QUOTED INSIDE a message this CLI composes — a
+    /// filename or a symlink target inside a refusal. A message's fixed text is the part the
+    /// operator acts on (what was wrong, what to do instead), and it comes AFTER the quoted value.
+    /// Bounding only the composed line at <see cref="DefaultMaxChars"/> lets a long enough value push
+    /// that tail off the end: a 4,000-character symlink target turned a refusal into "REFUSED: x is a
+    /// symbolic link (-> /aaaa…" with the explanation and the remediation cut. So each component is
+    /// bounded first, at a size no honest one reaches — a path component is at most 255 units on
+    /// every filesystem this CLI supports — and the composed message stays under the line bound with
+    /// its guidance whole. (#492)
+    /// </summary>
+    public const int ComponentMaxChars = 256;
 
     /// <summary>
     /// Returns <paramref name="senderChosen"/> with every terminal-actionable character replaced and

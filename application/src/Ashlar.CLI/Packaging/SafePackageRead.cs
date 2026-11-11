@@ -182,8 +182,14 @@ internal static class SafePackageRead
             // The refusal names the way OUT as well as the reason. Fail-closed is only defensible if
             // the operator whose honest workflow it just broke can see what to do instead — otherwise
             // the answer they find on their own is to turn the guard off.
+            //
+            // The target is bounded as a COMPONENT, not left to the line bound downstream: the
+            // renderer caps the whole reason at UntrustedText.DefaultMaxChars, and a target long
+            // enough to reach that cap used to cut off everything after it — "not a regular file"
+            // and the way out with it (#492). The name needs no second bound: every caller hands this
+            // a file path, so it is one path component, at most 255 units on any supported filesystem.
             reason =
-                $"REFUSED: {name} is a symbolic link (-> {UntrustedText.ForConsole(info.LinkTarget)}), not a regular file. "
+                $"REFUSED: {name} is a symbolic link (-> {UntrustedText.ForConsole(info.LinkTarget, UntrustedText.ComponentMaxChars)}), not a regular file. "
               + "A package must be the bytes themselves; a link is an instruction to go read something else. "
               + "Point at the real file instead — give --from or the path argument the directory the "
               + "package actually lives in, or copy it into the store rather than linking it. "
