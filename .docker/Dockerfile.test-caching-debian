@@ -1,16 +1,12 @@
 # Dockerfile for running multi-platform tests on Debian
-ARG DOTNET_VERSION=10.0
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+# .NET 10 has no Microsoft Debian image. Keep a genuine Debian 12 SDK base and
+# install the exact SDK 10 version instead of silently testing Ubuntu under this label.
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim
+ARG DOTNET_SDK_VERSION=10.0.403
 
-# Install dependencies
-RUN apt-get update && \
-    apt-get install -y \
-        curl \
-        git \
-        python3 \
-        python3-pip \
-        && \
-    rm -rf /var/lib/apt/lists/*
+COPY scripts/ci/install-readiness-packages.sh /tmp/install-readiness-packages.sh
+RUN sh /tmp/install-readiness-packages.sh curl git python3 python3-pip \
+ && rm /tmp/install-readiness-packages.sh
 
 # Set working directory
 WORKDIR /workspace
@@ -26,7 +22,10 @@ COPY . .
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && \
     bash /tmp/dotnet-install.sh --version 8.0.33 --runtime aspnetcore --install-dir /usr/share/dotnet --no-path && \
     bash /tmp/dotnet-install.sh --version 8.0.33 --runtime dotnet --install-dir /usr/share/dotnet --no-path && \
+    bash /tmp/dotnet-install.sh --version "${DOTNET_SDK_VERSION}" --install-dir /usr/share/dotnet --no-path && \
     rm /tmp/dotnet-install.sh
+
+RUN sh scripts/ci/check-readiness-container.sh debian 12
 
 # Restore dependencies for test projects and CLI
 RUN dotnet restore src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj && \
