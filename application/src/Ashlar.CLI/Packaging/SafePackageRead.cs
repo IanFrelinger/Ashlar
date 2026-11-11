@@ -186,7 +186,8 @@ internal static class SafePackageRead
             // The target is bounded as a COMPONENT, not left to the line bound downstream: the
             // renderer caps the whole reason at UntrustedText.DefaultMaxChars, and a target long
             // enough to reach that cap used to cut off everything after it — "not a regular file"
-            // and the way out with it (#492). The name is bounded the same way in DisplayName.
+            // and the way out with it (#492). The name needs no second bound: every caller hands this
+            // a file path, so it is one path component, at most 255 units on any supported filesystem.
             reason =
                 $"REFUSED: {name} is a symbolic link (-> {UntrustedText.ForConsole(info.LinkTarget, UntrustedText.ComponentMaxChars)}), not a regular file. "
               + "A package must be the bytes themselves; a link is an instruction to go read something else. "
@@ -371,15 +372,10 @@ internal static class SafePackageRead
 
     private static PackageReadResult Refuse(string reason) => new(false, null, reason);
 
-    /// <summary>
-    /// The name every refusal in this file leads with. Bounded as a component (see
-    /// <see cref="UntrustedText.ComponentMaxChars"/>) so it cannot crowd a refusal's fixed guidance
-    /// off the end of the line. A real filename never reaches the bound; the whole-path fallback can.
-    /// </summary>
     private static string DisplayName(string path)
     {
         var name = Path.GetFileName(path);
-        return UntrustedText.ForConsole(string.IsNullOrEmpty(name) ? path : name, UntrustedText.ComponentMaxChars);
+        return UntrustedText.ForConsole(string.IsNullOrEmpty(name) ? path : name);
     }
 
     private const int FileTypeDisk = 0x0001;

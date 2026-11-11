@@ -37,8 +37,8 @@ internal static class UntrustedText
     /// <summary>
     /// The default ceiling on one line of sender-chosen text. Comfortably above every refusal this
     /// CLI composes — the longest, SafePackageRead's symlink refusal, is about 450 characters with a
-    /// short target and stays near 1,100 with its name and target each at
-    /// <see cref="ComponentMaxChars"/> — so an honest message is never touched, while a sender who wants a megabyte on
+    /// short target and stays under 1,000 with its target at <see cref="ComponentMaxChars"/> and a
+    /// 255-character filename — so an honest message is never touched, while a sender who wants a megabyte on
     /// the operator's screen gets a bounded line and a count instead.
     /// </summary>
     public const int DefaultMaxChars = 2000;

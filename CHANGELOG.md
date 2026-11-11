@@ -27,8 +27,8 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
   removed. Ordinary names, RTL scripts and emoji print unchanged. `MeshBeacon.TryParse` still accepts
   and rejects the same beacons.
 - A symlink refusal from `pkg import`, `show`, `publish` or `pull` keeps its explanation
-  and remediation however long the link target is. The target and the leading name are each bounded to
-  256 characters (`UntrustedText.ComponentMaxChars`) before the refusal is composed. Previously only
+  and remediation however long the link target is. The target is bounded to 256 characters
+  (`UntrustedText.ComponentMaxChars`) before the refusal is composed. Previously only
   the composed line was bounded, at 2,000 characters, which cut off "not a regular file" and the
   instructions after it.
 
