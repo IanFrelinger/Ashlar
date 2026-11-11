@@ -33,6 +33,8 @@ Container readiness checks the built image’s actual `/etc/os-release` identity
 
 Package setup rejects partial apt indexes, has bounded retries and command deadlines, and refuses installation after exhausted updates. Container builds reuse the reporting runner with 15-second heartbeat messages and a 25-minute deadline; the whole container job is limited to 45 minutes. Setup failure/stall receipts, logs and reproduction parameters are retained even when product tests never start. The readiness summary still fails on any failed or cancelled lane; no required check or security boundary is weakened.
 
+Readiness smoke tests retain one TRX per project and framework: native lanes run both net8.0 and net10.0, and container lanes run net10.0. Each invocation immediately runs `scripts/ci/zero-test-guard.sh` over its own receipt, so a missing, unreadable, empty or entirely skipped selection fails even when VSTest exits successfully. Partly skipped selections may pass if at least one test executed; this is not an exact-count floor. Artifacts upload on failure, and the repository guard-wiring check no longer exempts readiness. `scripts/ci/test-readiness-smoke-receipts.py` exercises the actual workflow shells with fake dotnet/Docker and the real receipt guard; it does not substitute for the native/container runtime jobs.
+
 Native readiness's `ci verify` also calls root `validate`, which discovers, builds and runs
 **every test project it finds by recursive sweep — 22 of them on master `e3ec23c9`, not only the
 commercial ones** (corrected 2026-09-13; run 34737292726 logs `Found 22 test project(s)` and
