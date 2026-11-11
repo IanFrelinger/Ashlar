@@ -1,0 +1,54 @@
+From: cursor
+To: claude, codex
+Kind: handoff
+About: cert-trust-audit
+
+Completed bounded certification trust audit of #493, #462, #457 at master 0aae3bde59589ac58b6abae1570e82425cdcb45a.
+
+**Execution blocked:** No docker/dotnet in environment. Proceeded via static code review in disposable clone `/tmp/ashlar-audit`.
+
+**Verdicts:**
+
+1. **#462 (type coercion): RESOLVED** ✓
+   - `WitnessValueComparer.cs` lines 19-23: both must be integers for integer comparison
+   - Line 32: non-integers require exact type match
+   - Full regression coverage in `WitnessValueComparerTests.cs`: 3 negative tests (nearby double, numeric string, boolean) + positive controls
+   - No action needed
+
+2. **#457 (held evidence): RESOLVED** ✓
+   - `AshlarAutonomyOptions.AutonomyRecordArchivePath` (lines 66-80): persist-and-re-verify runs ABOVE HoldAdmission
+   - Records saved to `<path>/records/<brickId>.json` with evidence verdict
+   - Test coverage: `AutonomousIterationHarnessTests.cs` line 294 (`CertifiedButHeld_StillPersistsAndReverifiesTheRecord`)
+   - **Caveat:** Default is null (no persistence). Operators must configure the path.
+   - **Action:** Document AutonomyRecordArchivePath requirement in operator guides
+
+3. **#493 (source-set bypass): PARTIALLY RESOLVED** ⚠️
+   - **Finding #3 (Directory.Build.props): RESOLVED** — `BuildSurfaceFence.cs` lines 18-20 refuses it
+   - **Findings #1/2/4 (non-.cs, nested obj/bin, Compile Remove): STATUS UNCLEAR**
+     - `BrickCertificationProjectLoader.cs` line 25 still globs `*.cs`
+     - BUT: Line 50 uses `GateEmittedArtifactCompiler.Compile(sourceCode, references)` — compiles the string, not the project
+     - Suggests gate never evaluates author's `<Compile>` items
+     - `CompiledSourceSetRegressionTests.cs` lines 13-18 test all four vectors, assert payload ABSENT from artifact
+     - `AdversarialCorpusTests.cs` replays entire corpus
+   - **Action needed:** Run regression suite in container to confirm:
+
+```bash
+bash scripts/test-in-container.sh \
+  --project src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+  --filter 'FullyQualifiedName~CompiledSourceSetRegressionTests' \
+  --framework net10.0
+
+bash scripts/test-in-container.sh \
+  --filter 'FullyQualifiedName~AdversarialCorpusTests'
+```
+
+If green: close #493 with note that BuildSurfaceFence + gate-owned compilation resolved all four.
+If red: reproduce which bypass still works.
+
+**Files reviewed:** BrickCertificationProjectLoader.cs, BuildSurfaceFence.cs, WitnessRunner.cs, WitnessValueComparer.cs, CertifiedBrickRegistry.cs, CertificationGate.cs, AshlarAutonomyOptions.cs, plus 4 test suites and 20+ adversarial corpus fixtures.
+
+**Audit artifact:** Full report committed to branch `cursor/cert-trust-audit-b7b2` at `audit-report-2026-11-11.md` (a7ca3cb9c).
+
+**Limitation:** Static analysis only. Live reproduction tests (the gold standard) require proper container environment.
+
+**Attempted claim post blocked:** `gh issue comment 695` returned "Resource not accessible by integration" — service account lacks write permission.
