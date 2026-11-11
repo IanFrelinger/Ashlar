@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 for path in Path(sys.argv[1]).glob('kernel-*.trx'):
     results = ET.parse(path).getroot().findall('./{*}Results/{*}UnitTestResult')
     assert results and all(r.get('outcome') == 'Passed' for r in results), path
-    for suite, count in (('YamlDepthGuardTests', 13), ('YamlDepthProcessTests', 6), ('FileLockSafetyTests', 14)):
+    for suite, count in (('YamlDepthGuardTests', 13), ('YamlDepthProcessTests', 6), ('FileLockSafetyTests', 14), ('GateStoreCrashSafetyTests', 10)):
         cases = [r for r in results if suite in r.get('testName', '')]
         assert len(cases) == count, (path, suite, len(cases), count)
     print(f'PASS {path.name}: {len(results)} executed cases, no skips; all input-safety cases present')

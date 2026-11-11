@@ -23,7 +23,7 @@ def write_report(directory, rows):
     temporary.write_text(json.dumps(report, indent=2) + "\n")
     temporary.replace(directory / "report.json")
     lines = ["## Repository gate diagnostics", "", f"Overall: **{report['status']}**", "",
-             "Download the `repository-gate-diagnostics` artifact for logs and exact reproduction commands.", ""]
+             "Retained logs and exact reproduction commands are stored beside this report.", ""]
     for row in rows:
         name = html.escape(row["gate"]).replace("`", "&#96;")
         lines.append(f"- `{name}`: **{row['status']}** ({row.get('elapsed_seconds', 0):.2f}s). {row.get('reason', '')}")

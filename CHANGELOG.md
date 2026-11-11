@@ -17,6 +17,19 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — readiness container setup
+
+- Verify actual Ubuntu/Debian/Alpine image identity and SDK/runtime families rather than trusting lane names. The Debian 12 image installs exact SDK 10 over the official Debian SDK 8 base because Microsoft has no Debian SDK 10 image.
+- Treat partial apt indexes as failures, stop after bounded retries, and preserve installation errors. No network failure is silently accepted.
+- Retain setup logs, failure/stall receipts and reproduction parameters, with build heartbeats and deadlines even when product tests never start.
+
+### Fixed — gate-store lock ownership
+
+- A failed stray-file cleanup now disposes the acquired gate-store lock immediately and
+  preserves the cleanup exception instead of retrying it as lock contention. Successful
+  initialization transfers the still-held lock to the writer. This does not change the
+  documented same-user lock-path replacement limitation.
+
 ### Fixed — package import integrity
 
 - Abort cleanup owns only forge rows atomically published by that import attempt. A local-id

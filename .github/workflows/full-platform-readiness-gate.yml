@@ -78,6 +78,11 @@ on:
       - "commercial/**"
       - "ci/commercial-test-suites.json"
       - "scripts/ci/verify-commercial-receipts.py"
+      - "scripts/ci/build-readiness-container.sh"
+      - "scripts/ci/check-readiness-container.sh"
+      - "scripts/ci/install-readiness-packages.sh"
+      - "scripts/ci/run-reported-gates.py"
+      - "scripts/ci/test-readiness-container-setup.py"
       - "scripts/ci/test-commercial-receipts.py"
       - "src/Ashlar.Tests.Orchestration/**"
       - "src/Ashlar.Tests.Kernel/**"
@@ -240,6 +245,11 @@ jobs:
             "commercial/**"
             "ci/commercial-test-suites.json"
             "scripts/ci/verify-commercial-receipts.py"
+            "scripts/ci/build-readiness-container.sh"
+            "scripts/ci/check-readiness-container.sh"
+            "scripts/ci/install-readiness-packages.sh"
+            "scripts/ci/run-reported-gates.py"
+            "scripts/ci/test-readiness-container-setup.py"
             "scripts/ci/test-commercial-receipts.py"
             "src/Ashlar.Tests.Orchestration/**"
             "src/Ashlar.Tests.Kernel/**"
@@ -533,6 +543,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.run_heavy == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -540,12 +551,18 @@ jobs:
           - dockerfile: .docker/Dockerfile.test-caching
             label: Ubuntu-Container
             build_arg: "DOTNET_VERSION=10.0"
+            os_id: ubuntu
+            os_version: "24.04"
           - dockerfile: .docker/Dockerfile.test-caching-alpine
             label: Alpine-Container
             build_arg: "DOTNET_VERSION=10.0"
+            os_id: alpine
+            os_version: ""
           - dockerfile: .docker/Dockerfile.test-caching-debian
             label: Debian-Container
-            build_arg: "DOTNET_VERSION=10.0"
+            build_arg: "DOTNET_SDK_VERSION=10.0.403"
+            os_id: debian
+            os_version: "12"
 
     steps:
       - name: Checkout
@@ -561,12 +578,28 @@ jobs:
       # ── Stage 1: Setup (build container) ────────────────────────────
       - name: "Setup — build container image"
         id: container-build
+        env:
+          READINESS_DOCKERFILE: ${{ matrix.dockerfile }}
+          READINESS_BUILD_ARG: ${{ matrix.build_arg }}
+          READINESS_IMAGE: ashlar-readiness:${{ matrix.label }}
+          READINESS_OS: ${{ matrix.os_id }}
+          READINESS_OS_VERSION: ${{ matrix.os_version }}
         run: |
-          docker build \
-            -f ${{ matrix.dockerfile }} \
-            --build-arg ${{ matrix.build_arg }} \
-            -t ashlar-readiness:${{ matrix.label }} \
-            .
+          python3 scripts/ci/run-reported-gates.py \
+            --reports "${{ runner.temp }}/container-results/build" \
+            --timeout 1500 --budget 1500 \
+            scripts/ci/build-readiness-container.sh
+
+      - name: Publish container setup failures and stalls
+        if: always()
+        run: |
+          summary="${{ runner.temp }}/container-results/build/summary.md"
+          if [[ -f "$summary" ]]; then
+            cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::Container setup did not produce its diagnostic receipt."
+            exit 1
+          fi
 
       # ── Stage 2 + 3: Discovery + Dry-run inside container ──────────
       - name: "Discover + Dry-run in container"
@@ -624,6 +657,7 @@ jobs:
           name: readiness-${{ matrix.label }}
           path: ${{ runner.temp }}/container-results/
           retention-days: 14
+          if-no-files-found: error
 
   # ─────────────────────────────────────────────────────────────────────
   # Docker CLI image: build + discover + the private-mesh demo

@@ -109,6 +109,42 @@
       "expected_failures": [
         "An_unusable_probe_directory_fails_closed_during_construction"
       ]
+    },
+    {
+      "id": "gate-sweep-failure-lock-disposal-omitted",
+      "old": "                handle.Dispose();\n                throw;",
+      "new": "                throw;",
+      "expected_failures": [
+        "Failed_lock_initialization_disposes_the_handle_and_preserves_the_failure"
+      ],
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateStoreCrashSafetyTests"
+    },
+    {
+      "id": "gate-sweep-failure-retried-as-contention",
+      "old": "                handle.Dispose();\n                throw;",
+      "new": "                handle.Dispose();\n                await Task.Delay(25, ct).ConfigureAwait(false);\n                continue;",
+      "expected_failures": [
+        "Failed_lock_initialization_disposes_the_handle_and_preserves_the_failure"
+      ],
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateStoreCrashSafetyTests"
+    },
+    {
+      "id": "gate-sweep-success-lock-disposed-early",
+      "old": "                initialize(handle);\n                return handle;",
+      "new": "                initialize(handle);\n                handle.Dispose();\n                return handle;",
+      "expected_failures": [
+        "Successful_lock_initialization_transfers_a_still_exclusive_handle_to_the_caller"
+      ],
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateStoreCrashSafetyTests"
     }
   ]
 }
