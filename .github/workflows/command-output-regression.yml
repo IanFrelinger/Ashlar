@@ -5,6 +5,11 @@ on:
     paths:
       - 'application/src/Ashlar.CLI/**'
       - 'application/src/Ashlar.Tests.CLI/**'
+      - 'src/Ashlar.Tests.Infrastructure/Helpers/AdmittedBrickFixture.cs'
+      - 'src/Ashlar.Tests.Infrastructure/Helpers/CliRunner.cs'
+      - 'src/Ashlar.Tests.Infrastructure/Helpers/E2ETestBase.cs'
+      - 'src/Ashlar.Tests.Infrastructure/Tests/CLI/Phases14CliE2ETests.cs'
+      - 'src/Ashlar.Tests.Infrastructure/Tests/CLI/FullPipelineE2ETests.cs'
       - 'scripts/command-output-regression.sh'
       - 'scripts/mutations/command-output.json'
       - '.github/workflows/command-output-regression.yml'

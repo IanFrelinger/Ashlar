@@ -1,9 +1,5 @@
-using Ashlar.Certification.Contracts;
-using Ashlar.Core.Application.Certification.Models;
-using Ashlar.Infrastructure.Certification;
 using Ashlar.Tests.Application.Helpers;
 using Ashlar.Tests.Infrastructure.Helpers;
-using NSec.Cryptography;
 using Xunit;
 
 namespace Ashlar.Tests.Infrastructure.Tests.CLI;
@@ -25,68 +21,12 @@ public sealed class Phases14CliE2ETests : E2ETestBase
         // `adapt` on an empty store correctly reports "brick not found". Seeding a real
         // signed record is what lets this test exercise the decomposition it is named
         // for, rather than the not-found branch.
-        SeedAdmittedObservationContextRecord();
+        AdmittedBrickFixture.SeedObservationContext(TempDir);
 
         var (code, stdout, _) = await RunCliAsync($"adapt --dry-run --store-path \"{TempDir}\"");
 
         Assert.Equal(0, code);
         Assert.Contains("Decomposed", stdout, StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// Writes a genuinely signed, admitted record for <c>observation.context</c> where the
-    /// CLI will look for it.
-    /// </summary>
-    /// <remarks>
-    /// Signed with the same <see cref="CertificationRecordSigner"/> the CLI uses, so the
-    /// record survives the re-verification the store performs on load. Hand-writing the
-    /// JSON would not work, and should not: an unsigned or edited record is rejected as
-    /// uncertified, which is the property that makes durable certification safe.
-    ///
-    /// The path mirrors AddAdaptationInfrastructure, which places records beside the
-    /// pattern store.
-    /// </remarks>
-    private void SeedAdmittedObservationContextRecord()
-    {
-        var (privateKey, _) = CreateEd25519Key();
-        var signer = new CertificationRecordSigner(ed25519PrivateKeyBase64: privateKey);
-        var record = new CertificationRecord
-        {
-            Status = "PASS",
-            Stage = "certification",
-            Admitted = true,
-            Signed = true,
-            Timestamp = DateTimeOffset.UtcNow,
-            BrickId = "observation.context",
-            ContentHash = "seeded-e2e-fixture",
-            EscapeRate = 0d,
-            TotalMutants = 0,
-            SurvivingMutants = 0,
-            SchemaVersion = CertificationRecordData.TrustLoopSchemaVersion,
-            Gate = "Phases14CliE2ETests",
-            Inputs = new[]
-            {
-                new CertificationInput { Kind = CertificationInputKinds.GateEmittedArtifact, Id = "observation.context", Hash = "sha256:artifact" },
-                new CertificationInput { Kind = CertificationInputKinds.CertifierIdentity, Id = "test-certifier", Hash = "sha256:certifier" }
-            }
-        };
-
-        var signed = signer.SignRecord(record);
-
-        var store = new FileCertificationRecordStore(
-            Path.Combine(TempDir, "ashlar-certifications"),
-            signer);
-        store.Save(signed);
-    }
-
-    private static (string PrivateKeyBase64, string PublicKeyBase64) CreateEd25519Key()
-    {
-        using var key = Key.Create(
-            SignatureAlgorithm.Ed25519,
-            new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
-        return (
-            Convert.ToBase64String(key.Export(KeyBlobFormat.RawPrivateKey)),
-            Convert.ToBase64String(key.PublicKey.Export(KeyBlobFormat.RawPublicKey)));
     }
 
     [Fact(Timeout = 60000)]
@@ -166,8 +106,10 @@ public sealed class Phases14CliE2ETests : E2ETestBase
         var (analyzeCode, _, _) = await RunCliAsync($"analyze bricks --path \"{analyzePath}\"");
         Assert.True(analyzeCode == 0 || analyzeCode == 1);
 
-        var (adaptCode, _, _) = await RunCliAsync($"adapt --dry-run --store-path \"{TempDir}\"");
+        AdmittedBrickFixture.SeedObservationContext(TempDir);
+        var (adaptCode, adaptStdout, _) = await RunCliAsync($"adapt --dry-run --store-path \"{TempDir}\"");
         Assert.Equal(0, adaptCode);
+        Assert.Contains("Decomposed", adaptStdout, StringComparison.OrdinalIgnoreCase);
 
         var (improveCode, _, _) = await RunCliAsync("improve --dry-run");
         Assert.True(improveCode == 0 || improveCode == 1);
