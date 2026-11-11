@@ -147,8 +147,13 @@ public sealed class MeshLanDisplaySafetyTests : IDisposable
     // ExecuteLan, the whole of the handler's body, with the writer the handler passes it.
     private static Task<(int ExitCode, string Output)> LanAsync()
     {
-        var stdout = new StringWriter();
+        // CRLF on every host, so the Linux run exercises the line terminator Windows uses (an
+        // earlier version passed on Linux and failed on the Windows readiness lane: its "no CR"
+        // assertion caught the writer's own CRLF). Each terminator is then collapsed to LF, so a
+        // CR left in the output can only have come from a peer's name. The hostile names below
+        // never carry a CR directly before an LF, so the collapse cannot hide one.
+        var stdout = new StringWriter { NewLine = "\r\n" };
         var exitCode = MeshCommand.ExecuteLan(stdout);
-        return Task.FromResult((exitCode, stdout.ToString()));
+        return Task.FromResult((exitCode, stdout.ToString().Replace("\r\n", "\n", StringComparison.Ordinal)));
     }
 }
