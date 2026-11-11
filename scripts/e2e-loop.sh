@@ -10,10 +10,9 @@
 set -uo pipefail
 
 CLI_PROJ="${ASHLAR_CLI_PROJ:-application/src/Ashlar.CLI}"
-WORK="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ashlar-e2e-$$"
+WORK=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ashlar-e2e.XXXXXXXXXX") || exit 1
 RESULTS="$WORK/results.tsv"
-mkdir -p "$WORK"
-: > "$RESULTS"
+: > "$RESULTS" || exit 1
 
 PASS=0; FAIL=0; N=0
 
@@ -46,8 +45,9 @@ claim() { # name expected_rc pattern...
 }
 
 fresh() { # fresh project dir; prints path
-  local d="$WORK/p$RANDOM$RANDOM"
-  mkdir -p "$d"; echo "$d"
+  # mkdir -p on a random name can silently reuse another scenario's policy/state.
+  # mktemp atomically creates a new directory and propagates allocation failures.
+  mktemp -d "$WORK/p.XXXXXXXXXX"
 }
 
 # policy editors (operate on $1/ashlar.policy.yaml)
@@ -79,7 +79,7 @@ echo "== building the CLI once =="
 dotnet build "$CLI_PROJ" -v quiet >/dev/null || { echo "build failed"; exit 1; }
 
 # ───────────────────────────── init ─────────────────────────────
-D=$(fresh)
+D=$(fresh) || exit 1
 run_cli init invoice-triage --path "$D"
 claim "init-creates-project" 0 "ashlar.yaml" "the only file"
 [ -f "$D/ashlar.yaml" ] && [ -f "$D/ashlar.policy.yaml" ] \
@@ -95,14 +95,14 @@ H2=$(cat "$D/ashlar.yaml" "$D/ashlar.policy.yaml" | cksum)
   || result "init-refusal-left-files-untouched" FAIL "files changed on refusal"
 
 for bad in "9lives" "-lead" "has space" "a.b"; do
-  D=$(fresh); run_cli init "$bad" --path "$D"
+  D=$(fresh) || exit 1; run_cli init "$bad" --path "$D"
   claim "init-rejects-name[$bad]" 1 "REJECTED"
   [ ! -f "$D/ashlar.yaml" ] \
     && result "init-rejection-writes-nothing[$bad]" PASS "no files" \
     || result "init-rejection-writes-nothing[$bad]" FAIL "wrote files for a rejected name"
 done
 
-D=$(fresh); run_cli init a --path "$D"
+D=$(fresh) || exit 1; run_cli init a --path "$D"
 claim "init-accepts-single-letter" 0 "project contract for 'a'"
 
 D="$WORK/dir with spaces/nested"
@@ -110,7 +110,7 @@ run_cli init spaced --path "$D"
 claim "init-path-with-spaces" 0 "ashlar.yaml"
 
 # ───────────────────────────── verify ─────────────────────────────
-D=$(fresh); run_cli init demo --path "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"
 run_cli verify --path "$D"
 claim "verify-fresh-project" 0 "VERIFIED" "unsigned" "course 1" "course 2" "course 3"
 
@@ -125,38 +125,38 @@ printf '%s' "$OUT" | grep -q $'\x1b' \
 run_cli verify --path "$WORK"
 claim "verify-not-a-project" 1 "not an ashlar project" "ashlar init"
 
-D=$(fresh); run_cli init demo --path "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"
 echo "kind: Nonsense" > "$D/ashlar.yaml"
 run_cli verify --path "$D"
 claim "verify-broken-manifest-fails-contract" 65 "course 'contract'" "REJECTED"
 
-D=$(fresh); run_cli init demo --path "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"
 printf '\nselfExtend:\n  mode: self-extending\n' >> "$D/ashlar.yaml"
 run_cli verify --path "$D"
 claim "verify-manifest-grabbing-the-envelope" 65 "policy-owned"
 
-D=$(fresh); run_cli init demo --path "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"
 sed "s/gates: \[tests\]/gates: []/" "$D/ashlar.yaml" > "$D/.m" && mv "$D/.m" "$D/ashlar.yaml"
 run_cli verify --path "$D"
 claim "verify-ungated-agent" 65 "no gates"
 
-D=$(fresh); run_cli init demo --path "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"
 sed "s|root: .|root: does-not-exist|" "$D/ashlar.policy.yaml" > "$D/.p" && mv "$D/.p" "$D/ashlar.policy.yaml"
 run_cli verify --path "$D"
 claim "verify-missing-sandbox-root" 65 "does not exist"
 
-D=$(fresh); run_cli init demo --path "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"
 sed "s|writable: \[\]|writable: [../outside]|" "$D/ashlar.policy.yaml" > "$D/.p" && mv "$D/.p" "$D/ashlar.policy.yaml"
 run_cli verify --path "$D"
 claim "verify-writable-escape" 65 "escapes"
 
-D=$(fresh); run_cli init demo --path "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"
 sed -e "s/mode: sealed/mode: proposing/" -e "s/gatesRequired: \[\]/gatesRequired: [tests]/" \
   "$D/ashlar.policy.yaml" > "$D/.p" && mv "$D/.p" "$D/ashlar.policy.yaml"
 run_cli verify --path "$D"
 claim "verify-unfunded-proposing" 65 "seal it or fund it"
 
-D=$(fresh); run_cli init demo --path "$D"; set_proposing "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"; set_proposing "$D"
 run_cli verify --path "$D"
 claim "verify-funded-proposing" 0 "VERIFIED" "mode: proposing"
 
@@ -168,7 +168,7 @@ run_cli verify --path "$D" --format-json
 claim "verify-refuses-unsupported-format-json" 1 "--format-json" "no JSON rendering"
 
 # ───────────────────────────── gates ─────────────────────────────
-D=$(fresh); run_cli init demo --path "$D"; set_proposing "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"; set_proposing "$D"
 run_cli gates --path "$D"
 claim "gates-empty-queue" 0 "nothing held"
 
@@ -215,19 +215,23 @@ run_cli gates propose --file "$D/p.json" --path "$D"
 claim "propose-malformed-json" 1 "could not be parsed"
 
 # sealed rejects everything
-D=$(fresh); run_cli init demo --path "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"
+if [ "$RC" -ne 0 ]; then
+  result "propose-sealed-rejects" FAIL "fixture init exit $RC at $D :: $OUT"
+  exit 1
+fi
 proposal_json ext-s brick > "$D/p.json"
 run_cli gates propose --file "$D/p.json" --path "$D"
 claim "propose-sealed-rejects" 65 "sealed"
 
 # envelope beats mode and budget
-D=$(fresh); run_cli init demo --path "$D"; set_selfextending "$D" 100
+D=$(fresh) || exit 1; run_cli init demo --path "$D"; set_selfextending "$D" 100
 proposal_json ext-t tool > "$D/p.json"
 run_cli gates propose --file "$D/p.json" --path "$D"
 claim "propose-tool-outside-envelope" 65 "outside the envelope" "never the application's"
 
 # failed and missing courses reject in proposing mode
-D=$(fresh); run_cli init demo --path "$D"; set_proposing "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"; set_proposing "$D"
 proposal_json ext-f brick failtests > "$D/p.json"
 run_cli gates propose --file "$D/p.json" --path "$D"
 claim "propose-failed-course-rejects" 65 "'tests' failed"
@@ -236,7 +240,7 @@ run_cli gates propose --file "$D/p.json" --path "$D"
 claim "propose-missing-course-rejects" 65 "did not run"
 
 # self-extending: admits within budget, then degrades to held
-D=$(fresh); run_cli init demo --path "$D"; set_selfextending "$D" 1
+D=$(fresh) || exit 1; run_cli init demo --path "$D"; set_selfextending "$D" 1
 proposal_json ext-a1 brick > "$D/p.json"
 run_cli gates propose --file "$D/p.json" --path "$D"
 claim "selfextend-admits-within-budget" 0 "ADMITTED" "1 of 1"
@@ -245,7 +249,7 @@ run_cli gates propose --file "$D/p.json" --path "$D"
 claim "selfextend-exhausted-degrades-to-held" 0 "HELD" "budget"
 
 # ───────────────────────────── run ─────────────────────────────
-D=$(fresh); run_cli init demo --path "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"
 sed -e "s/mode: sealed/mode: proposing/" -e "s/gatesRequired: \[\]/gatesRequired: [tests]/" "$D/ashlar.policy.yaml" > "$D/.p" && mv "$D/.p" "$D/ashlar.policy.yaml"
 run_cli run "test request" --path "$D"
 claim "run-refuses-unverified" 65 "you cannot run what does not verify"
@@ -296,7 +300,7 @@ ls "$ASHLAR_KEY_DIR"/trusted/*.pub >/dev/null 2>&1 \
   || result "keys-rotate-retains-old-pub" FAIL "old pub not retained"
 
 # The integration: with a key present, the gate SIGNS the verdicts it records.
-D=$(fresh); run_cli init demo --path "$D"; set_proposing "$D"
+D=$(fresh) || exit 1; run_cli init demo --path "$D"; set_proposing "$D"
 proposal_json ext-signed brick > "$D/p.json"
 run_cli gates propose --file "$D/p.json" --path "$D"
 claim "propose-with-key-holds" 0 "HELD"
@@ -319,7 +323,7 @@ run_cli gates --show ext-signed --path "$D"
 claim "signed-record-survives-process-death" 0 "ADMITTED"
 
 # ── verify now CERTIFIES when a key is present, signing into the instance ledger ──
-DV=$(fresh); run_cli init cert-demo --path "$DV"
+DV=$(fresh) || exit 1; run_cli init cert-demo --path "$DV"
 run_cli verify --path "$DV"
 claim "verify-certifies-with-key" 0 "CERTIFIED" "ed25519:" "ledger #1"
 [ -f "$DV/.ashlar/ledger/000001.json" ] \
@@ -348,7 +352,7 @@ echo "$OUT" | grep -qE "Unhandled exception|System.FormatException|^   at " \
   && result "keys-corrupt-no-raw-stack-trace" FAIL "leaked a stack trace instead of a clean message" \
   || result "keys-corrupt-no-raw-stack-trace" PASS "clean message, no stack trace"
 
-DC=$(fresh); run_cli init demo --path "$DC"; set_proposing "$DC"
+DC=$(fresh) || exit 1; run_cli init demo --path "$DC"; set_proposing "$DC"
 proposal_json ext-corrupt brick > "$DC/p.json"
 run_cli gates propose --file "$DC/p.json" --path "$DC"
 claim "propose-corrupt-key-fails-clean" 1 "Corrupt operator key"
@@ -366,7 +370,7 @@ unset ASHLAR_KEY_DIR
 export ASHLAR_KEY_DIR="$WORK/pkgkeys"
 run_cli keys init >/dev/null
 
-A=$(fresh); run_cli init origin-node --path "$A"; set_proposing "$A"
+A=$(fresh) || exit 1; run_cli init origin-node --path "$A"; set_proposing "$A"
 mkdir -p "$A/.ashlar/forge/proposed"
 cat > "$A/.ashlar/forge/proposed/fpkg1.json" <<'EOF'
 {"Id":"fpkg1","TargetPath":"src/Shared.cs","NewContent":"// shared brick v1","Summary":"add brick shared.classify","CreatedAt":"2026-08-24T06:00:00Z","UpdatedAt":"2026-08-24T06:00:00Z"}
@@ -391,7 +395,7 @@ run_cli pkg show "$WORK/shared.ashpkg"
 claim "pkg-show-verifies-keyless" 0 "package verifies" "shared.classify" "ed25519:"
 
 # receiver in proposing mode: held, nothing on disk until THIS operator seats it
-B=$(fresh); run_cli init receiver-node --path "$B"; set_proposing "$B"
+B=$(fresh) || exit 1; run_cli init receiver-node --path "$B"; set_proposing "$B"
 run_cli pkg import "$WORK/shared.ashpkg" --path "$B"
 claim "pkg-import-held-under-proposing" 0 "HELD" "origin verdict"
 [ ! -f "$B/src/Shared.cs" ] \
@@ -405,7 +409,7 @@ grep -q "shared brick v1" "$B/src/Shared.cs" 2>/dev/null \
   || result "pkg-received-content-matches" FAIL "content mismatch or missing"
 
 # a sealed receiver rejects it and nothing ever lands
-C=$(fresh); run_cli init sealed-node --path "$C"
+C=$(fresh) || exit 1; run_cli init sealed-node --path "$C"
 run_cli pkg import "$WORK/shared.ashpkg" --path "$C"
 claim "pkg-import-sealed-rejects" 65 "REJECTED" "sealed"
 [ ! -f "$C/src/Shared.cs" ] \
@@ -433,7 +437,7 @@ claim "pkg-export-keyless-refused" 1 "requires an operator key"
 # The refusal is a verification refusal (exit 65), consistent with pkg pull and pkg show.
 SK="$WORK/strangerkeys"
 XFP=$(ASHLAR_KEY_DIR="$SK" NO_COLOR=1 dotnet run --project "$CLI_PROJ" --no-build -- keys init 2>&1 | grep -oE 'ed25519:[0-9a-f]{16}' | head -1)
-XA=$(fresh)
+XA=$(fresh) || exit 1
 ASHLAR_KEY_DIR="$SK" NO_COLOR=1 dotnet run --project "$CLI_PROJ" --no-build -- init stranger-node --path "$XA" >/dev/null
 set_proposing "$XA"
 mkdir -p "$XA/.ashlar/forge/proposed"
@@ -484,7 +488,7 @@ run_cli pkg publish "$WORK/tampered.ashpkg" --store "$MESH"
 claim "pkg-publish-refuses-forged" 65 "seal does not verify"
 
 # a proposing peer pulls the store: the package is HELD (nothing on disk until it seats it)
-PP=$(fresh); run_cli init pull-node --path "$PP"; set_proposing "$PP"
+PP=$(fresh) || exit 1; run_cli init pull-node --path "$PP"; set_proposing "$PP"
 run_cli pkg pull --from "$MESH" --path "$PP"
 claim "pkg-pull-holds-under-proposing" 0 "HELD" "faces YOUR gate" "pulled 1"
 [ ! -f "$PP/src/Shared.cs" ] \
@@ -606,7 +610,7 @@ else
 fi
 
 # a sealed peer pulls the same store: every package rejected, nothing lands, non-zero exit
-PS=$(fresh); run_cli init sealed-pull --path "$PS"
+PS=$(fresh) || exit 1; run_cli init sealed-pull --path "$PS"
 run_cli pkg pull --from "$MESH" --path "$PS"
 claim "pkg-pull-sealed-rejects-all" 65 "REJECTED" "refused/rejected 1"
 [ ! -f "$PS/src/Shared.cs" ] \
@@ -639,8 +643,8 @@ unset ASHLAR_KEY_DIR
 export ASHLAR_KEY_DIR="$WORK/pkgkeys"
 MESH2="$WORK/mesh-coprod"
 
-CA=$(fresh); run_cli init coprod-a --path "$CA"; set_proposing "$CA"
-CB=$(fresh); run_cli init coprod-b --path "$CB"; set_proposing "$CB"
+CA=$(fresh) || exit 1; run_cli init coprod-a --path "$CA"; set_proposing "$CA"
+CB=$(fresh) || exit 1; run_cli init coprod-b --path "$CB"; set_proposing "$CB"
 
 # node A: admit v1 (a parked forge write + its gate proposal), then share = seal + publish
 mkdir -p "$CA/.ashlar/forge/proposed"
@@ -712,7 +716,7 @@ grep -q "coprod v2" "$CA/src/Coprod.cs" 2>/dev/null \
 # file-on-disk check is what makes "the pass continued" a claim rather than a hope, and the counters
 # are what keep the node error from becoming a silent skip. Not in the Linux-only block: a directory is
 # a directory on every host, and a rename onto one fails on NTFS exactly as it does on ext4.
-CR=$(fresh); run_cli init coprod-r --path "$CR"; set_selfextending "$CR"
+CR=$(fresh) || exit 1; run_cli init coprod-r --path "$CR"; set_selfextending "$CR"
 mkdir -p "$CR/.ashlar/gates/ext-co1.json"
 run_cli pkg pull --from "$MESH2" --path "$CR"
 claim "pkg-pull-submit-error-cleans-row-and-continues" 1 "ERROR" "ext-co1" "ADMITTED" "pulled 2" "admitted 1" "errors 1"
@@ -771,7 +775,7 @@ unset ASHLAR_KEY_DIR
 export ASHLAR_KEY_DIR="$WORK/exportkeys"
 run_cli keys init >/dev/null
 
-DE=$(fresh); run_cli init exportdemo --path "$DE"
+DE=$(fresh) || exit 1; run_cli init exportdemo --path "$DE"
 run_cli verify --path "$DE" >/dev/null      # certify: ledger #1
 run_cli export native --path "$DE" --out "$WORK/bundles" --rid linux-x64 --no-runtime
 claim "export-native-stages-bundle" 0 "CERTIFIED bundle" "exportdemo" "linux-x64"
@@ -804,7 +808,7 @@ OUT="$DTOUT"; RC="$DTRC"
 claim "export-native-tampered-app-refused" 65 "do not match the certification" "provenance"
 
 # refuses to export a project that does not verify
-DBAD=$(fresh); run_cli init badexport --path "$DBAD"
+DBAD=$(fresh) || exit 1; run_cli init badexport --path "$DBAD"
 echo "kind: Nonsense" > "$DBAD/ashlar.yaml"
 run_cli export native --path "$DBAD" --out "$WORK/bundles" --rid linux-x64 --no-runtime
 claim "export-native-refuses-unverified" 65 "does not verify"

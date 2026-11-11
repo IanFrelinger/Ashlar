@@ -36,13 +36,13 @@ public sealed class ComposeCommand : Command
             var problem = ctx.ParseResult.GetValueForOption(problemOpt)!;
             var capabilities = ctx.ParseResult.GetValueForOption(capabilitiesOpt) ?? Array.Empty<string>();
             var supportLevels = ctx.ParseResult.GetValueForOption(supportLevelOpt) ?? Array.Empty<string>();
-            await ExecuteAsync(problem, capabilities, supportLevels);
+            await ExecuteAsync(ctx, problem, capabilities, supportLevels);
         });
     }
 
-    private static async Task ExecuteAsync(string problem, string[] capabilities, string[] supportLevels)
+    private static async Task ExecuteAsync(InvocationContext ctx, string problem, string[] capabilities, string[] supportLevels)
     {
-        var services = new ServiceCollection()
+        using var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole())
             .AddCompositionInfrastructure()
             .BuildServiceProvider();
@@ -54,7 +54,7 @@ public sealed class ComposeCommand : Command
         if (parsedSupportLevels.Count == 0)
         {
             Console.Error.WriteLine("No valid support levels selected. Choose from: stable, experimental, placeholder.");
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
             return;
         }
 
@@ -75,7 +75,7 @@ public sealed class ComposeCommand : Command
         if (available.Count == 0)
         {
             Console.Error.WriteLine("No capabilities remain after support-level filtering.");
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
             return;
         }
 
@@ -88,14 +88,14 @@ public sealed class ComposeCommand : Command
         {
             Console.Error.WriteLine("Composition validation failed:");
             Console.Error.WriteLine($"  {ex.Message}");
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
             return;
         }
 
         if (composed == null)
         {
             Console.WriteLine("No composition found for the given problem and capabilities.");
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
             return;
         }
 
@@ -109,7 +109,7 @@ public sealed class ComposeCommand : Command
             var desc = registry.GetById(id);
             Console.WriteLine($"  - {id}: {desc?.Capability ?? "?"} ({desc?.ImplementationType ?? "?"})");
         }
-        Environment.ExitCode = 0;
+        ctx.ExitCode = 0;
     }
 
     private static HashSet<ComponentSupportLevel> ParseSupportLevels(IEnumerable<string> values)

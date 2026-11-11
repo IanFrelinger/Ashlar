@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Text.Json;
 using Ashlar.BackgroundAgents.Forge;
 using Ashlar.BackgroundAgents.Objectives;
@@ -39,15 +40,12 @@ public sealed class RuntimeStudioCommand : Command
         applyTuneCmd.AddOption(specOpt);
         applyTuneCmd.AddOption(agentSetOpt);
         applyTuneCmd.AddOption(dryRunOpt);
-        applyTuneCmd.SetHandler(
-            (bool json, string spec, string agentSet, bool dryRun) =>
-            {
-                EgressCliInvocation.Exit(ExecuteApplyTune(json, spec, agentSet, dryRun));
-            },
-            jsonOpt,
-            specOpt,
-            agentSetOpt,
-            dryRunOpt);
+        applyTuneCmd.WithJsonOutput().SetHandler((InvocationContext ctx) =>
+        {
+            EgressCliInvocation.Exit(ExecuteApplyTune(CommandExecutionSupport.WantsJson(ctx.ParseResult),
+                ctx.ParseResult.GetValueForOption(specOpt)!, ctx.ParseResult.GetValueForOption(agentSetOpt)!,
+                ctx.ParseResult.GetValueForOption(dryRunOpt)));
+        });
 
         var withMetricsOpt = new Option<bool>(
             "--with-metrics",
@@ -60,22 +58,18 @@ public sealed class RuntimeStudioCommand : Command
         statusCmd.AddOption(jsonOpt);
         statusCmd.AddOption(agentSetOpt);
         statusCmd.AddOption(withMetricsOpt);
-        statusCmd.SetHandler(
-            (bool json, string agentSet, bool withMetrics) =>
-            {
-                EgressCliInvocation.Exit(ExecuteStatus(json, agentSet, withMetrics));
-            },
-            jsonOpt,
-            agentSetOpt,
-            withMetricsOpt);
+        statusCmd.WithJsonOutput().SetHandler((InvocationContext ctx) =>
+        {
+            EgressCliInvocation.Exit(ExecuteStatus(CommandExecutionSupport.WantsJson(ctx.ParseResult),
+                ctx.ParseResult.GetValueForOption(agentSetOpt)!, ctx.ParseResult.GetValueForOption(withMetricsOpt)));
+        });
 
         var metricsCmd = new Command(
             "metrics",
             "Print runtime-studio backlog metrics (aligned with GET /api/runtime-studio/metrics).");
         metricsCmd.AddOption(jsonOpt);
-        metricsCmd.SetHandler(
-            (bool json) => { EgressCliInvocation.Exit(ExecuteMetrics(json)); },
-            jsonOpt);
+        metricsCmd.WithJsonOutput().SetHandler((InvocationContext ctx) =>
+            EgressCliInvocation.Exit(ExecuteMetrics(CommandExecutionSupport.WantsJson(ctx.ParseResult))));
 
         var strictDoctorOpt = new Option<bool>(
             "--strict",
@@ -88,11 +82,11 @@ public sealed class RuntimeStudioCommand : Command
         doctorCmd.AddOption(jsonOpt);
         doctorCmd.AddOption(agentSetOpt);
         doctorCmd.AddOption(strictDoctorOpt);
-        doctorCmd.SetHandler(
-            (bool json, string agentSet, bool strict) => { EgressCliInvocation.Exit(ExecuteDoctor(json, agentSet, strict)); },
-            jsonOpt,
-            agentSetOpt,
-            strictDoctorOpt);
+        doctorCmd.WithJsonOutput().SetHandler((InvocationContext ctx) =>
+        {
+            EgressCliInvocation.Exit(ExecuteDoctor(CommandExecutionSupport.WantsJson(ctx.ParseResult),
+                ctx.ParseResult.GetValueForOption(agentSetOpt)!, ctx.ParseResult.GetValueForOption(strictDoctorOpt)));
+        });
 
         AddCommand(applyTuneCmd);
         AddCommand(statusCmd);

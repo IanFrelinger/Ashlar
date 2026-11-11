@@ -32,18 +32,18 @@ public sealed class RollbackCommand : Command
             var toSnapshot = ctx.ParseResult.GetValueForOption(toSnapshotOpt);
             var preview = ctx.ParseResult.GetValueForOption(previewOpt);
             var storePathOverride = ctx.ParseResult.GetValueForOption(storePathOpt);
-            await ExecuteAsync(adaptationId, toSnapshot, preview, storePathOverride);
+            await ExecuteAsync(ctx, adaptationId, toSnapshot, preview, storePathOverride);
         });
     }
 
-    private static async Task ExecuteAsync(string? adaptationId, string? toSnapshot, bool preview, string? storePathOverride)
+    private static async Task ExecuteAsync(InvocationContext ctx, string? adaptationId, string? toSnapshot, bool preview, string? storePathOverride)
     {
         var repoRoot = RepoPathResolver.FindRepoRoot();
         var storePath = !string.IsNullOrWhiteSpace(storePathOverride)
             ? Path.Combine(Path.GetFullPath(storePathOverride), "ashlar-patterns.db")
             : Path.Combine(RepoPathResolver.ResolveStateDirectory(repoRoot), "ashlar-patterns.db");
 
-        var services = new ServiceCollection()
+        using var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning))
             .AddAdaptationInfrastructure(storePath)
             .BuildServiceProvider();
@@ -59,14 +59,14 @@ public sealed class RollbackCommand : Command
             }
             await rollbackManager.RollbackToSnapshotAsync(toSnapshot).ConfigureAwait(false);
             Console.WriteLine($"Restored to snapshot {toSnapshot}");
-            Environment.ExitCode = 0;
+            ctx.ExitCode = 0;
             return;
         }
 
         if (string.IsNullOrWhiteSpace(adaptationId))
         {
             Console.Error.WriteLine("Specify adaptation-id or --to-snapshot <snapshotId>");
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
             return;
         }
 
@@ -80,7 +80,7 @@ public sealed class RollbackCommand : Command
                 foreach (var c in impact.AdditionalComponentsAffected)
                     Console.WriteLine($"    - {c}");
             }
-            Environment.ExitCode = 0;
+            ctx.ExitCode = 0;
             return;
         }
 
@@ -88,12 +88,12 @@ public sealed class RollbackCommand : Command
         {
             await rollbackManager.RollbackAsync(adaptationId).ConfigureAwait(false);
             Console.WriteLine($"Rolled back adaptation {adaptationId}");
-            Environment.ExitCode = 0;
+            ctx.ExitCode = 0;
         }
         catch (InvalidOperationException ex)
         {
             Console.Error.WriteLine(ex.Message);
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
         }
     }
 }

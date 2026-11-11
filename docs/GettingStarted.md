@@ -107,6 +107,21 @@ dotnet run --project application/src/Ashlar.CLI -- doctor --json
 
 You should see commands including `analyze`, `validate`, `pipeline`, `trust`, `test`, `orchestrate`, `agent`, `chat`, `runtime`, `workflow`, `mesh`, `config`, `doctor`, `dogfood`, `escalate`, `metrics`, and more.
 
+### Machine-readable command output
+
+The global `--format-json` flag requests JSON from commands that implement it, with host logs on
+stderr. Commands without that rendering refuse with exit 1, empty stdout and an explanation on
+stderr **before doing any work**. Their help descriptions identify this limitation. `--help` remains
+human-readable even when `--format-json` is also present; parser errors are usage errors, not JSON
+results. Explicit boolean values (`--format-json=true`, `--format-json:false`) and response files
+follow the same parser semantics as other options.
+
+Existing JSON renderings retain their schemas. Examples include `doctor`, `certify brick`,
+`pipeline`, `docker`, and `test portable --list`. `test portable --scope all`, `dogfood all`, and
+`background-agent daemon` refuse the global flag because their combined/lifecycle output is not one
+JSON document. Choose a single portable scope or dogfood block instead. Commands with only a local
+`--json` option still support that option, but do not automatically support the global spelling.
+
 ## 2b) Try the copilot task flow (optional)
 
 Submit a coding task and receive output with an audit trail:

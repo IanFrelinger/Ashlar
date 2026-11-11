@@ -26,13 +26,13 @@ public sealed class AnalyzeBricksCommand : Command
         {
             var path = ctx.ParseResult.GetValueForOption(pathOpt);
             var recursive = ctx.ParseResult.GetValueForOption(recursiveOpt);
-            await ExecuteAsync(path, recursive);
+            await ExecuteAsync(ctx, path, recursive);
         });
     }
 
-    private static async Task ExecuteAsync(string? path, bool recursive = false)
+    private static async Task ExecuteAsync(InvocationContext ctx, string? path, bool recursive = false)
     {
-        var services = new ServiceCollection()
+        using var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole())
             .AddCodeAnalyzers()
             .BuildServiceProvider();
@@ -50,7 +50,7 @@ public sealed class AnalyzeBricksCommand : Command
         if (result.Passed)
         {
             Console.WriteLine("No violations found.");
-            Environment.ExitCode = 0;
+            ctx.ExitCode = 0;
             return;
         }
 
@@ -62,6 +62,6 @@ public sealed class AnalyzeBricksCommand : Command
             Console.WriteLine($"    {v.Message}");
         }
 
-        Environment.ExitCode = 1;
+        ctx.ExitCode = 1;
     }
 }

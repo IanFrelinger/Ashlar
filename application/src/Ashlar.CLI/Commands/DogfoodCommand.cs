@@ -23,9 +23,9 @@ public sealed class DogfoodCommand : Command
 
         var block1Cmd = new Command("block1", "Block 1 dogfood gate: verify observation pipeline watches Ashlar's own dev workflow and stores patterns");
         block1Cmd.AddOption(jsonOpt);
-        block1Cmd.SetHandler(async (InvocationContext ctx) =>
+        block1Cmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
-            var json = ctx.ParseResult.GetValueForOption(jsonOpt);
+            var json = CommandExecutionSupport.WantsJson(ctx.ParseResult);
             EgressCliInvocation.Exit(await DogfoodBlock1Command.ExecuteAsync(json));
         });
         AddCommand(block1Cmd);
@@ -47,7 +47,7 @@ public sealed class DogfoodCommand : Command
         allCmd.AddOption(verboseOpt);
         allCmd.SetHandler(async (InvocationContext ctx) =>
         {
-            var json = ctx.ParseResult.GetValueForOption(jsonOpt);
+            var json = CommandExecutionSupport.WantsJson(ctx.ParseResult);
             var verbose = ctx.ParseResult.GetValueForOption(verboseOpt);
             EgressCliInvocation.Exit(await DogfoodAllCommand.ExecuteAsync(json, verbose));
         });

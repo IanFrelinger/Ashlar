@@ -242,3 +242,7 @@ Every workflow file was classified from `gh run list --workflow <file> --limit 1
 **Not folded:** the CLI image is built by `container-image-gate` (local + multi-arch cache-only), `distribution-matrix-gate` (build + `--help` smoke), `full-platform-readiness-gate` and `reusable-container-publish` (push to GHCR). Each build differs in platform, output and smoke, and three of the four are on the protected list, so a shared reusable job is deferred to its own PR.
 
 **Fork safety (L10):** `container-image-publish.yml`, `release.yml`, `release-nuget.yml` and `release-staging-on-label.yml` now carry `if: github.repository_owner == 'IanFrelinger'`; every secret and repository variable a workflow reads, and what a fork gets without it, is in [`CiSecrets.md`](CiSecrets.md).
+
+### Command output contract regressions
+
+The path-filtered `command-output-regression.yml` runs invocation exit-code, JSON-output, root-registration and egress exit-code regressions plus two signed-admission pipeline process tests in the devtest container against the exact PR head. It pins executed counts and uploads baseline logs plus assertion-level mutation and clean-restore evidence. This is an advisory behavioral lane; the existing required checks remain unchanged.

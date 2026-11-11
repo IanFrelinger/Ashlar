@@ -31,18 +31,18 @@ public sealed class IngestFailuresCommand : Command
         {
             var trxPath = ctx.ParseResult.GetValueForOption(trxPathOpt)!;
             var storePathOverride = ctx.ParseResult.GetValueForOption(storePathOpt);
-            await ExecuteAsync(trxPath, storePathOverride);
+            await ExecuteAsync(ctx, trxPath, storePathOverride);
         });
     }
 
-    private static async Task ExecuteAsync(string trxPath, string? storePathOverride)
+    private static async Task ExecuteAsync(InvocationContext ctx, string trxPath, string? storePathOverride)
     {
         var repoRoot = RepoPathResolver.FindRepoRoot();
         var storePath = !string.IsNullOrWhiteSpace(storePathOverride)
             ? Path.Combine(Path.GetFullPath(storePathOverride), "ashlar-patterns.db")
             : Path.Combine(RepoPathResolver.ResolveStateDirectory(repoRoot), "ashlar-patterns.db");
 
-        var services = new ServiceCollection()
+        using var services = new ServiceCollection()
             .AddLogging(b => b.AddConsole())
             .AddAdaptationInfrastructure(storePath)
             .AddSelfContextInfrastructure(storePath)
@@ -57,7 +57,7 @@ public sealed class IngestFailuresCommand : Command
         if (trxFiles.Count == 0)
         {
             Console.WriteLine($"No TRX files found at: {trxPath}");
-            Environment.ExitCode = 1;
+            ctx.ExitCode = 1;
             return;
         }
 
@@ -73,7 +73,7 @@ public sealed class IngestFailuresCommand : Command
         }
 
         Console.WriteLine($"Total: {totalIngested} failure(s) ingested into store.");
-        Environment.ExitCode = 0;
+        ctx.ExitCode = 0;
     }
 
     private static List<FileInfo> ResolveTrxFiles(string path)

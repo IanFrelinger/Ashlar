@@ -1,0 +1,318 @@
+{
+  "schema": 1,
+  "note": "Exact invocation-status and JSON-output regressions. Run committed candidate through scripts/test-in-container.sh and scripts/run-spec007-mutation-batch.py. This manifest alone is not proof of a kill.",
+  "mutations": [
+    {
+      "id": "mesh-tier-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/MeshCommand.cs",
+      "old": "Console.Error.WriteLine(\"Invalid --set-trust-tier value. Use <peerId>:<trusted|untrusted|unknown>.\");\n                ctx.ExitCode = 1;",
+      "new": "Console.Error.WriteLine(\"Invalid --set-trust-tier value. Use <peerId>:<trusted|untrusted|unknown>.\");\n                Environment.ExitCode = 1;",
+      "filter": "FullyQualifiedName~Mesh_trust_change_refusals_return_failure",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Mesh_trust_change_refusals_return_failure"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "rollback-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/RollbackCommand.cs",
+      "old": "Console.Error.WriteLine(ex.Message);\n            ctx.ExitCode = 1;",
+      "new": "Console.Error.WriteLine(ex.Message);\n            Environment.ExitCode = 1;",
+      "filter": "FullyQualifiedName~Rollback_missing_snapshot_returns_failure",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Rollback_missing_snapshot_returns_failure"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "adapt-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/AdaptCommand.cs",
+      "old": "await executionTracer.TraceAsync(\"adapt.end\", null, null, \"brick_not_found\").ConfigureAwait(false);\n            ctx.ExitCode = 1;",
+      "new": "await executionTracer.TraceAsync(\"adapt.end\", null, null, \"brick_not_found\").ConfigureAwait(false);\n            Environment.ExitCode = 1;",
+      "filter": "FullyQualifiedName~Adapt_missing_brick_returns_failure",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Adapt_missing_brick_returns_failure"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "compose-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/ComposeCommand.cs",
+      "old": "Console.Error.WriteLine(\"No valid support levels selected. Choose from: stable, experimental, placeholder.\");\n            ctx.ExitCode = 1;",
+      "new": "Console.Error.WriteLine(\"No valid support levels selected. Choose from: stable, experimental, placeholder.\");\n            Environment.ExitCode = 1;",
+      "filter": "FullyQualifiedName~Compose_invalid_selection_returns_failure",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Compose_invalid_selection_returns_failure"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "ingest-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/IngestFailuresCommand.cs",
+      "old": "Console.WriteLine($\"No TRX files found at: {trxPath}\");\n            ctx.ExitCode = 1;",
+      "new": "Console.WriteLine($\"No TRX files found at: {trxPath}\");\n            Environment.ExitCode = 1;",
+      "filter": "FullyQualifiedName~Ingest_without_files_returns_failure",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Ingest_without_files_returns_failure"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "observe-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/ObserveCommand.cs",
+      "old": "await executionTracer.TraceAsync(\"observe.end\", null, repoRoot, \"no_watch_paths\").ConfigureAwait(false);\n            ctx.ExitCode = 1;",
+      "new": "await executionTracer.TraceAsync(\"observe.end\", null, repoRoot, \"no_watch_paths\").ConfigureAwait(false);\n            Environment.ExitCode = 1;",
+      "filter": "FullyQualifiedName~Observe_without_watch_paths_returns_failure",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Observe_without_watch_paths_returns_failure"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "analyzer-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/AnalyzeBricksCommand.cs",
+      "old": "ctx.ExitCode = 1;",
+      "new": "Environment.ExitCode = 1;",
+      "filter": "FullyQualifiedName~Analyzer_and_improve_return_analysis_status",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Analyzer_and_improve_return_analysis_status"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "improve-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/ImproveCommand.cs",
+      "old": "? \"(dry-run: skip source fixes)\"\n                : \"No violations in known bricks. Add brick mapping in ViolationToBrickMapper to enable brick adaptation.\");\n            ctx.ExitCode = 1;",
+      "new": "? \"(dry-run: skip source fixes)\"\n                : \"No violations in known bricks. Add brick mapping in ViolationToBrickMapper to enable brick adaptation.\");\n            Environment.ExitCode = 1;",
+      "filter": "FullyQualifiedName~Analyzer_and_improve_return_analysis_status",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Analyzer_and_improve_return_analysis_status"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "docker-result-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/DockerCommand.cs",
+      "old": "ctx.ExitCode = result.ExitCode;",
+      "new": "Environment.ExitCode = result.ExitCode;",
+      "filter": "FullyQualifiedName~Docker_run_propagates_container_status",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Docker_run_propagates_container_status"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "docker-failure-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/DockerCommand.cs",
+      "old": "ctx.ExitCode = result.ExitCode != 0 ? result.ExitCode : 1;",
+      "new": "Environment.ExitCode = result.ExitCode != 0 ? result.ExitCode : 1;",
+      "filter": "FullyQualifiedName~Docker_run_propagates_container_status",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Docker_run_propagates_container_status"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "docker-build-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/DockerCommand.cs",
+      "old": "console.WriteError($\"\u274c Build failed: {result.ErrorMessage}\");\n                }\n                ctx.ExitCode = 1;",
+      "new": "console.WriteError($\"\u274c Build failed: {result.ErrorMessage}\");\n                }\n                Environment.ExitCode = 1;",
+      "filter": "FullyQualifiedName~Docker_build_returns_build_status",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Docker_build_returns_build_status"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "chat-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/ChatCommand.cs",
+      "old": "ctx.ExitCode = exitCode;",
+      "new": "Environment.ExitCode = exitCode;",
+      "filter": "FullyQualifiedName~Chat_exit_does_not_overwrite_process_global_status",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Chat_exit_does_not_overwrite_process_global_status"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "parallel-exit-context",
+      "file": "application/src/Ashlar.CLI/Commands/TestParallelCommand.cs",
+      "old": "ctx.ExitCode = aggregated.AllPassed ? 0 : 1;",
+      "new": "Environment.ExitCode = aggregated.AllPassed ? 0 : 1;",
+      "filter": "FullyQualifiedName~Parallel_result_does_not_overwrite_process_global_status",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Parallel_result_does_not_overwrite_process_global_status"
+      ],
+      "group": "exit-codes"
+    },
+    {
+      "id": "json-parsed-boolean",
+      "file": "application/src/Ashlar.CLI/Commands/CommandExecutionSupport.cs",
+      "old": "if (parseResult.GetValueForOption(option)) return true;",
+      "new": "if (parseResult.Tokens.Any(token => token.Value == \"--format-json\")) return true;",
+      "filter": "FullyQualifiedName~Parsed_boolean_controls_logging_before_handler",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Parsed_boolean_controls_logging_before_handler"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-response-file",
+      "file": "application/src/Ashlar.CLI/Commands/CommandExecutionSupport.cs",
+      "old": "if (parseResult.GetValueForOption(option)) return true;",
+      "new": "if (parseResult.Tokens.Any(token => token.Value == \"--format-json\")) return true;",
+      "filter": "FullyQualifiedName~Response_file_controls_logging_before_handler",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Response_file_controls_logging_before_handler"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-default-deny",
+      "file": "application/src/Ashlar.CLI/Commands/CommandExecutionSupport.cs",
+      "old": "if (!Program.JsonOutputMode || SupportsJson(command)) return false;",
+      "new": "if (!Program.JsonOutputMode || SupportsJson(command) || command.Name == \"probe\") return false;",
+      "filter": "FullyQualifiedName~Unmarked_handler_refuses_without_running",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Unmarked_handler_refuses_without_running"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-parent-marker-propagation",
+      "file": "application/src/Ashlar.CLI/Commands/CommandExecutionSupport.cs",
+      "old": "        foreach (var child in command.Subcommands)\n            ApplyJsonOutputContract(child);",
+      "new": "        foreach (var child in command.Subcommands)\n        {\n            if (SupportsJson(command)) child.WithJsonOutput();\n            ApplyJsonOutputContract(child);\n        }",
+      "filter": "FullyQualifiedName~Json_on_parent_does_not_opt_in_child_and_help_still_works",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Json_on_parent_does_not_opt_in_child_and_help_still_works"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-portable-alias",
+      "file": "application/src/Ashlar.CLI/Commands/TestPortableCommand.cs",
+      "old": "o.HasAlias(\"--format-json\")",
+      "new": "o.Name == \"--format-json\"",
+      "filter": "FullyQualifiedName~Portable_list_emits_one_document_and_all_refuses_before_work",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Portable_list_emits_one_document_and_all_refuses_before_work"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-multi-env-alias",
+      "file": "application/src/Ashlar.CLI/Commands/TestMultiEnvCommand.cs",
+      "old": "o.HasAlias(\"--format-json\")",
+      "new": "o.Name == \"--format-json\"",
+      "filter": "FullyQualifiedName~Portable_list_emits_one_document_and_all_refuses_before_work",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Portable_list_emits_one_document_and_all_refuses_before_work"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-docker-alias",
+      "file": "application/src/Ashlar.CLI/Commands/DockerCommand.cs",
+      "old": "            var buildArgs = ctx.ParseResult.GetValueForOption(buildArgOpt) ?? Array.Empty<string>();\n            var rootCommand = ctx.ParseResult.RootCommandResult.Command;\n            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias(\"--format-json\"));",
+      "new": "            var buildArgs = ctx.ParseResult.GetValueForOption(buildArgOpt) ?? Array.Empty<string>();\n            var rootCommand = ctx.ParseResult.RootCommandResult.Command;\n            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == \"--format-json\");",
+      "filter": "FullyQualifiedName~Docker_json_alias_forms_emit_one_document_and_actual_logs_on_stderr",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Docker_json_alias_forms_emit_one_document_and_actual_logs_on_stderr"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-docker-log-destination",
+      "file": "application/src/Ashlar.CLI/Commands/DockerCommand.cs",
+      "old": "if (json) o.LogToStandardErrorThreshold = LogLevel.Trace;",
+      "new": "if (json) o.LogToStandardErrorThreshold = LogLevel.None;",
+      "filter": "FullyQualifiedName~Docker_json_alias_forms_emit_one_document_and_actual_logs_on_stderr",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Docker_json_alias_forms_emit_one_document_and_actual_logs_on_stderr"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-portable-aggregate-refusal",
+      "file": "application/src/Ashlar.CLI/Commands/TestPortableCommand.cs",
+      "old": "            Console.Error.WriteLine(\"test portable --scope all has no single JSON rendering; choose smoke, persistence, or trust.\");\n            return 1;",
+      "new": "            Console.Error.WriteLine(\"test portable --scope all has no single JSON rendering; choose smoke, persistence, or trust.\");\n            return 0;",
+      "filter": "FullyQualifiedName~Portable_list_emits_one_document_and_all_refuses_before_work",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Portable_list_emits_one_document_and_all_refuses_before_work"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "json-existing-renderer-marker",
+      "file": "application/src/Ashlar.CLI/Program.CommandRegistration.cs",
+      "old": "        analyzeCmd.WithJsonOutput().SetHandler(",
+      "new": "        analyzeCmd.SetHandler(",
+      "filter": "FullyQualifiedName~Existing_json_renderers_remain_opted_in",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Existing_json_renderers_remain_opted_in"
+      ],
+      "group": "json-output"
+    },
+    {
+      "id": "mesh-usage-exit",
+      "file": "application/src/Ashlar.CLI/Commands/MeshCommand.cs",
+      "old": "Console.Error.WriteLine(\"Choose a mesh subcommand or use --discover, --advertise, --capability, or --set-trust-tier.\");\n                ctx.ExitCode = 1;",
+      "new": "Console.Error.WriteLine(\"Choose a mesh subcommand or use --discover, --advertise, --capability, or --set-trust-tier.\");\n                ctx.ExitCode = 0;",
+      "filter": "FullyQualifiedName~Mesh_without_operation_is_usage_error",
+      "framework": "net10.0",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "expected_failures": [
+        "Mesh_without_operation_is_usage_error"
+      ],
+      "group": "json-output"
+    }
+  ]
+}

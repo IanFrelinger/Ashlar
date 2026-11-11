@@ -28,8 +28,10 @@ public sealed class FullPipelineE2ETests : E2ETestBase
         var (analyzeCode, _, _) = await RunCliAsync($"analyze bricks --path \"{analyzePath}\"");
         Assert.True(analyzeCode == 0 || analyzeCode == 1);
 
-        var (adaptCode, _, _) = await RunCliAsync($"adapt --dry-run --store-path \"{TempDir}\"");
+        AdmittedBrickFixture.SeedObservationContext(TempDir);
+        var (adaptCode, adaptStdout, _) = await RunCliAsync($"adapt --dry-run --store-path \"{TempDir}\"");
         Assert.Equal(0, adaptCode);
+        Assert.Contains("Decomposed", adaptStdout, StringComparison.OrdinalIgnoreCase);
 
         var (improveCode, _, _) = await RunCliAsync("improve --dry-run");
         Assert.True(improveCode == 0 || improveCode == 1);

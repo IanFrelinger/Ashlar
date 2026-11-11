@@ -26,13 +26,13 @@ public class TestPortableCommand
             scopeOpt
         };
 
-        cmd.SetHandler(async (InvocationContext ctx) =>
+        cmd.WithJsonOutput().SetHandler(async (InvocationContext ctx) =>
         {
             var list = ctx.ParseResult.GetValueForOption(listOpt);
             var scope = ctx.ParseResult.GetValueForOption(scopeOpt) ?? "persistence";
             var rootCommand = ctx.ParseResult.RootCommandResult.Command;
-            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--format-json");
-            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.Name == "--verbose");
+            var jsonOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--format-json"));
+            var verboseOpt = rootCommand.Options.OfType<Option<bool>>().FirstOrDefault(o => o.HasAlias("--verbose"));
             var json = jsonOpt != null && ctx.ParseResult.GetValueForOption(jsonOpt);
             var verbose = verboseOpt != null && ctx.ParseResult.GetValueForOption(verboseOpt);
 
@@ -53,6 +53,12 @@ public class TestPortableCommand
         {
             ListTargets(host, console, json);
             return 0;
+        }
+
+        if (json && scope.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine("test portable --scope all has no single JSON rendering; choose smoke, persistence, or trust.");
+            return 1;
         }
 
         if (!json && console != null)
@@ -188,7 +194,7 @@ public class TestPortableCommand
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"run --project \"{Path.Combine(root, "src", "Ashlar.CLI", "Ashlar.CLI.csproj")}\" -- test multi-env --suite persistence --all",
+            Arguments = $"run --project \"{Path.Combine(root, "application", "src", "Ashlar.CLI", "Ashlar.CLI.csproj")}\" -- test multi-env --suite persistence --all" + (json ? " --format-json" : ""),
             WorkingDirectory = root,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -198,11 +204,32 @@ public class TestPortableCommand
 
         using var process = Process.Start(psi);
         if (process == null) return 1;
-        var stdout = await process.StandardOutput.ReadToEndAsync();
-        var stderr = await process.StandardError.ReadToEndAsync();
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
-        if (!json && !string.IsNullOrEmpty(stdout)) console?.WriteLine(stdout);
-        if (process.ExitCode != 0 && !string.IsNullOrEmpty(stderr)) console?.WriteError(stderr);
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
+        if (json)
+        {
+            // Preserve the child's document without wrapping it or mixing diagnostics into stdout.
+            if (!string.IsNullOrEmpty(stderr)) Console.Error.Write(stderr);
+            try
+            {
+                using var document = JsonDocument.Parse(stdout);
+                Console.Out.Write(stdout);
+            }
+            catch (JsonException)
+            {
+                Console.Error.WriteLine("Portable persistence did not receive a single JSON document from multi-env.");
+                if (!string.IsNullOrEmpty(stdout)) Console.Error.Write(stdout);
+                return process.ExitCode != 0 ? process.ExitCode : 1;
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(stdout)) console?.WriteLine(stdout);
+            if (process.ExitCode != 0 && !string.IsNullOrEmpty(stderr)) console?.WriteError(stderr);
+        }
         return process.ExitCode;
     }
 
