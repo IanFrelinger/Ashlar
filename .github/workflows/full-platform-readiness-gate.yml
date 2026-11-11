@@ -82,6 +82,8 @@ on:
       - "scripts/ci/check-readiness-container.sh"
       - "scripts/ci/install-readiness-packages.sh"
       - "scripts/ci/run-reported-gates.py"
+      - "scripts/ci/test-readiness-smoke-receipts.py"
+      - "scripts/ci/zero-test-guard.sh"
       - "scripts/ci/test-readiness-container-setup.py"
       - "scripts/ci/test-commercial-receipts.py"
       - "src/Ashlar.Tests.Orchestration/**"
@@ -249,6 +251,8 @@ jobs:
             "scripts/ci/check-readiness-container.sh"
             "scripts/ci/install-readiness-packages.sh"
             "scripts/ci/run-reported-gates.py"
+            "scripts/ci/test-readiness-smoke-receipts.py"
+            "scripts/ci/zero-test-guard.sh"
             "scripts/ci/test-readiness-container-setup.py"
             "scripts/ci/test-commercial-receipts.py"
             "src/Ashlar.Tests.Orchestration/**"
@@ -501,22 +505,47 @@ jobs:
           rm -f src/Ashlar.Tests.Infrastructure/scripts/obj/project.assets.json
           dotnet build src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj -v minimal
           dotnet build src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj -v minimal
+          # Pin each framework and retain its own receipt: a multi-target LogFileName overwrites.
           dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 450s \
             --blame-hang-dump-type none \
             --filter "(FullyQualifiedName~BaseFrameworkSmokeTests|FullyQualifiedName~RuntimeStudioBlackBoxSmokeTests)" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=smoke-${{ matrix.label }}.trx" \
+            --logger "trx;LogFileName=smoke-net8.0-${{ matrix.label }}.trx" \
             --results-directory "${{ runner.temp }}/test-results"
+          bash scripts/ci/zero-test-guard.sh "${{ runner.temp }}/test-results/smoke-net8.0-${{ matrix.label }}.trx"
+          dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 450s \
+            --blame-hang-dump-type none \
+            --filter "(FullyQualifiedName~BaseFrameworkSmokeTests|FullyQualifiedName~RuntimeStudioBlackBoxSmokeTests)" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=smoke-net10.0-${{ matrix.label }}.trx" \
+            --results-directory "${{ runner.temp }}/test-results"
+          bash scripts/ci/zero-test-guard.sh "${{ runner.temp }}/test-results/smoke-net10.0-${{ matrix.label }}.trx"
           dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj \
+            -f net8.0 \
             --no-build \
             --blame-hang-timeout 60s \
             --blame-hang-dump-type none \
             --filter "FullyQualifiedName~RuntimeStudioWhiteBoxSmokeTests" \
             --logger "console;verbosity=minimal" \
-            --logger "trx;LogFileName=smoke-whitebox-${{ matrix.label }}.trx" \
+            --logger "trx;LogFileName=smoke-whitebox-net8.0-${{ matrix.label }}.trx" \
             --results-directory "${{ runner.temp }}/test-results"
+          bash scripts/ci/zero-test-guard.sh "${{ runner.temp }}/test-results/smoke-whitebox-net8.0-${{ matrix.label }}.trx"
+          dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj \
+            -f net10.0 \
+            --no-build \
+            --blame-hang-timeout 60s \
+            --blame-hang-dump-type none \
+            --filter "FullyQualifiedName~RuntimeStudioWhiteBoxSmokeTests" \
+            --logger "console;verbosity=minimal" \
+            --logger "trx;LogFileName=smoke-whitebox-net10.0-${{ matrix.label }}.trx" \
+            --results-directory "${{ runner.temp }}/test-results"
+          bash scripts/ci/zero-test-guard.sh "${{ runner.temp }}/test-results/smoke-whitebox-net10.0-${{ matrix.label }}.trx"
 
       # ── Artifacts ───────────────────────────────────────────────────
       - name: Upload readiness artifacts
@@ -634,8 +663,9 @@ jobs:
                 --blame-hang-dump-type none \
                 --filter "(FullyQualifiedName~BaseFrameworkSmokeTests|FullyQualifiedName~RuntimeStudioBlackBoxSmokeTests)" \
                 --logger "console;verbosity=minimal" \
-                --logger "trx;LogFileName=smoke.trx" \
+                --logger "trx;LogFileName=smoke-net10.0.trx" \
                 --results-directory /results/test-results
+              bash scripts/ci/zero-test-guard.sh /results/test-results/smoke-net10.0.trx
               dotnet test src/Ashlar.Tests.BackgroundAgents/Ashlar.Tests.BackgroundAgents.csproj \
                 -f net10.0 \
                 --no-build \
@@ -643,8 +673,9 @@ jobs:
                 --blame-hang-dump-type none \
                 --filter "FullyQualifiedName~RuntimeStudioWhiteBoxSmokeTests" \
                 --logger "console;verbosity=minimal" \
-                --logger "trx;LogFileName=smoke-whitebox.trx" \
+                --logger "trx;LogFileName=smoke-whitebox-net10.0.trx" \
                 --results-directory /results/test-results
+              bash scripts/ci/zero-test-guard.sh /results/test-results/smoke-whitebox-net10.0.trx
 
               echo "=== All stages completed ==="
             '
