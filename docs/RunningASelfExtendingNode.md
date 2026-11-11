@@ -44,6 +44,16 @@ ashlar policy set self_extend sealed                # disarm the posture
 arm a gate-less policy and writes nothing. Arming `self-extending` prints a loud confirmation, and
 warns if the budget is `0` (armed but nothing will auto-admit).
 
+Every mode requires a valid `selfExtend.budget`: `extensions` must be nonnegative, and `window`
+must be a positive ASCII integer followed by `m`, `h`, or `d` (no signs or whitespace). The
+amount is bounded by Int32 and the resulting duration by TimeSpan: at most `2147483647m`,
+`256204778h`, or `10675199d`, with at most ten digits. Invalid, missing, null or structured
+windows are rejected when loading the policy, including by `policy show`, `policy set`, and
+`verify`; a rejected `policy set` leaves the file untouched. A duration reaching before year 1
+counts all recorded admissions instead of underflowing the clock. Programmatic callers that bypass
+the loader are still held on an invalid budget; failed gates or an out-of-envelope kind remain
+rejected rather than becoming eligible for a human admission.
+
 ## The gate every proposal faces
 
 Whatever the posture, an admitted change has passed the admission gate on **executed evidence**, not

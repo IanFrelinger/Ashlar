@@ -212,6 +212,72 @@ public sealed class ManifestContractTests
         reason.Should().Contain("REJECTED");
     }
 
+    public static IEnumerable<object[]> InvalidBudgets()
+    {
+        foreach (var mode in SelfExtendMode.All)
+        {
+            foreach (var budget in new[]
+            {
+                "budget: { extensions: -1, window: 24h }",
+                "budget: { extensions: -2147483648, window: 24h }",
+                "budget: { extensions: 1, window: abc }",
+                "budget: { extensions: 1, window: '' }",
+                "budget: { extensions: 1, window: null }",
+                "budget: { extensions: 1, window: -1h }",
+                "budget: { extensions: 1, window: 0m }",
+                "budget: { extensions: 1, window: 2147483647d }",
+                "budget: { extensions: 1, window: 256204779h }",
+                "budget: { extensions: 1, window: 99999999999999999999999m }",
+                "budget: { extensions: 1, window: '+1h' }",
+                "budget: { extensions: 1, window: ' 1h' }",
+                "budget: { extensions: 1 }",
+                "budget: { extensions: 1, window: [24h] }",
+                "budget: { extensions: 1, window: { hours: 24 } }",
+                "budget: null",
+                "budget: []",
+                "",
+            })
+            {
+                yield return [mode, budget];
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidBudgets))]
+    public void Invalid_budgets_are_rejected_in_every_mode(string mode, string budget)
+    {
+        var yaml = ValidPolicy.Replace("mode: proposing", "mode: " + mode)
+            .Replace("budget:\n    extensions: 3\n    window: 24h", budget);
+        PolicyLoader.TryLoad(yaml, out var policy, out var reason).Should().BeFalse();
+        policy.Should().BeNull();
+        reason.Should().StartWith("REJECTED:");
+    }
+
+    [Theory]
+    [InlineData(SelfExtendMode.Sealed)]
+    [InlineData(SelfExtendMode.Proposing)]
+    [InlineData(SelfExtendMode.SelfExtending)]
+    public void Zero_budget_is_valid_and_keeps_automatic_admission_disabled(string mode)
+    {
+        var yaml = ValidPolicy.Replace("mode: proposing", "mode: " + mode)
+            .Replace("extensions: 3", "extensions: 0");
+        PolicyLoader.TryLoad(yaml, out var policy, out var reason).Should().BeTrue(reason);
+        policy!.SelfExtend.Budget.Extensions.Should().Be(0);
+        policy.SelfExtend.Budget.Window.Should().Be("24h");
+    }
+
+    [Fact]
+    public void Null_self_extend_is_rejected_without_an_exception()
+    {
+        var yaml = ValidPolicy.Replace(
+            "selfExtend:\n  mode: proposing\n  budget:\n    extensions: 3\n    window: 24h\n  mayAdd: [brick]\n  gatesRequired: [sandbox, tests, security, provenance]",
+            "selfExtend: null");
+        PolicyLoader.TryLoad(yaml, out var policy, out var reason).Should().BeFalse();
+        policy.Should().BeNull();
+        reason.Should().Contain("selfExtend");
+    }
+
     // ── mutation-run harvest: gaps the Stryker survivors correctly exposed ──
 
     [Fact]

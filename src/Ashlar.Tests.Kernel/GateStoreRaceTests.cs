@@ -164,8 +164,8 @@ public sealed class GateStoreRaceTests : IDisposable
     [Fact]
     public async Task Propose_with_an_unparseable_budget_window_fails_closed_to_held()
     {
-        // The loader does not validate budget.window; the transaction must. An unparseable
-        // window is never an unlimited allowance — it degrades to a human decision.
+        // Programmatic callers can bypass loader validation. An unparseable window
+        // is never an unlimited allowance — it degrades to a human decision.
         var policy = Policy(SelfExtendMode.SelfExtending, budget: 5) with
         {
             SelfExtend = Policy(SelfExtendMode.SelfExtending, 5).SelfExtend with

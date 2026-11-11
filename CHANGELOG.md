@@ -17,6 +17,12 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed
+
+- Reject invalid self-extension budget windows and negative extension limits when loading policies,
+  including CLI show/set/verify. Duration parsing is bounded and nonthrowing; admission clock
+  arithmetic clamps before year 1, and programmatic invalid budgets cannot bypass gate rejection (#477).
+
 ### Fixed — readiness container setup
 
 - Verify actual Ubuntu/Debian/Alpine image identity and SDK/runtime families rather than trusting lane names. The Debian 12 image installs exact SDK 10 over the official Debian SDK 8 base because Microsoft has no Debian SDK 10 image.

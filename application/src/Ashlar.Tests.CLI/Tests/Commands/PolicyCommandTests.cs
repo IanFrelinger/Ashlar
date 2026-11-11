@@ -15,15 +15,19 @@ namespace Ashlar.Tests.CLI.Tests.Commands;
 public sealed class PolicyCommandTests : IDisposable
 {
     private readonly string _dir;
+    private readonly string? _previousKeyDir;
 
     public PolicyCommandTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "ashlar-policy-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
+        _previousKeyDir = Environment.GetEnvironmentVariable("ASHLAR_KEY_DIR");
+        Environment.SetEnvironmentVariable("ASHLAR_KEY_DIR", Path.Combine(_dir, "no-ambient-keys"));
     }
 
     public void Dispose()
     {
+        Environment.SetEnvironmentVariable("ASHLAR_KEY_DIR", _previousKeyDir);
         try { Directory.Delete(_dir, recursive: true); } catch { /* best effort */ }
     }
 
@@ -138,6 +142,37 @@ public sealed class PolicyCommandTests : IDisposable
         rc.Should().NotBe(0);
         stderr.Should().Contain("--format-json");
         (await File.ReadAllTextAsync(path)).Should().Be(before, "a refused invocation must not edit the policy");
+    }
+
+    [Theory]
+    [InlineData("abc", 1)]
+    [InlineData("''", 1)]
+    [InlineData("null", 1)]
+    [InlineData("[24h]", 1)]
+    [InlineData("{ hours: 24 }", 1)]
+    [InlineData("2147483647d", 1)]
+    [InlineData("-1h", 1)]
+    [InlineData("24h", -1)]
+    [InlineData(null, 1)]
+    public async Task Invalid_budget_is_rejected_by_show_set_and_verify_without_writes(string? window, int extensions)
+    {
+        ProjectScaffold.TryScaffold("budget-demo", out var manifest, out _, out var reason).Should().BeTrue(reason);
+        File.WriteAllText(Path.Combine(_dir, "ashlar.yaml"), manifest);
+        var path = WritePolicy("sealed", extensions: extensions);
+        var yaml = File.ReadAllText(path).Replace("window: 24h", window is null ? "" : "window: " + window);
+        File.WriteAllText(path, yaml);
+
+        var show = await RunCliAsync("policy", "show", "--path", _dir);
+        show.rc.Should().Be(1);
+        show.stderr.Should().Contain("REJECTED:");
+        var set = await RunCliAsync("policy", "set", "self_extend", "self-extending", "--path", _dir);
+        set.rc.Should().Be(1);
+        set.stderr.Should().Contain("REJECTED:");
+        var verify = await RunCliAsync("verify", "--path", _dir);
+        verify.rc.Should().Be(65);
+        (verify.stdout + verify.stderr).Should().Contain("REJECTED:");
+        File.ReadAllText(path).Should().Be(yaml);
+        Directory.Exists(Path.Combine(_dir, ".ashlar")).Should().BeFalse("invalid policies cannot be certified or recorded");
     }
 
     [Fact]

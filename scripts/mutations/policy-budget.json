@@ -1,0 +1,174 @@
+{
+  "schema": 1,
+  "note": "Exact production mutations; baseline, intended failures, byte restoration and green reruns required.",
+  "mutations": [
+    {
+      "id": "loader-budget-check-omitted",
+      "file": "src/Ashlar.Manifest/PolicyLoader.cs",
+      "old": "if (!AdmissionGate.TryValidateBudget(parsed.SelfExtend.Budget, out var budgetReason))",
+      "new": "if (parsed.ApiVersion.Length < 0 && !AdmissionGate.TryValidateBudget(parsed.SelfExtend.Budget, out var budgetReason))",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Invalid_budgets_are_rejected_in_every_mode",
+      "expected_failures": [
+        "Invalid_budgets_are_rejected_in_every_mode"
+      ]
+    },
+    {
+      "id": "cli-loader-budget-check-omitted",
+      "file": "src/Ashlar.Manifest/PolicyLoader.cs",
+      "old": "if (!AdmissionGate.TryValidateBudget(parsed.SelfExtend.Budget, out var budgetReason))",
+      "new": "if (parsed.ApiVersion.Length < 0 && !AdmissionGate.TryValidateBudget(parsed.SelfExtend.Budget, out var budgetReason))",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Invalid_budget_is_rejected_by_show_set_and_verify_without_writes",
+      "expected_failures": [
+        "Invalid_budget_is_rejected_by_show_set_and_verify_without_writes"
+      ]
+    },
+    {
+      "id": "negative-extensions-allowed",
+      "file": "src/Ashlar.Manifest/Admission/AdmissionGate.cs",
+      "old": "budget.Extensions < 0",
+      "new": "budget.Extensions < int.MinValue",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Invalid_budgets_are_rejected_in_every_mode",
+      "expected_failures": [
+        "Invalid_budgets_are_rejected_in_every_mode"
+      ]
+    },
+    {
+      "id": "zero-extensions-refused",
+      "file": "src/Ashlar.Manifest/Admission/AdmissionGate.cs",
+      "old": "budget.Extensions < 0",
+      "new": "budget.Extensions <= 0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Zero_budget_is_valid_and_keeps_automatic_admission_disabled",
+      "expected_failures": [
+        "Zero_budget_is_valid_and_keeps_automatic_admission_disabled"
+      ]
+    },
+    {
+      "id": "window-duration-bound-omitted",
+      "file": "src/Ashlar.Manifest/Admission/AdmissionGate.cs",
+      "old": "|| amount > TimeSpan.MaxValue.Ticks / ticksPerUnit",
+      "new": "|| amount < 0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Invalid_or_overflowing_windows_return_false_and_zero",
+      "expected_failures": [
+        "Invalid_or_overflowing_windows_return_false_and_zero"
+      ]
+    },
+    {
+      "id": "window-last-valid-hour-day-refused",
+      "file": "src/Ashlar.Manifest/Admission/AdmissionGate.cs",
+      "old": "amount > TimeSpan.MaxValue.Ticks / ticksPerUnit",
+      "new": "amount >= TimeSpan.MaxValue.Ticks / ticksPerUnit",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Largest_supported_windows_parse_exactly",
+      "expected_failures": [
+        "Largest_supported_windows_parse_exactly"
+      ]
+    },
+    {
+      "id": "window-zero-allowed",
+      "file": "src/Ashlar.Manifest/Admission/AdmissionGate.cs",
+      "old": "|| amount <= 0",
+      "new": "|| amount < 0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Unparseable_windows_fail_closed_not_infinite",
+      "expected_failures": [
+        "Unparseable_windows_fail_closed_not_infinite"
+      ]
+    },
+    {
+      "id": "window-minute-unit-wrong",
+      "file": "src/Ashlar.Manifest/Admission/AdmissionGate.cs",
+      "old": "'m' => TimeSpan.TicksPerMinute",
+      "new": "'m' => TimeSpan.TicksPerHour",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Budget_windows_parse",
+      "expected_failures": [
+        "Budget_windows_parse"
+      ]
+    },
+    {
+      "id": "window-nul-accepted",
+      "file": "src/Ashlar.Manifest/Admission/AdmissionGate.cs",
+      "old": "!char.IsAsciiDigit(digit)",
+      "new": "!char.IsAsciiDigit(digit) && digit != '\\0'",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Invalid_or_overflowing_windows_return_false_and_zero",
+      "expected_failures": [
+        "Invalid_or_overflowing_windows_return_false_and_zero"
+      ]
+    },
+    {
+      "id": "window-length-bound-relaxed",
+      "file": "src/Ashlar.Manifest/Admission/AdmissionGate.cs",
+      "old": "window.Length > 11",
+      "new": "window.Length > 100",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Invalid_or_overflowing_windows_return_false_and_zero",
+      "expected_failures": [
+        "Invalid_or_overflowing_windows_return_false_and_zero"
+      ]
+    },
+    {
+      "id": "direct-budget-check-omitted",
+      "file": "src/Ashlar.Manifest/Admission/AdmissionGate.cs",
+      "old": "if (!TryValidateBudget(policy.SelfExtend.Budget, out var budgetReason))",
+      "new": "if (policy.ApiVersion.Length < 0 && !TryValidateBudget(policy.SelfExtend.Budget, out var budgetReason))",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Invalid_programmatic_budgets_never_admit",
+      "expected_failures": [
+        "Invalid_programmatic_budgets_never_admit"
+      ]
+    },
+    {
+      "id": "clock-cutoff-underflows",
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "old": "window.Ticks >= utcNow.Ticks",
+      "new": "window.Ticks < 0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Windows_before_year_one_count_all_admissions_without_clock_underflow",
+      "expected_failures": [
+        "Windows_before_year_one_count_all_admissions_without_clock_underflow"
+      ]
+    },
+    {
+      "id": "clock-local-offset-underflows",
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "old": "var utcNow = now.ToUniversalTime();",
+      "new": "var utcNow = now;",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Windows_before_year_one_count_all_admissions_without_clock_underflow",
+      "expected_failures": [
+        "Windows_before_year_one_count_all_admissions_without_clock_underflow"
+      ]
+    },
+    {
+      "id": "invalid-budget-bypasses-required-gates",
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "old": "var outcome = AdmissionGate.Decide(policy, proposal, admittedInWindow);",
+      "new": "var outcome = !AdmissionGate.TryValidateBudget(policy.SelfExtend.Budget, out _)\n            ? new AdmissionOutcome { State = ProposalState.Held, Reason = \"invalid budget\" }\n            : AdmissionGate.Decide(policy, proposal, admittedInWindow);",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Invalid_budget_cannot_turn_envelope_or_gate_rejection_into_a_hold",
+      "expected_failures": [
+        "Invalid_budget_cannot_turn_envelope_or_gate_rejection_into_a_hold"
+      ]
+    }
+  ]
+}

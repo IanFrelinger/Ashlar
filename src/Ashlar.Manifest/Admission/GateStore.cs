@@ -439,28 +439,19 @@ public sealed partial class GateStore
         ArgumentNullException.ThrowIfNull(policy);
         ArgumentNullException.ThrowIfNull(proposal);
 
-        using var _ = await AcquireLockAsync(ct).ConfigureAwait(false);
+        using var storeLock = await AcquireLockAsync(ct).ConfigureAwait(false);
 
-        AdmissionOutcome outcome;
+        // Decide validates the budget before automatic admission, including programmatic
+        // policies that bypass the YAML loader. Count only a valid window; invalid ones are
+        // held by Decide after envelope/gate failures have retained their rejection priority.
+        var admittedInWindow = 0;
         if (policy.SelfExtend.Mode == SelfExtendMode.SelfExtending
-            && !AdmissionGate.TryParseWindow(policy.SelfExtend.Budget.Window, out var window))
+            && AdmissionGate.TryValidateBudget(policy.SelfExtend.Budget, out _)
+            && AdmissionGate.TryParseWindow(policy.SelfExtend.Budget.Window, out var window))
         {
-            outcome = new AdmissionOutcome
-            {
-                State = ProposalState.Held,
-                Reason = $"budget window '{policy.SelfExtend.Budget.Window}' is unparseable — failing closed to a "
-                       + "human decision rather than treating it as unlimited.",
-            };
+            admittedInWindow = await AdmittedInWindowAsync(window, now, ct).ConfigureAwait(false);
         }
-        else
-        {
-            var admittedInWindow = 0;
-            if (AdmissionGate.TryParseWindow(policy.SelfExtend.Budget.Window, out var w))
-            {
-                admittedInWindow = await AdmittedInWindowAsync(w, now, ct).ConfigureAwait(false);
-            }
-            outcome = AdmissionGate.Decide(policy, proposal, admittedInWindow);
-        }
+        var outcome = AdmissionGate.Decide(policy, proposal, admittedInWindow);
 
         return await RecordLockedAsync(proposal, outcome, now, ct).ConfigureAwait(false);
     }
@@ -839,7 +830,13 @@ public sealed partial class GateStore
     public async Task<int> AdmittedInWindowAsync(TimeSpan window, DateTimeOffset now, CancellationToken ct = default)
     {
         var (records, expectation) = await ReadStoreAsync(ct).ConfigureAwait(false);
-        var cutoff = now - window;
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(window.Ticks, nameof(window));
+        // A representable duration can predate year 1. Clamp in UTC so nonzero offsets
+        // cannot underflow the local clock either; every stored admission still counts.
+        var utcNow = now.ToUniversalTime();
+        var cutoff = window.Ticks >= utcNow.Ticks
+            ? DateTimeOffset.MinValue
+            : utcNow - window;
         var dateGrandfatheringOnly = expectation.Expected && expectation.Grandfathered is null;
         return records.Count(e =>
             e.Record.State == ProposalState.Admitted
