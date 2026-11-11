@@ -49,8 +49,8 @@ if [[ ! -f "$CLI_DLL" ]]; then
 fi
 ASHLAR_ALLOW_MOCK=1 ASHLAR_CLI_FORCE_REBUILD=0 dotnet test src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
   --framework net8.0 \
-  --filter 'FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.CLI.Phases14CliE2ETests.Phases14_FullPipeline_ObserveAnalyzeAdaptImprove|FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.CLI.FullPipelineE2ETests.ObserveAnalyzeAdaptImproveSelfContext_Sequential_NoCrash' \
-  --blame-hang-timeout 120s --blame-hang-dump-type none \
+  --filter 'FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.CLI.Phases14CliE2ETests.Phases14_FullPipeline_ObserveAnalyzeAdaptImprove|FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.CLI.FullPipelineE2ETests.ObserveAnalyzeAdaptImproveSelfContext_Sequential_NoCrash|FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.LaneBlameWindowConventionTests.Every_lane_gives_its_slowest_selected_test_room_to_time_out' \
+  --blame-hang-timeout 180s --blame-hang-dump-type none \
   --logger 'trx;LogFileName=command-pipelines.trx' --results-directory "$RESULTS" \
   --nologo -v minimal
 bash scripts/ci/zero-test-guard.sh "$RESULTS/command-pipelines.trx"
@@ -64,6 +64,7 @@ root = ET.parse(sys.argv[1]).getroot()
 expected = {
     "Phases14CliE2ETests.Phases14_FullPipeline_ObserveAnalyzeAdaptImprove": 1,
     "FullPipelineE2ETests.ObserveAnalyzeAdaptImproveSelfContext_Sequential_NoCrash": 1,
+    "LaneBlameWindowConventionTests.Every_lane_gives_its_slowest_selected_test_room_to_time_out": 1,
 }
 identities = {}
 for test in root.findall(".//{*}UnitTest"):
@@ -75,5 +76,5 @@ for result in root.findall(".//{*}UnitTestResult"):
     assert result.get("outcome") == "Passed", result.attrib
     observed[identities[result.get("testId")]] += 1
 assert dict(observed) == expected, (dict(observed), expected)
-print("PASS command pipelines: 2 executed and passed; no skipped cases")
+print("PASS command pipelines and deadline convention: 3 executed and passed; no skipped cases")
 PY
