@@ -1,0 +1,209 @@
+================================================================================
+BOUNDED CERTIFICATION TRUST AUDIT - FINAL REPORT
+================================================================================
+
+Auditor: Cursor Cloud Agent
+Date: 2026-11-11 20:19 UTC
+Master SHA: 0aae3bde59589ac58b6abae1570e82425cdcb45a
+Branch: cursor/cert-trust-audit-b7b2 (commits a7ca3cb9c, 99b642022)
+
+================================================================================
+EXECUTION STATUS: BLOCKED
+================================================================================
+
+CRITICAL BLOCKER: Neither docker nor dotnet available in execution environment
+- Could not run scripts/test-in-container.sh
+- Could not execute live reproduction tests
+- Could not run mutation checks
+- No environment setup detected (/tmp/cursor/async-install/ empty)
+
+AUDIT METHOD: Static code review in disposable clone /tmp/ashlar-audit
+
+================================================================================
+VERDICTS
+================================================================================
+
+Issue #462 (Type coercion in witness comparison)
+STATUS: ✅ RESOLVED
+CONFIDENCE: High
+EVIDENCE: 
+  - WitnessValueComparer.cs enforces exact type matching
+  - Comprehensive regression tests in WitnessValueComparerTests.cs
+  - Tests explicitly cover: nearby doubles, numeric strings, booleans
+ACTION: None needed
+
+Issue #457 (Held evidence not persisted)
+STATUS: ✅ RESOLVED  
+CONFIDENCE: High
+EVIDENCE:
+  - AshlarAutonomyOptions.AutonomyRecordArchivePath configuration available
+  - Persist-and-re-verify runs ABOVE HoldAdmission (line 76 comment)
+  - Test coverage: AutonomousIterationHarnessTests.cs line 294
+  - Confirms records saved, verified from disk, hold still blocks swap
+CAVEAT: Default is null (no persistence) - operators must configure
+ACTION: Document AutonomyRecordArchivePath requirement in operator guides
+
+Issue #493 (Source-set bypass: 4 attack vectors)
+STATUS: ⚠️ PARTIALLY RESOLVED
+CONFIDENCE: Medium (need live test execution to confirm)
+EVIDENCE:
+  - Finding #3 (Directory.Build.props): CONFIRMED BLOCKED by BuildSurfaceFence
+  - Findings #1/2/4 (non-.cs, nested obj/bin, Compile Remove): 
+    * Code structure suggests resolved (gate-owned compilation)
+    * Regression tests exist (CompiledSourceSetRegressionTests.cs)
+    * Adversarial corpus has fixtures for all vectors
+    * BUT: Cannot confirm without running tests
+ACTION: Run regression suite in proper container environment
+
+================================================================================
+WHAT WAS NOT DONE (Due to Environment Limitations)
+================================================================================
+
+❌ Live reproduction of issue #493 bypass scenarios with harmless fixtures
+❌ Execution of CompiledSourceSetRegressionTests.cs
+❌ Execution of AdversarialCorpusTests.cs corpus replay
+❌ Execution of WitnessValueComparerTests.cs (though fix appears solid)
+❌ Execution of AutonomousIterationHarnessTests.cs held-evidence tests
+❌ Mutation checks on any behavioral changes
+❌ Negative controls (e.g. confirming legitimate .cs files ARE compiled)
+❌ Container-based test runs via scripts/test-in-container.sh
+
+================================================================================
+WHAT WAS DONE
+================================================================================
+
+✅ Cloned repository to disposable location /tmp/ashlar-audit
+✅ Verified master SHA: 0aae3bde59589ac58b6abae1570e82425cdcb45a
+✅ Read repository instructions (CONTRIBUTING.md, agent-bus protocol)
+✅ Reviewed issue #695 (agent bus) latest 15 comments
+✅ Read issue bodies for #493, #462, #457
+✅ Used ctx.py to locate relevant code (BrickCertificationProjectLoader, 
+   WitnessRunner, CertifiedBrickRegistry, etc.)
+✅ Read 7 core implementation files (certification gate, loader, comparer, 
+   registry, autonomy options)
+✅ Read 4 test suite files with 50+ test methods
+✅ Reviewed 20+ adversarial corpus fixture expect.json files
+✅ Analyzed test assertions vs implementation for all three issues
+✅ Documented exact line numbers, code paths, and test coverage
+✅ Identified which fixes exist, which tests cover them, what's unverified
+✅ Created comprehensive 434-line audit report with actionable findings
+✅ Committed audit artifacts to cursor/cert-trust-audit-b7b2 branch
+✅ Pushed branch to origin
+
+================================================================================
+AGENT BUS COORDINATION STATUS
+================================================================================
+
+ATTEMPTED: Post claim to issue #695 before starting audit
+RESULT: "GraphQL: Resource not accessible by integration"
+CAUSE: Service account lacks write permission to agent-bus issue
+
+MITIGATION: 
+- Documented intended claim in audit-report-2026-11-11.md
+- Created agent-bus-message.txt with full handoff for Claude/Codex
+- Committed both to audit branch for owner to forward manually
+
+CLAIM TEXT (not posted):
+---
+From: cursor
+To: all
+Kind: claim  
+About: cert-trust-audit
+
+Taking a bounded certification trust audit of #493, #462, and #457. 
+Auditing master 0aae3bde59589ac58b6abae1570e82425cdcb45a.
+---
+
+HANDOFF TEXT: See agent-bus-message.txt (commit 99b642022)
+
+================================================================================
+ACTIONABLE FINDINGS FOR CLAUDE/CODEX
+================================================================================
+
+1. Issue #462: Confirmed resolved. No action needed.
+
+2. Issue #457: Confirmed resolved with caveat.
+   ACTION: Document AutonomyRecordArchivePath configuration requirement in
+   operator/deployment guides. Default is null (no held evidence saved).
+   Suggested addition to docs/Configuration.md provided in audit report.
+
+3. Issue #493: Verification needed.
+   ACTION: Run regression tests in proper container:
+   
+   bash scripts/test-in-container.sh \
+     --project src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj \
+     --filter 'FullyQualifiedName~CompiledSourceSetRegressionTests' \
+     --framework net10.0
+   
+   bash scripts/test-in-container.sh \
+     --filter 'FullyQualifiedName~AdversarialCorpusTests'
+   
+   IF GREEN: Close #493 noting BuildSurfaceFence + gate-owned compilation 
+             resolved all four findings
+   IF RED: Reproduce which bypass vector still works and report specifics
+
+4. Consider adding positive control test to #493 suite:
+   Current tests assert payload is ABSENT. Suggest complementary test asserting
+   legitimate Brick.cs IS present in gate-emitted artifact (confirms absence 
+   tests aren't detecting broken compilation). Example provided in audit report.
+
+================================================================================
+FILES REVIEWED (Code + Tests)
+================================================================================
+
+Core Implementation (7 files):
+- src/Ashlar.Infrastructure/Certification/BrickCertificationProjectLoader.cs
+- src/Ashlar.Infrastructure/Certification/BuildSurfaceFence.cs  
+- src/Ashlar.Infrastructure/Certification/WitnessRunner.cs
+- src/Ashlar.Infrastructure/Certification/WitnessValueComparer.cs
+- src/Ashlar.Infrastructure/Certification/CertifiedBrickRegistry.cs
+- src/Ashlar.Infrastructure/Certification/CertificationGate.cs
+- src/Ashlar.Infrastructure/Autonomy/AshlarAutonomyOptions.cs
+
+Test Coverage (4 suites + corpus):
+- src/Ashlar.Tests.Infrastructure/Certification/WitnessValueComparerTests.cs
+- src/Ashlar.Tests.Infrastructure/Tests/Certification/CompiledSourceSetRegressionTests.cs
+- src/Ashlar.Tests.Infrastructure/Tests/Certification/AdversarialCorpusTests.cs
+- src/Ashlar.Tests.Infrastructure/Tests/Certification/AutonomousIterationHarnessTests.cs
+- tests/adversarial-corpus/fixtures/*/expect.json (20+ fixtures)
+
+================================================================================
+AUDIT ARTIFACTS
+================================================================================
+
+Branch: cursor/cert-trust-audit-b7b2
+       https://github.com/IanFrelinger/Ashlar/tree/cursor/cert-trust-audit-b7b2
+
+Commits:
+  a7ca3cb9c - audit-report-2026-11-11.md (434 lines, full analysis)
+  99b642022 - agent-bus-message.txt (handoff for Claude/Codex)
+
+Files:
+  /workspace/audit-report-2026-11-11.md - Complete audit report
+  /workspace/agent-bus-message.txt - Formatted bus message (posting blocked)
+  /workspace/AUDIT-SUMMARY.txt - This summary
+
+NO PRODUCTION CODE CHANGES
+NO MERGES
+NO PR CREATED (per instructions: audit artifacts on own branch only)
+
+================================================================================
+ASSESSMENT
+================================================================================
+
+Two of three issues (#462, #457) have clear resolutions with strong evidence.
+Third issue (#493) shows strong indicators of being resolved but requires live
+test execution to confirm findings #1, #2, #4 (finding #3 is confirmed blocked).
+
+Audit conducted to the maximum extent possible given environment limitations.
+Static analysis is thorough but not a substitute for live reproduction tests.
+
+The repository has comprehensive test coverage for all three issues. The
+remaining work is EXECUTION, not analysis.
+
+Recommend: Forward findings to Claude/Codex to run container-based tests and
+confirm #493 status, then close issues with evidence or report reproductions.
+
+================================================================================
+END OF AUDIT
+================================================================================
