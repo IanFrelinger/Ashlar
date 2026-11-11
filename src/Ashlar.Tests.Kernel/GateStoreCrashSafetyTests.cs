@@ -1,6 +1,8 @@
-using FluentAssertions;
+using System.Reflection;
 using Ashlar.Manifest;
 using Ashlar.Manifest.Admission;
+using FluentAssertions;
+using Microsoft.Win32.SafeHandles;
 using Xunit;
 
 namespace Ashlar.Tests.Kernel;
@@ -56,6 +58,107 @@ public sealed class GateStoreCrashSafetyTests : IDisposable
     };
 
     private string GatesDir => Path.Combine(_dir, "gates");
+
+    [Theory]
+    [InlineData("io")]
+    [InlineData("access")]
+    [InlineData("invalid")]
+    [InlineData("cancelled")]
+    public async Task Failed_lock_initialization_disposes_the_handle_and_preserves_the_failure(string kind)
+    {
+        var store = new GateStore(_dir);
+        Exception failure = kind switch
+        {
+            "io" => new IOException("sweep enumeration failed"),
+            "access" => new UnauthorizedAccessException("sweep deletion refused"),
+            "invalid" => new InvalidOperationException("sweep failed"),
+            "cancelled" => new OperationCanceledException("sweep cancelled"),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+        FileStream? opened = null;
+        SafeFileHandle? observedHandle = null;
+        var attempts = 0;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            Func<Task> acquire = async () =>
+            {
+                using var unexpected = await AcquireWithInitializer(store, handle =>
+                {
+                    attempts++;
+                    // Retain both objects so finalization cannot make a leaked handle look safe.
+                    opened = handle;
+                    observedHandle = handle.SafeFileHandle;
+                    throw failure;
+                }, timeout.Token);
+            };
+
+            var thrown = await acquire.Should().ThrowAsync<Exception>();
+            thrown.Which.Should().BeSameAs(failure, "cleanup errors must not be retried as lock contention");
+            attempts.Should().Be(1);
+            opened.Should().NotBeNull();
+            observedHandle!.IsClosed.Should().BeTrue("the failed initializer never transferred lock ownership");
+            using var reacquired = OpenLock();
+            Directory.GetFiles(GatesDir, "*.json").Should().BeEmpty();
+        }
+        finally
+        {
+            // Also clean up when the disposal mutation is under test.
+            opened?.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task Successful_lock_initialization_transfers_a_still_exclusive_handle_to_the_caller()
+    {
+        var store = new GateStore(_dir);
+        FileStream? observed = null;
+        var calls = 0;
+        using (var held = await AcquireWithInitializer(store, handle =>
+               {
+                   observed = handle;
+                   calls++;
+                   Action contend = () => { using var unexpected = OpenLock(); };
+                   contend.Should().Throw<IOException>("initialization must execute under the exclusive lock");
+               }, CancellationToken.None))
+        {
+            calls.Should().Be(1);
+            held.Should().BeSameAs(observed);
+            held.SafeFileHandle.IsClosed.Should().BeFalse();
+            Action contend = () => { using var unexpected = OpenLock(); };
+            contend.Should().Throw<IOException>("the caller owns the lock until disposal");
+        }
+
+        using var reacquired = OpenLock();
+    }
+
+    [Fact]
+    public async Task Cancelling_a_contended_lock_never_runs_initialization()
+    {
+        var store = new GateStore(_dir);
+        var calls = 0;
+        using var held = OpenLock();
+        using var cancellation = new CancellationTokenSource();
+        var pending = AcquireWithInitializer(store, _ => calls++, cancellation.Token);
+        cancellation.Cancel();
+        Func<Task> acquire = async () => { using var unexpected = await pending; };
+
+        await acquire.Should().ThrowAsync<OperationCanceledException>();
+        calls.Should().Be(0);
+        held.SafeFileHandle.IsClosed.Should().BeFalse("a cancelled waiter cannot release another holder's lock");
+    }
+
+    private FileStream OpenLock() => new(Path.Combine(GatesDir, ".lock"),
+        FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+
+    private static Task<FileStream> AcquireWithInitializer(GateStore store, Action<FileStream> initialize, CancellationToken ct)
+    {
+        // Exercise the same private acquisition path used by every write, injecting failure at
+        // its ownership boundary instead of relying on chmod (which root bypasses in devtest).
+        var method = typeof(GateStore).GetMethod("AcquireLockAndInitializeAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        return (Task<FileStream>)method.Invoke(store, [initialize, ct])!;
+    }
 
     [Fact]
     public async Task A_stray_tmp_from_a_crashed_write_never_appears_in_listings()

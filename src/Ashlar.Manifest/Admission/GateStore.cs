@@ -333,7 +333,10 @@ public sealed partial class GateStore
     /// erasing a refusal — and two racing self-extending proposals could both read a spent
     /// budget of zero and both admit. On an admission boundary those are security bugs.
     /// </summary>
-    private async Task<FileStream> AcquireLockAsync(CancellationToken ct)
+    private Task<FileStream> AcquireLockAsync(CancellationToken ct) =>
+        AcquireLockAndInitializeAsync(_ => SweepStrayTmp(), ct);
+
+    private async Task<FileStream> AcquireLockAndInitializeAsync(Action<FileStream> initialize, CancellationToken ct)
     {
         // Outside the contention retry loop: a disabled lock is a safety failure, not contention.
         Storage.FileLockSafety.EnsureSupported();
@@ -342,20 +345,33 @@ public sealed partial class GateStore
         while (true)
         {
             ct.ThrowIfCancellationRequested();
+            FileStream handle;
             try
             {
-                var handle = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-                SweepStrayTmp();
-                return handle;
+                handle = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             }
             catch (IOException) when (Environment.TickCount64 < deadline)
             {
                 await Task.Delay(25, ct).ConfigureAwait(false);
+                continue;
             }
             catch (IOException)
             {
                 throw new TimeoutException(
                     "Could not acquire the gate-store lock within 15s. Another process is holding it unusually long.");
+            }
+
+            // Until initialization succeeds, this method owns the handle. A failed sweep must
+            // release it immediately, and its I/O failure is not lock contention to retry.
+            try
+            {
+                initialize(handle);
+                return handle;
+            }
+            catch
+            {
+                handle.Dispose();
+                throw;
             }
         }
     }

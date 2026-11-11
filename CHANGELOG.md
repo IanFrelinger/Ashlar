@@ -17,6 +17,13 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — gate-store lock ownership
+
+- A failed stray-file cleanup now disposes the acquired gate-store lock immediately and
+  preserves the cleanup exception instead of retrying it as lock contention. Successful
+  initialization transfers the still-held lock to the writer. This does not change the
+  documented same-user lock-path replacement limitation.
+
 ### Fixed — package import integrity
 
 - Abort cleanup owns only forge rows atomically published by that import attempt. A local-id

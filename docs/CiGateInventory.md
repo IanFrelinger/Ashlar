@@ -155,7 +155,7 @@ The path-filtered `developer-friction-regression.yml` runs focused sanitization 
 The path-filtered `package-security-regression.yml` runs real package reads, mesh HTTP serving, and signed-package display tests in the Linux devtest container, followed by seven assertion-level mutations. It checks the exact PR head and uploads logs plus mutation TRX/restore evidence. This advisory lane does not certify Windows/macOS native open behavior. Parent store directories remain an operator-controlled trust boundary; configured directory symlinks are supported, while package leaf symlinks are refused atomically.
 
 
-The path-filtered `input-safety-regression.yml` runs the Kernel suite on net8.0 and net10.0 in the Linux devtest container, including fresh-process extreme YAML and disabled-locking probes, followed by assertion-level mutations. It checks the exact PR head and retains logs plus mutation TRX/restore evidence. This advisory lane does not certify arbitrary filesystems or same-user lock-file replacement.
+The path-filtered `input-safety-regression.yml` runs the Kernel suite on net8.0 and net10.0 in the Linux devtest container, including fresh-process extreme YAML and disabled-locking probes and gate-lock cleanup ownership/failure tests, followed by assertion-level mutations. It checks the exact PR head and retains logs plus mutation TRX/restore evidence. This advisory lane does not certify arbitrary filesystems or same-user lock-file replacement.
 
 ### Push-only (path-filtered) workflows
 
