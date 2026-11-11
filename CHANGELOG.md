@@ -17,6 +17,11 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — readiness smoke receipts
+
+- Keep native smoke evidence separately for net8.0 and net10.0 rather than overwriting each project's first TRX. Native and container smoke runs now reject missing, unreadable, empty or entirely skipped receipts immediately, preserving test failures and always-upload artifacts.
+- Remove the full-platform readiness exemption from the repository's zero-test guard wiring check. Hermetic workflow tests cover all six project/framework invocations; these receipt tests do not replace actual platform execution.
+
 ### Fixed — readiness container setup
 
 - Verify actual Ubuntu/Debian/Alpine image identity and SDK/runtime families rather than trusting lane names. The Debian 12 image installs exact SDK 10 over the official Debian SDK 8 base because Microsoft has no Debian SDK 10 image.

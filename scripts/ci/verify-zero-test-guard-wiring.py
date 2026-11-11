@@ -116,8 +116,6 @@ EXEMPT_FILES = [
      "cert-gate's runner, guarded by scripts/cert-gate-zero-test-guard.sh"),
     ("scripts/validate-safe.sh",
      "local-only helper that no workflow reaches"),
-    (".github/workflows/full-platform-readiness-gate.yml",
-     "owned by the readiness gate's own change; its smoke lanes are not yet guarded"),
     ("tests/uat/tier0-2.sh",
      "uat-gate Tier 2 collects verdicts instead of exiting on the first failure, and it already FAILs "
      "unless the run log reports Total=16 (the count TesterQuickstart claims) and when no total can be "
@@ -151,6 +149,8 @@ REQUIRED_WIRED = [
     ("scripts/security-gate-tier-b.sh", "api-security.trx"),
     ("scripts/compat-gate-tier-a.sh", "mesh-checkpoint-migration.trx"),
     (".github/workflows/mcp-a2a-gate.yml", "protocol-prodstyle.trx"),
+    (".github/workflows/full-platform-readiness-gate.yml", "smoke-net8.0-${{ matrix.label }}.trx"),
+    (".github/workflows/full-platform-readiness-gate.yml", "smoke-whitebox-net10.0.trx"),
     ("Makefile", "kernel-gate-hosting.trx"),
     ("deploy/compose/docker-compose.test.yml", "ubuntu-baseframework.trx"),
 ]
