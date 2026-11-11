@@ -418,10 +418,14 @@ public sealed class PkgCommandTests : IDisposable
 
     // About 3,000 characters: past UntrustedText.DefaultMaxChars on its own, and under Linux's
     // 4,095-byte symlink target limit. It need not exist; the link is refused without being followed.
+    //
+    // LINUX ONLY, and not as a convenience. macOS caps a symlink target at 1,023 bytes, so this
+    // fixture cannot be created there (PathTooLongException). The cut it guards against needs a
+    // target past roughly 1,600 characters, so on macOS the bug cannot happen either.
     private static string LongTarget() =>
         "/" + string.Join("/", Enumerable.Repeat(new string('t', 200), 15)) + "/payload.ashpkg";
 
-    [UnixOnlyFact("ln -s")]
+    [LinuxOnlyFact("symlink target over 1,023 bytes")]
     public async Task Import_ofASymlinkWithALongTarget_keepsTheExplanationAndRemediation()
     {
         var project = await ProjectAsync("proj-long-link");
@@ -440,7 +444,7 @@ public sealed class PkgCommandTests : IDisposable
         CountOf(stderr, "[truncated:").Should().Be(1, "only the target is cut; the composed refusal never reaches the line bound");
     }
 
-    [UnixOnlyFact("ln -s")]
+    [LinuxOnlyFact("symlink target over 1,023 bytes")]
     public async Task Pull_pastASymlinkWithALongTarget_keepsTheGuidanceOnTheRefusedRow()
     {
         // The pull row is a second renderer: "× REFUSED  <name> · <reason>", with the reason bounded
