@@ -690,9 +690,10 @@ run_cli gates --admit ext-co2 --as coprod-b-op --path "$CB" >/dev/null
 run_cli pkg share --id ext-co2 --store "$MESH2" --path "$CB"
 claim "coprod-b-shares-v2-back" 0 "shared to the mesh"
 
-# node A: pull the store — v1 is already-have (A's gate decided it), v2 holds, A seats it
+# node A: v1 has a local record but no import receipt, so the collision is refused;
+# v2 still holds and A seats it. An author-chosen id alone does not prove a duplicate.
 run_cli pkg pull --from "$MESH2" --path "$CA"
-claim "coprod-a-pull-dedupes-and-holds" 0 "already have" "HELD" "pulled 2"
+claim "coprod-a-pull-refuses-unknown-collision-and-holds" 65 "collides" "HELD" "pulled 2"
 run_cli gates --admit ext-co2 --as coprod-a-op --path "$CA"
 claim "coprod-a-admit-applies-v2" 0 "seated" "applied"
 grep -q "coprod v2" "$CA/src/Coprod.cs" 2>/dev/null \
@@ -704,18 +705,17 @@ grep -q "coprod v2" "$CA/src/Coprod.cs" 2>/dev/null \
 # whole pull — the exact denial the guard exists to prevent, moved one line further down and left
 # open. The trap is a real failure and not a stub: a DIRECTORY where the gate record's file belongs
 # makes GateStore's write-then-move fail — IOException "Is a directory" on Linux, an access denial
-# on Windows — and either way it escapes SubmitAsync's own
-# `when (ex is InvalidOperationException or ArgumentException)` filter and reaches the caller. It is
+# on Windows — and either way it reports a node error and cleans up parked rows. It is
 # the shape an operator meets for real when the receiving project's .ashlar cannot be written.
 #
 # ext-co1 sorts before ext-co2 in the store, so a pass that dies on the trap never reaches v2 — the
 # file-on-disk check is what makes "the pass continued" a claim rather than a hope, and the counters
-# are what keep the refusal from becoming a silent skip. Not in the Linux-only block: a directory is
+# are what keep the node error from becoming a silent skip. Not in the Linux-only block: a directory is
 # a directory on every host, and a rename onto one fails on NTFS exactly as it does on ext4.
 CR=$(fresh); run_cli init coprod-r --path "$CR"; set_selfextending "$CR"
 mkdir -p "$CR/.ashlar/gates/ext-co1.json"
 run_cli pkg pull --from "$MESH2" --path "$CR"
-claim "pkg-pull-submit-throw-refuses-row-and-continues" 65 "REFUSED" "ext-co1" "ADMITTED" "pulled 2" "admitted 1" "refused/rejected 1"
+claim "pkg-pull-submit-error-cleans-row-and-continues" 1 "ERROR" "ext-co1" "ADMITTED" "pulled 2" "admitted 1" "errors 1"
 grep -q "coprod v2" "$CR/src/Coprod.cs" 2>/dev/null \
   && result "pkg-pull-submit-throw-later-package-still-lands" PASS "one row threw; the package behind it was still decided and applied" \
   || result "pkg-pull-submit-throw-later-package-still-lands" FAIL "a throw at one row denied every package behind it"

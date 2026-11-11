@@ -238,6 +238,7 @@ public sealed class MeshAutoPullService : BackgroundService
                     case PackageAdmission.Held: held++; break;
                     case PackageAdmission.Rejected: rejected++; break;
                     case PackageAdmission.Refused: refused++; break;
+                    case PackageAdmission.Failed: errors++; break;
                     case PackageAdmission.AlreadyImported: already++; break;
                 }
             }
@@ -356,6 +357,7 @@ public sealed class MeshAutoPullService : BackgroundService
                     case PackageAdmission.Held: held++; break;
                     case PackageAdmission.Rejected: rejected++; break;
                     case PackageAdmission.Refused: refused++; break;
+                    case PackageAdmission.Failed: errors++; break;
                     case PackageAdmission.AlreadyImported: already++; break;
                 }
             }
