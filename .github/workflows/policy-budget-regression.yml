@@ -1,0 +1,67 @@
+name: Policy budget regressions
+
+on:
+  pull_request:
+    paths:
+      - 'src/Ashlar.Manifest/**'
+      - 'src/Ashlar.Tests.Kernel/**'
+      - 'application/src/Ashlar.CLI/Commands/PolicyCommand.cs'
+      - 'application/src/Ashlar.CLI/Commands/VerifyCommand.cs'
+      - 'application/src/Ashlar.Tests.CLI/Tests/Commands/PolicyCommandTests.cs'
+      - 'scripts/policy-budget-regression.sh'
+      - 'scripts/mutations/policy-budget.json'
+      - '.github/workflows/policy-budget-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: policy-budget-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-and-mutations:
+    name: Policy budget net8/net10 and mutation proofs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Loader, parser, admission and CLI regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/policy-budget"
+          bash scripts/test-in-container.sh -- 'bash scripts/policy-budget-regression.sh' \
+            2>&1 | tee "${RUNNER_TEMP}/policy-budget/tests.log"
+
+      - name: Assertion-level mutation proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/test-in-container.sh -- \
+            'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/policy-budget.json --archive-stdout' \
+            2>&1 | tee "${RUNNER_TEMP}/policy-budget/mutations.log"
+
+      - name: Decode mutation evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "${RUNNER_TEMP}/policy-budget/mutations.log" ]; then
+            python3 scripts/decode-spec007-mutation-evidence.py \
+              --log "${RUNNER_TEMP}/policy-budget/mutations.log" \
+              --output "${RUNNER_TEMP}/policy-budget/mutation-evidence" --repo .
+          fi
+
+      - name: Upload exact-SHA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: policy-budget-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/policy-budget
+          if-no-files-found: error

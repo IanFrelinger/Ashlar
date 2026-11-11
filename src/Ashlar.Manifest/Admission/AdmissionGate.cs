@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Ashlar.Manifest.Admission;
 
 /// <summary>
@@ -80,6 +82,16 @@ public static class AdmissionGate
             };
         }
 
+        // Programmatic callers can bypass PolicyLoader. Invalid controls must not admit.
+        if (!TryValidateBudget(policy.SelfExtend.Budget, out var budgetReason))
+        {
+            return new AdmissionOutcome
+            {
+                State = ProposalState.Held,
+                Reason = budgetReason + " Failing closed to a human decision.",
+            };
+        }
+
         // self-extending: admit within budget; budget exhaustion DEGRADES to held, never to
         // admit and never to silent drop.
         if (admittedInWindow >= policy.SelfExtend.Budget.Extensions)
@@ -98,29 +110,62 @@ public static class AdmissionGate
         };
     }
 
+    /// <summary>Validates the same budget at policy load and at the admission boundary.</summary>
+    internal static bool TryValidateBudget(PolicyBudget? budget, out string reason)
+    {
+        if (budget is null)
+        {
+            reason = "selfExtend.budget must be a mapping, not null.";
+            return false;
+        }
+        if (budget.Extensions < 0)
+        {
+            reason = "selfExtend.budget.extensions must be nonnegative; 0 disables automatic admission.";
+            return false;
+        }
+        if (!TryParseWindow(budget.Window, out _))
+        {
+            reason = "selfExtend.budget.window must be a positive integer followed by m, h or d, within the supported duration range.";
+            return false;
+        }
+        reason = string.Empty;
+        return true;
+    }
+
     /// <summary>
-    /// Parses a budget window such as <c>24h</c>, <c>30m</c>, or <c>7d</c>. Fail-closed:
-    /// an unparseable window is an error, not an infinite allowance.
+    /// Parses ASCII integer minutes, hours or days, without signs or whitespace. The amount
+    /// fits an Int32 and the duration fits a TimeSpan. Invalid or overflowing text never throws.
     /// </summary>
     public static bool TryParseWindow(string? window, out TimeSpan span)
     {
         span = default;
-        if (string.IsNullOrWhiteSpace(window) || window!.Length < 2)
+        // Ten digits plus one unit bounds both parsing work and the accepted integer spelling.
+        if (window is null || window.Length < 2 || window.Length > 11)
         {
             return false;
         }
-        var unit = window[^1];
-        if (!int.TryParse(window[..^1], out var amount) || amount <= 0)
+        foreach (var digit in window.AsSpan(0, window.Length - 1))
         {
-            return false;
+            if (!char.IsAsciiDigit(digit))
+            {
+                return false;
+            }
         }
-        span = unit switch
+        var ticksPerUnit = window[^1] switch
         {
-            'm' => TimeSpan.FromMinutes(amount),
-            'h' => TimeSpan.FromHours(amount),
-            'd' => TimeSpan.FromDays(amount),
-            _ => default,
+            'm' => TimeSpan.TicksPerMinute,
+            'h' => TimeSpan.TicksPerHour,
+            'd' => TimeSpan.TicksPerDay,
+            _ => 0L,
         };
-        return span != default;
+        if (ticksPerUnit == 0
+            || !int.TryParse(window.AsSpan(0, window.Length - 1), NumberStyles.None, CultureInfo.InvariantCulture, out var amount)
+            || amount <= 0
+            || amount > TimeSpan.MaxValue.Ticks / ticksPerUnit)
+        {
+            return false;
+        }
+        span = TimeSpan.FromTicks(amount * ticksPerUnit);
+        return true;
     }
 }

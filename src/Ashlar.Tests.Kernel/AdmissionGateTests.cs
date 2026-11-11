@@ -254,6 +254,8 @@ public sealed class AdmissionGateTests : IDisposable
     [InlineData("24h", 24 * 60)]
     [InlineData("30m", 30)]
     [InlineData("7d", 7 * 24 * 60)]
+    [InlineData("0000000001h", 60)]
+    [InlineData("1m", 1)]
     public void Budget_windows_parse(string text, int minutes)
     {
         AdmissionGate.TryParseWindow(text, out var span).Should().BeTrue();
@@ -272,4 +274,106 @@ public sealed class AdmissionGateTests : IDisposable
         AdmissionGate.TryParseWindow(text, out _).Should().BeFalse(
             "an unparseable window is an error, never an unlimited allowance");
     }
+    [Theory]
+    [InlineData("2147483647m", 2147483647L * TimeSpan.TicksPerMinute)]
+    [InlineData("256204778h", 256204778L * TimeSpan.TicksPerHour)]
+    [InlineData("10675199d", 10675199L * TimeSpan.TicksPerDay)]
+    public void Largest_supported_windows_parse_exactly(string text, long ticks)
+    {
+        AdmissionGate.TryParseWindow(text, out var span).Should().BeTrue();
+        span.Ticks.Should().Be(ticks);
+    }
+
+    [Theory]
+    [InlineData("2147483648m")]
+    [InlineData("256204779h")]
+    [InlineData("10675200d")]
+    [InlineData("2147483647h")]
+    [InlineData("2147483647d")]
+    [InlineData("999999999999999999999999999999m")]
+    [InlineData("00000000001h")]
+    [InlineData("+1h")]
+    [InlineData(" 1h")]
+    [InlineData("1 h")]
+    [InlineData("1h ")]
+    [InlineData("1.5h")]
+    [InlineData("1H")]
+    [InlineData("１h")]
+    [InlineData("1\0h")]
+    public void Invalid_or_overflowing_windows_return_false_and_zero(string text)
+    {
+        AdmissionGate.TryParseWindow(text, out var span).Should().BeFalse();
+        span.Should().Be(TimeSpan.Zero);
+    }
+
+    [Theory]
+    [InlineData("abc", 3)]
+    [InlineData("2147483647d", 3)]
+    [InlineData("24h", -1)]
+    [InlineData(null, 3)]
+    public async Task Invalid_programmatic_budgets_never_admit(string? window, int extensions)
+    {
+        var original = Policy(SelfExtendMode.SelfExtending);
+        var policy = original with
+        {
+            SelfExtend = original.SelfExtend with
+            {
+                Budget = new PolicyBudget { Extensions = extensions, Window = window! },
+            },
+        };
+        var direct = AdmissionGate.Decide(policy, Proposal(), 0);
+        direct.State.Should().Be(ProposalState.Held);
+        direct.Reason.Should().Contain("selfExtend.budget");
+        var record = await new GateStore(_dir).ProposeAsync(policy, Proposal(), Now);
+        record.State.Should().Be(ProposalState.Held);
+        record.Reason.Should().Be(direct.Reason);
+    }
+
+    [Fact]
+    public async Task Null_programmatic_budget_is_held_without_throwing()
+    {
+        var original = Policy(SelfExtendMode.SelfExtending);
+        var policy = original with { SelfExtend = original.SelfExtend with { Budget = null! } };
+        AdmissionGate.Decide(policy, Proposal(), 0).State.Should().Be(ProposalState.Held);
+        (await new GateStore(_dir).ProposeAsync(policy, Proposal(), Now)).State.Should().Be(ProposalState.Held);
+    }
+
+    [Theory]
+    [InlineData("tool", "tests", true)]
+    [InlineData("brick", "tests", false)]
+    [InlineData("brick", "other", true)]
+    public async Task Invalid_budget_cannot_turn_envelope_or_gate_rejection_into_a_hold(string kind, string gate, bool passed)
+    {
+        var original = Policy(SelfExtendMode.SelfExtending);
+        var policy = original with
+        {
+            SelfExtend = original.SelfExtend with { Budget = new PolicyBudget { Extensions = 1, Window = "bad" } },
+        };
+        var proposal = Proposal("invalid-gate", kind, ("sandbox", true), (gate, passed), ("security", true));
+        AdmissionGate.Decide(policy, proposal, 0).State.Should().Be(ProposalState.Rejected);
+        (await new GateStore(_dir).ProposeAsync(policy, proposal, Now)).State.Should().Be(ProposalState.Rejected);
+    }
+
+    [Theory]
+    [InlineData("10675199d", 0)]
+    [InlineData("256204778h", 0)]
+    [InlineData("2147483647m", 0)]
+    [InlineData("1h", 1)]
+    [InlineData("1h", -1)]
+    [InlineData("90m", 1)]
+    public async Task Windows_before_year_one_count_all_admissions_without_clock_underflow(string window, int offsetHours)
+    {
+        var now = offsetHours == 0 ? Now : new DateTimeOffset(1, 1, 1, window == "90m" ? 2 : offsetHours == 1 ? 1 : 0, 0, 0, TimeSpan.FromHours(offsetHours));
+        var original = Policy(SelfExtendMode.SelfExtending, budget: 1);
+        var policy = original with
+        {
+            SelfExtend = original.SelfExtend with { Budget = new PolicyBudget { Extensions = 1, Window = window } },
+        };
+        var store = new GateStore(_dir);
+        (await store.ProposeAsync(policy, Proposal("first"), now)).State.Should().Be(ProposalState.Admitted);
+        (await store.ProposeAsync(policy, Proposal("second"), now)).State.Should().Be(ProposalState.Held);
+        AdmissionGate.TryParseWindow(window, out var span).Should().BeTrue();
+        (await store.AdmittedInWindowAsync(span, now)).Should().Be(1);
+    }
+
 }

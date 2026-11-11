@@ -252,3 +252,7 @@ Every workflow file was classified from `gh run list --workflow <file> --limit 1
 ### Command output contract regressions
 
 The path-filtered `command-output-regression.yml` runs invocation exit-code, JSON-output, root-registration and egress exit-code regressions plus two signed-admission pipeline process tests in the devtest container against the exact PR head. It pins executed counts and uploads baseline logs plus assertion-level mutation and clean-restore evidence. This is an advisory behavioral lane; the existing required checks remain unchanged.
+
+### Policy budget regressions
+
+The path-filtered `policy-budget-regression.yml` runs policy loader, duration parser, admission and CLI show/set/verify regressions inside the devtest container against the exact PR head. It checks both kernel target frameworks and CLI net10.0, pins the new cases' counts, and uploads assertion-level mutation and clean-restore evidence. It is advisory; required protection checks are unchanged.

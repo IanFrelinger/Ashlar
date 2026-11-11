@@ -21,8 +21,8 @@
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 859,
-    "declared_facts": 5730,
-    "workflows": 68
+    "declared_facts": 5740,
+    "workflows": 69
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -3022,7 +3022,7 @@
       "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/PolicyCommandTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 18,
+      "declared_facts": 19,
       "in_cert_gate_filter": false
     },
     {
@@ -7985,7 +7985,7 @@
       "file": "src/Ashlar.Tests.Kernel/AdmissionGateTests.cs",
       "project": "Ashlar.Tests.Kernel",
       "namespace": "Ashlar.Tests.Kernel",
-      "declared_facts": 16,
+      "declared_facts": 22,
       "in_cert_gate_filter": false
     },
     {
@@ -8090,7 +8090,7 @@
       "file": "src/Ashlar.Tests.Kernel/ManifestContractTests.cs",
       "project": "Ashlar.Tests.Kernel",
       "namespace": "Ashlar.Tests.Kernel",
-      "declared_facts": 19,
+      "declared_facts": 22,
       "in_cert_gate_filter": false
     },
     {
@@ -9149,6 +9149,14 @@
       "name": "perf-gate",
       "triggers": [
         "push",
+        "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/policy-budget-regression.yml",
+      "name": "Policy budget regressions",
+      "triggers": [
+        "pull_request",
         "workflow_dispatch"
       ]
     },

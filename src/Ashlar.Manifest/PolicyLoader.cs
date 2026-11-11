@@ -1,4 +1,5 @@
 using Ashlar.Abstractions.Security;
+using Ashlar.Manifest.Admission;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -139,10 +140,22 @@ public static class PolicyLoader
             return false;
         }
 
+        if (parsed.SelfExtend is null)
+        {
+            reason = "REJECTED: selfExtend must be a mapping, not null.";
+            return false;
+        }
+
         if (!SelfExtendMode.All.Contains(parsed.SelfExtend.Mode, StringComparer.Ordinal))
         {
             reason = $"REJECTED: unknown selfExtend.mode '{parsed.SelfExtend.Mode}'; expected one of "
                    + string.Join(", ", SelfExtendMode.All) + ".";
+            return false;
+        }
+
+        if (!AdmissionGate.TryValidateBudget(parsed.SelfExtend.Budget, out var budgetReason))
+        {
+            reason = "REJECTED: " + budgetReason;
             return false;
         }
 
