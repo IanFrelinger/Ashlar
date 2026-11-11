@@ -12,6 +12,7 @@ namespace Ashlar.Tests.CLI.Tests.Commands;
 /// preserves the rest of the policy, validates the result before writing (fail-closed), and refuses
 /// anything that would widen the governance floor.
 /// </summary>
+[Collection("MeshIntegration")]
 public sealed class PolicyCommandTests : IDisposable
 {
     private readonly string _dir;
