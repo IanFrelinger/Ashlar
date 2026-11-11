@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Ashlar.CLI.Output;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Core.Application.Adaptation.Ports;
 using Ashlar.Core.Application.Mesh;
@@ -352,12 +353,19 @@ public sealed class MeshCommand : Command
             try { trusted = Ashlar.Manifest.Signing.OperatorKey.IsSignerTrusted(p.Fingerprint, Array.Empty<string>()); }
             catch { trusted = false; }
             var age = now - p.LastSeenUtc;
-            // Defense-in-depth: strip control characters before printing an untrusted, network-sourced
-            // name to the terminal — a beacon field must never inject escape sequences or fake rows.
-            var safeName = new string((p.Name ?? string.Empty).Where(c => !char.IsControl(c)).ToArray());
+            // Every string on this row came off the network (name, fingerprint) or out of a state file
+            // anyone with the operator's write access can edit, so all of it goes through the ONE
+            // escaper. This used to be a hand-rolled `char.IsControl` filter, which is Cc only: it let
+            // the bidi overrides and isolates through (U+202E reached the terminal intact), and so
+            // could reorder a row into reading as a different peer. That drift is exactly what
+            // UntrustedText exists to prevent (#492). Escaped, not stripped, so a hostile name stays
+            // visibly hostile; the name is bounded to the beacon's own length cap.
+            var safeName = UntrustedText.ForConsole(p.Name, Ashlar.CLI.Commands.BackgroundAgent.MeshBeacon.MaxNameLength);
+            var safeFingerprint = UntrustedText.ForConsole(p.Fingerprint, UntrustedText.ComponentMaxChars);
+            var safeAddress = UntrustedText.ForConsole(p.Address, UntrustedText.ComponentMaxChars);
             stdout.WriteLine(
-                $"  {safeName,-20} {p.Fingerprint,-26} {p.Address}:{p.Port,-6} seen {Math.Max(0, (int)age.TotalSeconds)}s ago"
-                + (trusted ? "  [keychain-trusted]" : "  [not trusted — `ashlar keys trust " + p.Fingerprint + "`]"));
+                $"  {safeName,-20} {safeFingerprint,-26} {safeAddress}:{p.Port,-6} seen {Math.Max(0, (int)age.TotalSeconds)}s ago"
+                + (trusted ? "  [keychain-trusted]" : "  [not trusted — `ashlar keys trust " + safeFingerprint + "`]"));
         }
         if (peers.Count == 0)
         {

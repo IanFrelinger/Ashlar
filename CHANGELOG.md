@@ -17,6 +17,21 @@ the version on nuget.org, which is why it trails `VERSION` between releases rath
 
 ## [Unreleased]
 
+### Fixed — untrusted text on the operator's terminal (#492)
+
+- `ashlar mesh lan` now prints each peer's name, fingerprint and address through the shared
+  `UntrustedText` escaper instead of a hand-rolled `char.IsControl` filter. That filter matched only
+  Unicode category Cc, so a LAN beacon name carrying a bidi override or isolate (U+202A–U+202E,
+  U+2066–U+2069, U+200E/U+200F, U+061C) reached the terminal and could reorder the row. Terminal-
+  actionable characters, C0/C1 controls included, are now shown as U+FFFD instead of being silently
+  removed. Ordinary names, RTL scripts and emoji print unchanged. `MeshBeacon.TryParse` still accepts
+  and rejects the same beacons.
+- A symlink refusal from `pkg import`, `show`, `publish` or `pull` keeps its explanation
+  and remediation however long the link target is. The target and the leading name are each bounded to
+  256 characters (`UntrustedText.ComponentMaxChars`) before the refusal is composed. Previously only
+  the composed line was bounded, at 2,000 characters, which cut off "not a regular file" and the
+  instructions after it.
+
 ### Fixed — readiness smoke receipts
 
 - Keep native smoke evidence separately for net8.0 and net10.0 rather than overwriting each project's first TRX. Native and container smoke runs now reject missing, unreadable, empty or entirely skipped receipts immediately, preserving test failures and always-upload artifacts.
