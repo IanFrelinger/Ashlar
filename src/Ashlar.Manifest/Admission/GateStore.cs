@@ -833,6 +833,14 @@ public sealed partial class GateStore
 
     private string PathFor(string proposalId)
     {
+        ValidateProposalId(proposalId);
+        return Path.Combine(_dir, proposalId + ".json");
+    }
+
+    /// <summary>Validates an untrusted proposal id before a caller creates local state.</summary>
+    public static void ValidateProposalId(string proposalId)
+    {
+        ArgumentNullException.ThrowIfNull(proposalId);
         // ALLOWLIST, not blocklist. The old check blocked '/', '\' and '.' — and admitted
         // the entire Windows hazard alphabet: reserved names (CON, NUL), trailing dots and
         // spaces (Win32 strips them silently, so 'ext' and 'ext ' collide and append-once
@@ -855,7 +863,6 @@ public sealed partial class GateStore
                 $"Illegal proposal id '{proposalId}': a Win32 reserved device name cannot be a store filename on any OS.",
                 nameof(proposalId));
         }
-        return Path.Combine(_dir, proposalId + ".json");
     }
 
     private static readonly HashSet<string> Win32Reserved = new(StringComparer.OrdinalIgnoreCase)

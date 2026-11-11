@@ -90,28 +90,37 @@ public sealed class ChangeProposalStore : IChangeProposalStore
         return result;
     }
 
-    public ChangeProposal Add(ChangeProposal proposal)
+    public ChangeProposal Add(ChangeProposal proposal) => Add(proposal, out _);
+
+    /// <summary>Add a proposal and report whether this call published its row, even if a later
+    /// persistence-boundary failure throws. False means this call never owned the proposal id.</summary>
+    public ChangeProposal Add(ChangeProposal proposal, out bool published)
     {
-        ArgumentNullException.ThrowIfNull(proposal);
-        ValidateId(proposal.Id);
-        return WithStoreLock(() =>
+        var committed = false;
+        try
         {
-            // Existence is ownership even when JSON is corrupt. An I/O error is not a collision.
-            foreach (var status in Enum.GetValues<ChangeProposalStatus>())
-                if (Exists(PathFor(proposal.Id, status)))
-                    throw new InvalidOperationException(
-                        $"Proposal '{proposal.Id}' already exists ({status}). Ids are append-once "
-                        + "across every status — propose under a new id.");
-            var stamped = proposal with
+            ArgumentNullException.ThrowIfNull(proposal);
+            ValidateId(proposal.Id);
+            return WithStoreLock(() =>
             {
-                Status = ChangeProposalStatus.Proposed,
-                CreatedAt = proposal.CreatedAt == default ? DateTimeOffset.UtcNow : proposal.CreatedAt,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
-            ValidateProposal(stamped);
-            WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, "add");
-            return stamped;
-        });
+                // Existence is ownership even when JSON is corrupt. An I/O error is not a collision.
+                foreach (var status in Enum.GetValues<ChangeProposalStatus>())
+                    if (Exists(PathFor(proposal.Id, status)))
+                        throw new InvalidOperationException(
+                            $"Proposal '{proposal.Id}' already exists ({status}). Ids are append-once "
+                            + "across every status — propose under a new id.");
+                var stamped = proposal with
+                {
+                    Status = ChangeProposalStatus.Proposed,
+                    CreatedAt = proposal.CreatedAt == default ? DateTimeOffset.UtcNow : proposal.CreatedAt,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                ValidateProposal(stamped);
+                WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, "add", () => committed = true);
+                return stamped;
+            });
+        }
+        finally { published = committed; }
     }
 
     public ChangeProposal Approve(string id, string? approver = null, string? note = null)
@@ -216,7 +225,7 @@ public sealed class ChangeProposalStore : IChangeProposalStore
         (from == ChangeProposalStatus.Proposed && to is ChangeProposalStatus.Approved or ChangeProposalStatus.Rejected or ChangeProposalStatus.Stale)
         || (from == ChangeProposalStatus.Approved && to is ChangeProposalStatus.Applied or ChangeProposalStatus.Stale);
 
-    private void WriteAtomic<T>(string destination, T value, string operation)
+    private void WriteAtomic<T>(string destination, T value, string operation, Action? onPublished = null)
     {
         var temp = Path.Combine(Path.GetDirectoryName(destination)!, ".tmp-" + Guid.NewGuid().ToString("N"));
         try
@@ -230,6 +239,7 @@ public sealed class ChangeProposalStore : IChangeProposalStore
             }
             // No overwrite: only one complete value may own any published destination.
             File.Move(temp, destination);
+            onPublished?.Invoke();
             _fault?.Invoke(operation + ".published");
         }
         finally

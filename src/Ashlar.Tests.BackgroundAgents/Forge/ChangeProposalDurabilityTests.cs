@@ -119,6 +119,49 @@ public sealed class ChangeProposalDurabilityTests : IDisposable
         Open().Find("p")!.ResolutionNote.Should().Be("expired");
     }
 
+    [Theory]
+    [InlineData("lock.opening")]
+    [InlineData("add.writing")]
+    [InlineData("add.flushed")]
+    public void Add_reports_no_ownership_before_publication(string boundary)
+    {
+        var store = Open(stage => { if (stage == boundary) throw new IOException("interruption"); });
+        var published = true;
+        Action add = () => store.Add(Proposal(), out published);
+        add.Should().Throw<IOException>();
+        published.Should().BeFalse();
+        Open().Find("p").Should().BeNull();
+    }
+
+    [Fact]
+    public void Add_reports_no_ownership_of_a_duplicate_row()
+    {
+        Open().Add(Proposal());
+        var before = File.ReadAllBytes(Row());
+        var published = true;
+        Action add = () => Open().Add(Proposal() with { NewContent = "replacement" }, out published);
+        add.Should().Throw<InvalidOperationException>();
+        published.Should().BeFalse();
+        File.ReadAllBytes(Row()).Should().Equal(before);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Add_reports_ownership_after_publication_even_when_returning_fails(bool failAfterPublication)
+    {
+        var store = Open(stage =>
+        {
+            if (failAfterPublication && stage == "add.published") throw new IOException("interruption");
+        });
+        var published = false;
+        Action add = () => store.Add(Proposal(), out published);
+        if (failAfterPublication) add.Should().Throw<IOException>();
+        else add.Should().NotThrow();
+        published.Should().BeTrue();
+        Open().Find("p")!.NewContent.Should().Be("new content");
+    }
+
     [Fact]
     public void Interrupted_add_publishes_a_complete_append_once_row()
     {

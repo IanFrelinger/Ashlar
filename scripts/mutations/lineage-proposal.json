@@ -104,8 +104,8 @@
       "filter": "FullyQualifiedName~ChangeProposalDurabilityTests",
       "file": "src/Ashlar.BackgroundAgents/Forge/ChangeProposalStore.cs",
       "id": "proposal-io-misclassified",
-      "old": "            WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, \"add\");",
-      "new": "            try { WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, \"add\"); }\n            catch (IOException) { throw new InvalidOperationException(\"Proposal already exists\"); }",
+      "old": "                WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, \"add\", () => committed = true);",
+      "new": "                try { WriteAtomic(PathFor(stamped.Id, stamped.Status), stamped, \"add\", () => committed = true); }\n                catch (IOException) { throw new InvalidOperationException(\"Proposal already exists\"); }",
       "expected_failures": [
         "Failed_add_does_not_publish_partial_json_or_misreport_collision"
       ]

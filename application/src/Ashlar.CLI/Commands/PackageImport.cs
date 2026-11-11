@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+using Ashlar.CLI.Packaging;
 using Ashlar.BackgroundAgents.Forge;
 using Ashlar.BackgroundAgents.HostRunners;
 using Ashlar.Manifest;
@@ -24,9 +27,12 @@ public enum PackageAdmission
     /// envelope) — nothing on disk.</summary>
     Rejected,
 
-    /// <summary>Its verdict id is already recorded at this gate — a re-pull of something already
-    /// decided here. Nothing is parked or changed (append-once history is not re-opened).</summary>
+    /// <summary>The same verified package seal and signer are already recorded at this gate —
+    /// a re-pull of something already decided here. Nothing is parked or changed (append-once history is not re-opened).</summary>
     AlreadyImported,
+
+    /// <summary>The receiving node failed while processing the package. This is not a policy verdict.</summary>
+    Failed,
 }
 
 /// <summary>The outcome of submitting one package, transport-agnostic. <see cref="Warning"/> is
@@ -54,72 +60,108 @@ public sealed record PackageImportResult(
 /// </summary>
 public static class PackageImport
 {
-    public static async Task<PackageImportResult> SubmitAsync(string projectDir, string packageJson)
+    public static Task<PackageImportResult> SubmitAsync(string projectDir, string packageJson)
+        => SubmitAsync(projectDir, packageJson, () => "pkg-" + Guid.NewGuid().ToString("N")[..12]);
+
+    // Deterministic id seam for collision ownership tests, never configured by package input.
+    internal static async Task<PackageImportResult> SubmitAsync(string projectDir, string packageJson,
+        Func<string> nextForgeId)
     {
         if (!ExtensionPackaging.TryOpen(packageJson, out var pkg, out var reason))
         {
             return new(PackageAdmission.Refused, reason, null, null, []);
         }
 
-        var policyPath = Path.Combine(projectDir, "ashlar.policy.yaml");
-        if (!File.Exists(policyPath))
-        {
-            return new(PackageAdmission.Refused, "not an ashlar project (no ashlar.policy.yaml)", pkg, null, []);
-        }
-        if (!PolicyLoader.TryLoad(await File.ReadAllTextAsync(policyPath), out var policy, out var policyReason))
-        {
-            return new(PackageAdmission.Refused, policyReason, pkg, null, []);
-        }
-
-        // TRUST ROOT (Phase 3): a package sealed by a key this project does not trust never parks
-        // anything — the refusal comes BEFORE the forge queue, so a stranger cannot fill the disk by
-        // spamming pulls, and `× REFUSED` names the fingerprint to trust. The check is the sealer's
-        // fingerprint against the project policy's trustedSigners UNION the operator's local peers
-        // keychain (`ashlar keys trust <fp>`). Empty trust set ⇒ every import refused (fail-closed).
-        var sealer = Fingerprint(pkg!.SealSigner);
-        if (!OperatorKey.IsSignerTrusted(sealer, policy!.SelfExtend.TrustedSigners))
-        {
-            return new(PackageAdmission.Refused,
-                $"sealed by {sealer}, which is not a trusted signer. Read the fingerprint off the origin "
-                + "box's `ashlar keys show`, then `ashlar keys trust " + sealer + "` here — or list it under "
-                + "selfExtend.trustedSigners in ashlar.policy.yaml.",
-                pkg, null, []);
-        }
-
-        var forge = AshlarProjectMediation.ProjectStore(projectDir);
-        var store = new GateStore(Path.Combine(projectDir, ".ashlar"), OperatorKey.TryLoad());
-        // Declared out here so the catch can clean up anything parked before a failure — otherwise
-        // a routine re-pull (which parks fresh proposals, then hits append-once at ProposeAsync)
-        // would orphan them in the forge queue, accumulating without bound.
+        ChangeProposalStore? forge = null;
         var localForgeIds = new List<string>();
+        string? recordedId = null;
+        ProposalState? recordedState = null;
         try
         {
-            // A re-pull of something already decided at this gate is not re-opened — append-once
-            // history stands. Skip WITHOUT parking, so nothing accumulates across repeated pulls.
-            if (await store.GetAsync(pkg!.Record.Proposal.Id) is not null)
+            var policyPath = Path.Combine(projectDir, "ashlar.policy.yaml");
+            if (!File.Exists(policyPath))
             {
-                return new(PackageAdmission.AlreadyImported,
-                    $"already decided at this gate under id '{pkg.Record.Proposal.Id}'", pkg, pkg.Record.Proposal.Id, []);
+                return new(PackageAdmission.Refused, "not an ashlar project (no ashlar.policy.yaml)", pkg, null, []);
+            }
+            if (!PolicyLoader.TryLoad(await File.ReadAllTextAsync(policyPath), out var policy, out var policyReason))
+            {
+                return new(PackageAdmission.Refused, policyReason, pkg, null, []);
+            }
+
+            // TRUST ROOT (Phase 3): a package sealed by a key this project does not trust never parks
+            // anything — the refusal comes BEFORE the forge queue, so a stranger cannot fill the disk by
+            // spamming pulls, and `× REFUSED` names the fingerprint to trust. The check is the sealer's
+            // fingerprint against the project policy's trustedSigners UNION the operator's local peers
+            // keychain (`ashlar keys trust <fp>`). Empty trust set ⇒ every import refused (fail-closed).
+            var sealer = Fingerprint(pkg!.SealSigner);
+            if (!OperatorKey.IsSignerTrusted(sealer, policy!.SelfExtend.TrustedSigners))
+            {
+                return new(PackageAdmission.Refused,
+                    $"sealed by {sealer}, which is not a trusted signer. Read the fingerprint off the origin "
+                    + "box's `ashlar keys show`, then `ashlar keys trust " + sealer + "` here — or list it under "
+                    + "selfExtend.trustedSigners in ashlar.policy.yaml.",
+                    pkg, null, []);
+            }
+
+            // Trust remains the first refusal for an untrusted sender. Validate the id before
+            // creating any receiver state, so a package naming CON or a path is not a node fault.
+            try { GateStore.ValidateProposalId(pkg.Record.Proposal.Id); }
+            catch (ArgumentException ex) { return new(PackageAdmission.Refused, ex.Message, pkg, null, []); }
+
+            forge = AshlarProjectMediation.ProjectStore(projectDir);
+            var store = new GateStore(Path.Combine(projectDir, ".ashlar"), OperatorKey.TryLoad());
+            // Only a receipt for this exact sealed package proves a re-import. Author-chosen ids
+            // alone cannot distinguish independent origins or changed files from the same origin.
+            if (await store.GetAsync(pkg!.Record.Proposal.Id) is { } existing)
+            {
+                var receipt = await ReadReceiptAsync(projectDir, existing.Proposal);
+                if (receipt?.Seal == pkg.Seal && receipt?.Signer == pkg.SealSigner)
+                {
+                    return new(PackageAdmission.AlreadyImported,
+                        $"already decided at this gate under id '{pkg.Record.Proposal.Id}'", pkg, pkg.Record.Proposal.Id, []);
+                }
+
+                var previousOrigin = receipt is not null
+                    ? Fingerprint(receipt.Signer) : "unknown (local or legacy record)";
+                return new(PackageAdmission.Refused,
+                    $"proposal id '{pkg.Record.Proposal.Id}' collides: recorded origin {previousOrigin}; "
+                    + $"incoming origin {sealer}. The recorded package is different or cannot be identified; use a new proposal id.",
+                    pkg, null, []);
             }
 
             // Park the files as LOCAL forge proposals — nothing touches the tree until THIS gate
             // admits. Propose → hold → apply holds for remote code exactly as for a local cycle.
             foreach (var pf in pkg.Files)
             {
-                var parked = forge.Add(new ChangeProposal
+                var localId = nextForgeId();
+                var published = false;
+                try
                 {
-                    Id = "pkg-" + Guid.NewGuid().ToString("N")[..12],
-                    TargetPath = pf.Path.Replace('\\', '/'),
-                    NewContent = pf.Content,
-                    Summary = $"imported: {pkg.Record.Proposal.Summary}",
-                    Reason = $"package sealed by {Fingerprint(pkg.SealSigner)}",
-                    CreatedAt = DateTimeOffset.UtcNow,
-                });
-                localForgeIds.Add(parked.Id);
+                    forge.Add(new ChangeProposal
+                    {
+                        Id = localId,
+                        TargetPath = pf.Path.Replace('\\', '/'),
+                        NewContent = pf.Content,
+                        Summary = $"imported: {pkg.Record.Proposal.Summary}",
+                        Reason = $"package sealed by {Fingerprint(pkg.SealSigner)}",
+                        CreatedAt = DateTimeOffset.UtcNow,
+                    }, out published);
+                }
+                finally
+                {
+                    // A collision or pre-write error owns nothing. A post-publication error
+                    // still owns its row and must include it in this attempt's abort cleanup.
+                    if (published) localForgeIds.Add(localId);
+                }
             }
 
             var proposal = pkg.Record.Proposal with { ForgeProposalIds = localForgeIds };
             var record = await store.ProposeAsync(policy!, proposal, DateTimeOffset.UtcNow);
+            recordedId = record.Proposal.Id;
+            recordedState = record.State;
+            // Receiver-only metadata stays outside the signed package wire schema. A crash before
+            // the atomic receipt write leaves an unknown collision, never a false duplicate.
+            await WriteReceiptAsync(projectDir, record.Proposal, pkg);
 
             switch (record.State)
             {
@@ -145,15 +187,82 @@ public static class PackageImport
                     return new(PackageAdmission.Rejected, record.Reason, pkg, record.Proposal.Id, []);
             }
         }
-        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        catch (Exception ex)
         {
-            // Corrupt local key or store, or an unexpected propose failure. Anything parked in
-            // this attempt is rejected rather than left orphaned in the queue.
-            if (localForgeIds.Count > 0)
+            // Every failure, including I/O, timeout and cancellation, must attempt cleanup. A
+            // second failure is reported explicitly; it must not hide the original node fault.
+            var cleanupErrors = new List<string>();
+            // Once a durable held/admitted decision owns the rows, preserve them for review or
+            // recovery. Only rows with no owning decision (or a rejection) need abort cleanup.
+            if (forge is not null && recordedState is not (ProposalState.Held or ProposalState.Admitted))
             {
-                ForgeApplier.RejectAll(forge, localForgeIds, "gate", "import aborted: " + ex.Message);
+                foreach (var id in localForgeIds)
+                {
+                    try { ForgeApplier.RejectAll(forge, [id], "gate", "import aborted: " + ex.Message); }
+                    catch (Exception cleanup) { cleanupErrors.Add($"{id}: {cleanup.Message}"); }
+                }
             }
-            return new(PackageAdmission.Refused, ex.Message, pkg, null, []);
+            if (ex is OperationCanceledException)
+            {
+                if (cleanupErrors.Count > 0)
+                    throw new OperationCanceledException("Import cancelled; cleanup also failed: "
+                        + string.Join("; ", cleanupErrors), ex);
+                throw;
+            }
+            var message = $"node failed while importing '{pkg!.Record.Proposal.Id}': " + ex.Message;
+            if (recordedId is not null)
+                message += $". Gate decision '{recordedId}' was recorded; inspect its apply state.";
+            if (cleanupErrors.Count > 0)
+                message += ". Cleanup also failed: " + string.Join("; ", cleanupErrors);
+            return new(PackageAdmission.Failed, message, pkg, recordedId, []);
+        }
+    }
+
+    private sealed record ImportReceipt(string ProposalSha256, string Seal, string Signer);
+
+    private static string ProposalHash(ExtensionProposal proposal) =>
+        Convert.ToHexString(SHA256.HashData(CanonicalJson.Bytes(proposal)));
+
+    private static string ReceiptPath(string projectDir, string id) =>
+        Path.Combine(projectDir, ".ashlar", "import-receipts", id + ".json");
+
+    private static async Task<ImportReceipt?> ReadReceiptAsync(string projectDir, ExtensionProposal proposal)
+    {
+        var read = await SafePackageRead.TryReadTextAsync(ReceiptPath(projectDir, proposal.Id), 4096);
+        if (!read.Ok) return null;
+        try
+        {
+            var receipt = JsonSerializer.Deserialize<ImportReceipt>(read.Text!);
+            if (receipt is null || receipt.ProposalSha256 != ProposalHash(proposal)
+                || string.IsNullOrEmpty(receipt.Seal) || string.IsNullOrEmpty(receipt.Signer)) return null;
+            // Reject malformed sidecars rather than letting their display fingerprint throw.
+            if (Convert.FromBase64String(receipt.Signer).Length != 32
+                || Convert.FromBase64String(receipt.Seal).Length != 64) return null;
+            return receipt;
+        }
+        catch (Exception ex) when (ex is JsonException or FormatException) { return null; }
+    }
+
+    private static async Task WriteReceiptAsync(string projectDir, ExtensionProposal proposal, ExtensionPackage package)
+    {
+        var path = ReceiptPath(projectDir, proposal.Id);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            var receipt = new ImportReceipt(ProposalHash(proposal), package.Seal!, package.SealSigner!);
+            await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(receipt));
+            File.Move(temporary, path); // append-once, never replace a conflicting receipt
+        }
+        catch (Exception writeError)
+        {
+            try { if (File.Exists(temporary)) File.Delete(temporary); }
+            catch (Exception cleanupError)
+            {
+                throw new AggregateException("Import receipt write and temporary-file cleanup both failed.",
+                    writeError, cleanupError);
+            }
+            throw;
         }
     }
 
