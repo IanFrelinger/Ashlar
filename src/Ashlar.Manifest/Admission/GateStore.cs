@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace Ashlar.Manifest.Admission;
 
-/// <summary>A proposal with its current state and decision history, as persisted.</summary>
+/// <summary>A proposal with its current state and latest decision, as persisted. This is not an append-only history.</summary>
 public sealed record GateRecord
 {
     /// <summary>The proposal.</summary>
@@ -421,7 +421,7 @@ public sealed partial class GateStore
             Proposal = proposal,
             State = outcome.State,
             Reason = outcome.Reason,
-            Actor = "gate",
+            Actor = GateDecisionActor.AutomaticActor,
             DecidedAt = now,
         };
         return await WriteAsync(path, record, ct).ConfigureAwait(false);
@@ -463,10 +463,8 @@ public sealed partial class GateStore
     /// </summary>
     public async Task<GateRecord> DecideAsync(string proposalId, bool admit, string actor, string reason, DateTimeOffset now, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(actor))
-        {
-            throw new ArgumentException("A decision needs an actor: the record must say who seated or refused.", nameof(actor));
-        }
+        // Reject before lock acquisition: even orphan cleanup is a persistence side effect.
+        GateDecisionActor.Validate(actor);
         if (!admit && string.IsNullOrWhiteSpace(reason))
         {
             throw new ArgumentException("A refusal requires a reason — it is recorded and fed back to the proposer.", nameof(reason));

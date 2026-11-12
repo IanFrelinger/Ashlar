@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Ashlar.CLI.Output;
 using Ashlar.Manifest;
 using Ashlar.Manifest.Admission;
 using Ashlar.Manifest.Packaging;
@@ -143,7 +144,7 @@ public sealed class GatesCommand : Command
     {
         if (!File.Exists(Path.Combine(directory.FullName, "ashlar.yaml")))
         {
-            Console.Error.WriteLine($"not an ashlar project: no ashlar.yaml in {directory.FullName}");
+            Console.Error.WriteLine($"not an ashlar project: no ashlar.yaml in {Safe(directory.FullName)}");
             return 1;
         }
 
@@ -173,13 +174,13 @@ public sealed class GatesCommand : Command
                     if (missing is not null)
                     {
                         Console.Error.WriteLine(
-                            $"REFUSED: forge proposal '{missing}' referenced by '{admit}' is missing from the forge store. "
+                            $"REFUSED: forge proposal '{Safe(missing)}' referenced by '{Safe(admit)}' is missing from the forge store. "
                             + "The proposal stays Held, nothing was decided, and nothing is on disk.");
                         return 65;
                     }
                     if (!ExtensionPackaging.VerifyFileClaims(held.Proposal, rows, out var claimReason))
                     {
-                        Console.Error.WriteLine(claimReason);
+                        Console.Error.WriteLine(Safe(claimReason));
                         Console.Error.WriteLine(
                             "  The parked rows are not the bytes this admission's signature claims — the proposal "
                             + "stays Held, nothing was decided, and nothing is on disk.");
@@ -188,8 +189,8 @@ public sealed class GatesCommand : Command
                 }
 
                 var decided = await OpenSigningStore(directory).DecideAsync(admit, admit: true, actor, reason ?? "seated after review", DateTimeOffset.UtcNow);
-                Console.WriteLine($"  {Gold("✓ seated")}  {decided.Proposal.Summary}");
-                Console.WriteLine($"  {Dim($"admitted by {decided.Actor} · recorded")}");
+                Console.WriteLine($"  {Gold("✓ seated")}  {Safe(decided.Proposal.Summary)}");
+                Console.WriteLine($"  {Dim($"admitted by {Safe(decided.Actor)} · recorded")}");
 
                 // M1 apply: seating the stone is what puts the held writes on disk. The
                 // decision is already recorded above; an apply failure is reported loudly
@@ -205,12 +206,12 @@ public sealed class GatesCommand : Command
                             LoadWritableAllowlist(directory));
                         foreach (var path in applied)
                         {
-                            Console.WriteLine($"  {Ok("✓ applied")}  {path}");
+                            Console.WriteLine($"  {Ok("✓ applied")}  {Safe(path)}");
                         }
                     }
                     catch (InvalidOperationException ex)
                     {
-                        Console.Error.WriteLine($"  APPLY FAILED — the admission is recorded but the writes are NOT on disk: {ex.Message}");
+                        Console.Error.WriteLine($"  APPLY FAILED — the admission is recorded but the writes are NOT on disk: {Safe(ex.Message)}");
                         return 1;
                     }
                 }
@@ -219,8 +220,8 @@ public sealed class GatesCommand : Command
             if (refuse is not null)
             {
                 var decided = await OpenSigningStore(directory).DecideAsync(refuse, admit: false, actor, reason ?? string.Empty, DateTimeOffset.UtcNow);
-                Console.WriteLine($"  {Clay("! refused")}  {decided.Proposal.Summary}");
-                Console.WriteLine($"  {Dim($"reason recorded and fed back: {decided.Reason}")}");
+                Console.WriteLine($"  {Clay("! refused")}  {Safe(decided.Proposal.Summary)}");
+                Console.WriteLine($"  {Dim($"reason recorded and fed back: {Safe(decided.Reason)}")}");
 
                 // The refusal rejects the parked writes too — no orphaned pending work.
                 if (decided.Proposal.ForgeProposalIds.Count > 0)
@@ -243,7 +244,7 @@ public sealed class GatesCommand : Command
             // The kernel's rules speaking (only Held can be decided; refusals need reasons;
             // unknown ids) — or store I/O failing (an unreadable .ashlar or forge tree while
             // pre-flighting claims). Their wording is the contract; pass it through.
-            Console.Error.WriteLine(ex.Message);
+            Console.Error.WriteLine(Safe(ex.Message));
             return 1;
         }
     }
@@ -253,12 +254,12 @@ public sealed class GatesCommand : Command
         var policyPath = Path.Combine(directory.FullName, "ashlar.policy.yaml");
         if (!File.Exists(policyPath))
         {
-            Console.Error.WriteLine($"not an ashlar project: no ashlar.policy.yaml in {directory.FullName}");
+            Console.Error.WriteLine($"not an ashlar project: no ashlar.policy.yaml in {Safe(directory.FullName)}");
             return 1;
         }
         if (!PolicyLoader.TryLoad(await File.ReadAllTextAsync(policyPath), out var policy, out var reason))
         {
-            Console.Error.WriteLine(reason);
+            Console.Error.WriteLine(Safe(reason));
             return 1;
         }
 
@@ -271,7 +272,7 @@ public sealed class GatesCommand : Command
         }
         catch (System.Text.Json.JsonException ex)
         {
-            Console.Error.WriteLine($"REJECTED: proposal could not be parsed: {ex.Message}");
+            Console.Error.WriteLine($"REJECTED: proposal could not be parsed: {Safe(ex.Message)}");
             return 1;
         }
         if (proposal is null)
@@ -299,7 +300,7 @@ public sealed class GatesCommand : Command
                     if (row is null)
                     {
                         Console.Error.WriteLine(
-                            $"REJECTED: forge proposal '{id}' is not in the store — park the write first, then propose. "
+                            $"REJECTED: forge proposal '{Safe(id)}' is not in the store — park the write first, then propose. "
                             + "A record that referenced missing content would sign a claim over nothing, and records are append-once.");
                         return 1;
                     }
@@ -318,7 +319,7 @@ public sealed class GatesCommand : Command
                 {
                     // A file that authors its own claims must author them TRUE: signing claims
                     // the parked rows already fail would mint a permanently unexportable record.
-                    Console.Error.WriteLine("REJECTED: the proposal's own file claims do not match the parked rows. " + claimReason);
+                    Console.Error.WriteLine("REJECTED: the proposal's own file claims do not match the parked rows. " + Safe(claimReason));
                     return 1;
                 }
             }
@@ -337,15 +338,15 @@ public sealed class GatesCommand : Command
             // operator key refusing to sign, or forge-store I/O failing (an unreadable or
             // read-only .ashlar while resolving the referenced rows). Their wording is the
             // contract; pass it through as the command's clean refusal shape.
-            Console.Error.WriteLine(ex.Message);
+            Console.Error.WriteLine(Safe(ex.Message));
             return 1;
         }
 
         var line = record.State switch
         {
-            ProposalState.Held => Clay($"! HELD — {record.Reason}"),
-            ProposalState.Admitted => Gold($"✓ ADMITTED — {record.Reason}"),
-            _ => Bad($"× REJECTED — {record.Reason}"),
+            ProposalState.Held => Clay($"! HELD — {Safe(record.Reason)}"),
+            ProposalState.Admitted => Gold($"✓ ADMITTED — {Safe(record.Reason)}"),
+            _ => Bad($"× REJECTED — {Safe(record.Reason)}"),
         };
         Console.WriteLine($"  {line}");
         return record.State == ProposalState.Rejected ? 65 : 0;
@@ -355,7 +356,7 @@ public sealed class GatesCommand : Command
     {
         if (!File.Exists(Path.Combine(directory.FullName, "ashlar.yaml")))
         {
-            Console.Error.WriteLine($"not an ashlar project: no ashlar.yaml in {directory.FullName}");
+            Console.Error.WriteLine($"not an ashlar project: no ashlar.yaml in {Safe(directory.FullName)}");
             return 1;
         }
 
@@ -399,7 +400,7 @@ public sealed class GatesCommand : Command
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IOException or UnauthorizedAccessException)
         {
             // A corrupt operator key, a corrupt marker already on disk, or an unwritable .ashlar.
-            Console.Error.WriteLine(ex.Message);
+            Console.Error.WriteLine(Safe(ex.Message));
             return 1;
         }
     }
@@ -447,7 +448,7 @@ public sealed class GatesCommand : Command
         }
         if (trust.Expected)
         {
-            Console.WriteLine($"  {Dim($"signing: expected — {trust.Basis}")}");
+            Console.WriteLine($"  {Dim($"signing: expected — {Safe(trust.Basis)}")}");
         }
         else if (trust.TrustedSigners.Count > 0)
         {
@@ -455,7 +456,7 @@ public sealed class GatesCommand : Command
         }
         else
         {
-            Console.WriteLine($"  {Dim($"signing: not expected — {trust.Basis}")}");
+            Console.WriteLine($"  {Dim($"signing: not expected — {Safe(trust.Basis)}")}");
         }
     }
 
@@ -480,8 +481,8 @@ public sealed class GatesCommand : Command
         Console.WriteLine();
         foreach (var r in held)
         {
-            Console.WriteLine($"  {Clay("!")} {r.Proposal.Id,-12} {r.Proposal.Summary}");
-            Console.WriteLine($"    {Dim($"by {r.Proposal.ProposedBy} · {r.Proposal.ProposedAt:HH:mm 'UTC'} · {Signature(r)} · {r.Reason}")}");
+            Console.WriteLine($"  {Clay("!")} {Safe(r.Proposal.Id),-12} {Safe(r.Proposal.Summary)}");
+            Console.WriteLine($"    {Dim($"by {Safe(r.Proposal.ProposedBy)} · {r.Proposal.ProposedAt:HH:mm 'UTC'} · {Signature(r)} · {Safe(r.Reason)}")}");
         }
         Console.WriteLine();
         Console.WriteLine($"  {Dim("inspect:")} ashlar gates --show <id>   {Dim("seat:")} ashlar gates --admit <id>");
@@ -493,41 +494,57 @@ public sealed class GatesCommand : Command
         var r = await store.GetAsync(id);
         if (r is null)
         {
-            Console.Error.WriteLine($"no proposal '{id}' in the store.");
+            Console.Error.WriteLine($"no proposal '{Safe(id)}' in the store.");
             return 1;
         }
 
         RenderTrust(store.SignatureTrust);
         Console.WriteLine();
-        Console.WriteLine($"  {r.Proposal.Summary}");
+        Console.WriteLine($"  {Safe(r.Proposal.Summary)}");
         Console.WriteLine($"  {Dim(Signature(r))}");
-        Console.WriteLine($"  {Dim($"{r.Proposal.Id} · kind {r.Proposal.Kind} · by {r.Proposal.ProposedBy} · {r.Proposal.ProposedAt:u}")}");
+        Console.WriteLine($"  {Dim($"{Safe(r.Proposal.Id)} · kind {Safe(r.Proposal.Kind)} · by {Safe(r.Proposal.ProposedBy)} · {r.Proposal.ProposedAt:u}")}");
         Console.WriteLine();
         foreach (var c in r.Proposal.Courses)
         {
             var glyph = c.Passed ? Ok("✓") : Bad("×");
-            Console.WriteLine($"  {glyph} {c.Name,-12} {Dim(c.Detail)}");
+            Console.WriteLine($"  {glyph} {Safe(c.Name),-12} {Dim(Safe(c.Detail))}");
         }
         Console.WriteLine();
         var state = r.State switch
         {
-            ProposalState.Held => Clay($"! HELD — {r.Reason}"),
-            ProposalState.Admitted => Gold($"✓ ADMITTED by {r.Actor}"),
-            ProposalState.Refused => Dim($"REFUSED by {r.Actor}: {r.Reason}"),
-            _ => Bad($"× REJECTED — {r.Reason}"),
+            ProposalState.Held => Clay($"! HELD — {Safe(r.Reason)}"),
+            ProposalState.Admitted => Gold($"✓ ADMITTED by {Safe(r.Actor)}"),
+            ProposalState.Refused => Dim($"REFUSED by {Safe(r.Actor)}: {Safe(r.Reason)}"),
+            _ => Bad($"× REJECTED — {Safe(r.Reason)}"),
         };
         Console.WriteLine($"  {state}");
         if (!string.IsNullOrWhiteSpace(r.Proposal.Diff))
         {
             Console.WriteLine();
             Console.WriteLine($"  {Dim("change:")}");
-            foreach (var line in r.Proposal.Diff.Split('\n'))
-            {
-                Console.WriteLine($"    {Dim(line.TrimEnd())}");
-            }
+            RenderDiff(r.Proposal.Diff);
         }
         return 0;
     }
+
+    // Diff newlines are intentional structure; field newlines above are not. Bound before
+    // splitting, then escape each physical line without altering the persisted/signed diff.
+    private const int MaxDiffChars = 8000;
+    private const int MaxDiffLines = 80;
+
+    private static void RenderDiff(string diff)
+    {
+        var length = Math.Min(diff.Length, MaxDiffChars);
+        if (length < diff.Length && length > 0 && char.IsHighSurrogate(diff[length - 1]))
+            length--;
+        var lines = diff[..length].Split('\n');
+        foreach (var line in lines.Take(MaxDiffLines))
+            Console.WriteLine($"    {Dim(Safe(line.TrimEnd('\r')))}");
+        if (length < diff.Length || lines.Length > MaxDiffLines)
+            Console.WriteLine($"    {Dim($"… [truncated: {diff.Length:N0} characters; limits {MaxDiffChars:N0} characters / {MaxDiffLines} lines]")}");
+    }
+
+    private static string Safe(string? value) => UntrustedText.ForConsole(value);
 
     // Same colour discipline as VerifyCommand: gold for a seated stone only.
     private static readonly bool Color =

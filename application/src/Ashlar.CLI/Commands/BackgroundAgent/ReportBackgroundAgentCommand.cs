@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Ashlar.BackgroundAgents.Telemetry;
+using Ashlar.CLI.Output;
 using Ashlar.Manifest.Admission;
 using Ashlar.Manifest.Signing;
 
@@ -110,10 +111,10 @@ public class ReportBackgroundAgentCommand
             }
 
             stdout.WriteLine();
-            stdout.WriteLine($"Admissions ({Path.Combine(projectRoot, ".ashlar", "gates")})");
+            stdout.WriteLine($"Admissions ({UntrustedText.ForConsole(Path.Combine(projectRoot, ".ashlar", "gates"), UntrustedText.ComponentMaxChars)})");
             if (gates.Error is not null)
             {
-                stdout.WriteLine($"  {gates.Error}");
+                stdout.WriteLine($"  {UntrustedText.ForConsole(gates.Error)}");
             }
             else if (gates.Held + gates.Admitted + gates.Rejected == 0)
             {
@@ -124,7 +125,7 @@ public class ReportBackgroundAgentCommand
                 stdout.WriteLine($"  {gates.Held} held (awaiting review), {gates.Admitted} admitted, {gates.Rejected} rejected.");
                 foreach (var (id, reason) in gates.RecentRejections)
                 {
-                    stdout.WriteLine($"    rejected {id}: {Truncate(reason, 100)}");
+                    stdout.WriteLine($"    rejected {UntrustedText.ForConsole(id, UntrustedText.ComponentMaxChars)}: {UntrustedText.ForConsole(reason, 100)}");
                 }
                 if (gates.Admitted > 0)
                 {
@@ -141,7 +142,7 @@ public class ReportBackgroundAgentCommand
             if (formatJson)
                 stdout.WriteLine(JsonSerializer.Serialize(new { ok = false, error = ex.Message }));
             else
-                stderr.WriteLine(ex.Message);
+                stderr.WriteLine(UntrustedText.ForConsole(ex.Message));
             return 1;
         }
     }
