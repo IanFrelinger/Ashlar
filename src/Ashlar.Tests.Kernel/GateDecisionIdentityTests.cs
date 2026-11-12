@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Ashlar.Manifest;
 using Ashlar.Manifest.Admission;
 using Ashlar.Manifest.Signing;
 using FluentAssertions;

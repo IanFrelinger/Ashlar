@@ -60,9 +60,17 @@ public sealed class GateDecisionDisplaySecurityTests : IDisposable
         if (signed)
         {
             var signer = OperatorKey.Generate();
+            // A normal signed store has a marker before its first signed record. Without it,
+            // a later human decision correctly refuses marker deletion before reaching display.
+            // Activate while EMPTY, then plant the historical bytes directly: old invalid actors
+            // must bypass new-input validation while retaining this store's signed identity.
+            var activation = await new GateStore(StateRoot, signer).ActivateSigningAsync(Now.AddMinutes(-1));
+            record = record with { StoreId = activation.Marker.StoreId };
             record = record with { Sig = signer.Sign(CanonicalJson.Bytes(record)), Signer = signer.PublicKeyBase64 };
         }
         await File.WriteAllTextAsync(RecordPath, JsonSerializer.Serialize(record, Json));
+        var persisted = await new GateStore(StateRoot).GetAsync(record.Proposal.Id);
+        persisted.Should().BeEquivalentTo(record, "the historical fixture must verify before exercising a renderer");
         return record;
     }
 
