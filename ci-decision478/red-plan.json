@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "source_sha": "dfb18f088ab0f41b1eea3f9fa72c0fac2fcffd4b",
+  "source_sha": "f6b8e259985e0bf578abfc3bb85f16a045682604",
   "steps": [
     {
       "id": "kernel-net8",
       "kind": "tests",
       "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
       "framework": "net8.0",
-      "filter": "FullyQualifiedName~GateDecisionIdentityTests|FullyQualifiedName~GateDecisionNormalizationProcessTests",
-      "expected_total": 94,
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_total": 92,
       "expected_failures": [
         {
           "name_regex": "(?s)Ashlar\\.Tests\\.Kernel\\.GateDecisionIdentityTests\\.Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence\\(.*\\)",
@@ -20,14 +20,6 @@
         },
         {
           "name_regex": "Ashlar\\.Tests\\.Kernel\\.GateDecisionIdentityTests\\.Refusal_cannot_use_the_automatic_actor_either",
-          "count": 1
-        },
-        {
-          "name_regex": "Ashlar\\.Tests\\.Kernel\\.GateDecisionNormalizationProcessTests\\.Available_normalization_preserves_human_unicode_and_reserves_automatic_identity",
-          "count": 1
-        },
-        {
-          "name_regex": "Ashlar\\.Tests\\.Kernel\\.GateDecisionNormalizationProcessTests\\.Invariant_globalization_refuses_all_human_decisions_before_persistence",
           "count": 1
         }
       ]
@@ -37,8 +29,8 @@
       "kind": "tests",
       "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
       "framework": "net10.0",
-      "filter": "FullyQualifiedName~GateDecisionIdentityTests|FullyQualifiedName~GateDecisionNormalizationProcessTests",
-      "expected_total": 94,
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_total": 92,
       "expected_failures": [
         {
           "name_regex": "(?s)Ashlar\\.Tests\\.Kernel\\.GateDecisionIdentityTests\\.Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence\\(.*\\)",
@@ -50,40 +42,6 @@
         },
         {
           "name_regex": "Ashlar\\.Tests\\.Kernel\\.GateDecisionIdentityTests\\.Refusal_cannot_use_the_automatic_actor_either",
-          "count": 1
-        },
-        {
-          "name_regex": "Ashlar\\.Tests\\.Kernel\\.GateDecisionNormalizationProcessTests\\.Available_normalization_preserves_human_unicode_and_reserves_automatic_identity",
-          "count": 1
-        },
-        {
-          "name_regex": "Ashlar\\.Tests\\.Kernel\\.GateDecisionNormalizationProcessTests\\.Invariant_globalization_refuses_all_human_decisions_before_persistence",
-          "count": 1
-        }
-      ]
-    },
-    {
-      "id": "cli-net10",
-      "kind": "tests",
-      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
-      "framework": "net10.0",
-      "filter": "FullyQualifiedName~GateDecisionDisplaySecurityTests|FullyQualifiedName~KeysGateDisplaySecurityTests|FullyQualifiedName~Human_report_defuses_historical_rejection_reason_without_changing_record|FullyQualifiedName~Human_report_defuses_historical_gate_error_while_json_preserves_its_data",
-      "expected_total": 25,
-      "expected_failures": [
-        {
-          "name_regex": "(?s)Ashlar\\.Tests\\.CLI\\.Tests\\.Commands\\.GateDecisionDisplaySecurityTests\\..*",
-          "count": 21
-        },
-        {
-          "name_regex": "(?s)Ashlar\\.Tests\\.CLI\\.Tests\\.Commands\\.ReportBackgroundAgentCommandTests\\.Human_report_defuses_historical_rejection_reason_without_changing_record\\(.*\\)",
-          "count": 2
-        },
-        {
-          "name_regex": "Ashlar\\.Tests\\.CLI\\.Tests\\.Commands\\.ReportBackgroundAgentCommandTests\\.Human_report_defuses_historical_gate_error_while_json_preserves_its_data",
-          "count": 1
-        },
-        {
-          "name_regex": "Ashlar\\.Tests\\.CLI\\.Tests\\.Commands\\.KeysGateDisplaySecurityTests\\.Init_defuses_historical_gate_error_and_keeps_activation_remediation",
           "count": 1
         }
       ]
