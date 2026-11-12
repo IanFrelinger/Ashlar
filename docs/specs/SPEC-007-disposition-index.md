@@ -59,7 +59,7 @@ Specific cards listed under [Precedence](#precedence-specific-cards-take-priorit
 | [#802](https://github.com/IanFrelinger/Ashlar/issues/802) / [#803](https://github.com/IanFrelinger/Ashlar/issues/803) | Workflow refusal reporting | Outside this aggregate; cite those cards |
 | [#805](https://github.com/IanFrelinger/Ashlar/issues/805) | D28 Warning windowing: five repeated sites repaired in [#827](https://github.com/IanFrelinger/Ashlar/pull/827); OTLP startup is one-shot | Outside this aggregate; implementation merged as `07293a42ad5e044f97ea5d12efa8ff1d3e5ebb54` |
 | [#809](https://github.com/IanFrelinger/Ashlar/issues/809) | Five remaining 4.8b reporting / lifecycle limits | Outside this aggregate; cite #809 |
-| [#764](https://github.com/IanFrelinger/Ashlar/issues/764) | All-current-manifest mutation evidence campaign | Evidence campaign, not resolution of behaviours catalogued here |
+| [#764](https://github.com/IanFrelinger/Ashlar/issues/764) | All-current-manifest mutation evidence campaign | [2026-11-12 evidence](../../scripts/mutations/EVIDENCE.md): 295/295 cases across 8 manifests at `792446d09b59f98b47e08279907cb3d4df314caa`, followed by the nonpublishing package trust rehearsal. Evidence campaign, not resolution of behaviours catalogued here |
 
 ## Reconciliation notes
 
