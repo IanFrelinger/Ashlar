@@ -1,0 +1,780 @@
+{
+  "schema_version": 1,
+  "source_sha": "792446d09b59f98b47e08279907cb3d4df314caa",
+  "inventory_sha256": "e58877f52c21852748a89a6eea923f733484141a4af25dc3f4663954c3256aa2",
+  "reconciliation_sha256": "944dca4de3c0d87df05fba36c76108c01fb037dbfd9febae0f2fa9ffd82210ce",
+  "all295_review_sha256": "0de42fca960d3612c33366df47b3799101f5cc3aa6dfe0c905ddee2216f51b36",
+  "all295_review_file": "actual-review-all295.json",
+  "reviews": [
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s1-httpremotebrickcatalog-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is a runtime Moq verification at HttpRemoteBrickCatalogCapabilityFallbackTests:43: a non-7307 Warning was invoked once although none is permitted. Its invocation log identifies GetAllAsync's generic Failed to fetch brick catalog warning with the injected IOException private-canary and inner EgressRefusedException; the recorded production frame is HttpRemoteBrickCatalog:53. The mutation adds an empty-message prerequisite to the dedicated refusal catch at line 68, while the fixture wrapper has a nonempty message, so control reaches the generic catch at 73–76 instead of reporting through EgressRefusalWarnings. Earlier assertions passed: refused capabilities are null/nonstale, GetAllAsync returns empty, GetByIdAsync returns null, four stub calls occurred, and one 7307 warning exists. The discriminating detection is the added generic diagnostic, not a returned-data or transport failure. There are no extra failed results.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.HttpRemoteBrickCatalogCapabilityFallbackTests.Refusal_returns_empty_results_without_reusing_a_stale_manifest"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s2-httpremotebrickcatalog-catch-2",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is the same runtime no-generic-warning verification at HttpRemoteBrickCatalogCapabilityFallbackTests:43, now with the recorded warning Failed to fetch brick brick from https://remote.example/ and the GetByIdAsync production frame at line 87. The mutation disables its refusal catch at line 96 for the injected nonempty IOException private-canary, so the generic catch at 105–108 logs that wrapper. The preceding null/nonstale capability, empty list, null item, four-call and one-7307-warning assertions pass. Thus this distinct mutation is detected through the item-fetch diagnostic path even though the safe null return remains unchanged. No additional failed result needs another explanation.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.HttpRemoteBrickCatalogCapabilityFallbackTests.Refusal_returns_empty_results_without_reusing_a_stale_manifest"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s3-httpremotebrickcatalog-catch-3",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure occurs earlier in the same fixture, at HttpRemoteBrickCatalogCapabilityFallbackTests:36: refused.Capabilities should be null but is a NodeCapabilityManifestDto with NodeId node-a. The first stub response seeded that cached manifest; subsequent requests throw IOException private-canary around a refusal. Adding the nonempty-message-blocking condition to GetCapabilitiesWithStalenessAsync's refusal catch at line 152 sends the exception to the generic catch at 170–180, which selects an eligible cached snapshot rather than returning an empty CapabilitiesFetchResult. This is direct runtime evidence of forbidden stale-capability reuse after refusal. It is not merely a changed log event, and there are no other failed rows.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.HttpRemoteBrickCatalogCapabilityFallbackTests.Refusal_returns_empty_results_without_reusing_a_stale_manifest"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s4-compositebrickregistry-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure at CompositeCatalogRefusalTests:38 rejects one non-7307 Warning. The recorded invocation is Failed to get brick brick from catalog (null), carrying IOException wrapper with the nested refusal and the GetBrick production frame at CompositeBrickRegistry:48. The exact change makes the refusal catch at line 64 reject that nonempty wrapper, so the generic line-70 warning executes. Both the allowed catalog's GetBrick result and its GetAllBricks result were successfully retained before this assertion, and the one-7307-warning assertion also passed from the other still-protected path. This mutation is semantically detected as incorrect runtime refusal logging for GetBrick, not loss of available-catalog results. No extra red result is present.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.CompositeCatalogRefusalTests.Refused_catalog_does_not_hide_an_available_catalog_and_warnings_are_windowed"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s5-compositebrickregistry-catch-2",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure at CompositeCatalogRefusalTests:38 again rejects one non-7307 Warning, but its invocation is Failed to get bricks from catalog (null), with IOException wrapper and the GetAllBricks production frame at CompositeBrickRegistry:89. Disabling the line-106 refusal catch for the nonempty wrapper directs this call to the generic line-112 warning. Earlier allowed-catalog GetBrick/GetAllBricks result assertions and the single 7307 event assertion pass. The two composite mutations therefore have distinct recorded causal generic-log paths, while both retain the available catalog's results. There is no unrelated additional failure.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.CompositeCatalogRefusalTests.Refused_catalog_does_not_hide_an_available_catalog_and_warnings_are_windowed"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s6-modelartifactcatalogservice-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "Both actual failed rows are relevant runtime diagnostic assertions at ModelArtifactCatalogServiceTests:34, one with duringAvailability=True and one False. Each expected exactly one Warning event 7307 after three polls, but observed zero; each complete Moq invocation list contains three generic event-0 warnings carrying IOException wrapped and the refusal. The availability variant points to production line 53; the listing variant points to line 58. The added empty-message condition bypasses their common dedicated catch at line 64, sending both to the generic continuation catch at 72–74. The three preceding polls each retained the local model m1, so successful result preservation is already observed and the failed contract is refusal-warning classification/windowing. These two theory rows account for every red result in the four-test filter.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.ModelArtifacts.ModelArtifactCatalogServiceTests.Refused_source_preserves_other_results_and_emits_windowed_warnings(duringAvailability: True)",
+        "Ashlar.Tests.Infrastructure.Tests.ModelArtifacts.ModelArtifactCatalogServiceTests.Refused_source_preserves_other_results_and_emits_windowed_warnings(duringAvailability: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s7-remoteexecutionplatform-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is the no-non-7307-log verification at RemoteExecutionPlatformGapCoverageTests:44. Its invocation list contains event-0 Warning Remote Ashlar API is not reachable with IOException private-canary, whose production frame is IsAvailableAsync at line 43, plus one correct refusal event from the still-protected operations. The mutation disables only the availability refusal catch at line 46 for this nonempty wrapper and therefore executes the generic warning at line 53. Earlier assertions confirm availability=false, build/run success=false, their redacted messages, empty stdout, three stub calls and one event-7307 warning. The distinguishing observation is the extra generic availability diagnostic, not an attempted real remote build or container run.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Testing.RemoteExecutionPlatformGapCoverageTests.Refused_operations_return_redacted_failures_and_one_windowed_warning"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s8-remoteexecutionplatform-catch-2",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure at RemoteExecutionPlatformGapCoverageTests:36 reports build.ErrorMessage equal to private-canary instead of the redacted Egress refused by policy message. The availability=false and build.Success=false assertions already passed. The exact mutation rejects the nonempty wrapper in BuildImageAsync's refusal catch at line 80, causing its generic catch at 85–89 to return ex.Message rather than refusal.Message. This directly detects incorrect returned error redaction at the build-result surface. It is an assertion failure after a controlled handler throws the injected refusal, not an actual build failure or infrastructure exception. No additional red result is present.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Testing.RemoteExecutionPlatformGapCoverageTests.Refused_operations_return_redacted_failures_and_one_windowed_warning"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s9-remoteexecutionplatform-catch-3",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure at RemoteExecutionPlatformGapCoverageTests:39 reports run.StandardError equal to private-canary rather than the redacted Egress refused by policy message. Availability, build failure/redaction and run.Success=false assertions have already passed. Disabling the RunContainerAsync refusal catch at line 125 for the nonempty wrapper selects the generic catch at 130–134, which puts ex.Message into StandardError instead of refusal.Message. This is direct runtime output-redaction evidence specific to the run-result surface. The controlled HttpMessageHandler supplies the exception, so no real remote container operation is established by the row.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Testing.RemoteExecutionPlatformGapCoverageTests.Refused_operations_return_redacted_failures_and_one_windowed_warning"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s10-validationserviceadapter-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is the outerCatch=False theory row at ValidationServiceAdapterGapCoverageTests:55: result.TestsFailed is 1 instead of 0. Earlier result.Passed=false, TestsRun=2 and TestsPassed=2 assertions passed. The fixture parser returns two completed pass records for its first call, then throws IOException private-canary with an inner refusal on its second call. Bypassing the adapter's per-project refusal catch at line 237 routes this exception into the generic catch, which increments totalTestsFailed at line 249 instead of preserving the completed counts and recording an evidence error. This causally explains the invented failed-test count while completed run/pass counts remain two. The separate outerCatch=True row passes because it exercises the unchanged outer catch. There are no additional red failures in the two-row filter.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Validation.ValidationServiceAdapterGapCoverageTests.Refusal_preserves_completed_evidence_without_inventing_failed_tests(outerCatch: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s11-validationserviceadapter-catch-2",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual runtime failure despite the absent expected_failures field: only the outerCatch:true theory row fails at ValidationServiceAdapterGapCoverageTests line 53, with TestsRun=0 instead of 2. The exact mutation adds ex.Message.Length == 0 to the outer refusal catch at product line 287. The progress callback supplies IOException(\"private-canary\", refusal), so the mutant skips that catch and reaches the generic catch at 302, which explicitly resets TestsRun/TestsPassed/TestsFailed at 309-311. The preceding Passed=false assertion at test line 52 passes; the outerCatch:false control also passes. This directly detects loss of completed validation evidence through the outer wrapped-refusal path.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Validation.ValidationServiceAdapterGapCoverageTests.Refusal_preserves_completed_evidence_without_inventing_failed_tests(outerCatch: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s12-meshlabworkerexecutorbackgroundservice-catch-1",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual runtime warning failure: MeshLabWorkerExecutorBackgroundServiceGapCoverageTests line 41 expects one Warning/EventId 7307 but observes zero. Adding the empty-message predicate bypasses the product refusal catch at 52 for two injected HttpRequestException(\"wrapper\", refusal) polls, routing them into Debug logging at 56-58. The full actual Moq message retains both refusal-bearing Debug invocations and a third Debug invocation containing a shutdown TaskCanceledException during JSON parsing. That last invocation is context from stopping the third request, not a separate failed test or campaign timeout. The third-poll signal, service stop and calls>=3 assertion at line 40 complete before the warning failure, so continuation is observed.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.MeshLab.MeshLabWorkerExecutorBackgroundServiceGapCoverageTests.Refused_polls_warn_once_and_the_hosted_loop_continues"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s13-elasticworkloadautoscaleservice-catch-1",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual runtime diagnostic failure: AutoscaleRefusalTests line 37 expects warnings {7307}, but receives {0, 0}. The mutation bypasses the refusal catch at ElasticWorkloadAutoscaleService line 57 for two IOException(\"wrapper\", refusal) ticks, causing generic Warning logging at 65-67 instead of the refusal warning window. The third-tick signal, service stop and calls>=3 assertion at line 36 pass first. Both the warning identity/count regression and loop continuation are therefore causally observed.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Scaling.AutoscaleRefusalTests.Refused_ticks_are_windowed_and_do_not_stop_later_ticks"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s14-ollamaprovider-catch-1",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual runtime exception-identity failure: only Real_Ollama_health_refusal_survives_provider_availability_conversion(wrapped:true) fails at EgressProviderFallbackTests line 69. It expects the original EgressRefusedException object but receives ModelUnavailableException from AdaptiveProviderFactory line 59. Adding the empty-message predicate bypasses OllamaProvider.RefreshModelsAsync refusal catch 122; the wrapped HttpRequestException reaches catch 135 and becomes OLLAMA_UNREACHABLE. ProviderFactory returns ordinary unavailability at 802-803 instead of recording a refusal through exception handling at 807-812, so adaptive resolution throws ordinary model unavailability. The direct-refusal control passes because its exception is not consumed by the HTTP catch.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Real_Ollama_health_refusal_survives_provider_availability_conversion(wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s15-runpodhttpclient-catch-1",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual operation-specific runtime mismatch, not merely the shared test name: Every_RunPod_operation_preserves_refusal_as_a_distinct_failure fails its final OnlyContain predicate at RunPodHttpClientTests line 39. The reported offending error is runpod.spinup_exception, Message=\"RunPod spin up failed.\", Detail=\"wrapper\", rather than runpod.egress_refused with the original refusal message. The fixture supplies HttpRequestException(\"wrapper\", refusal) at line 26; the exact added ex.Message.Length == 0 predicate skips the SpinUpInstance refusal catch at RunPodHttpClient line 68 and reaches its generic return at 75. The SpinUpInstance call is at test line 32. All five operation calls at 32-36 complete, and calls==5 at 38 passes before the common assertion. The actual output identifies exactly this mutated operation error. PollJobStatus_MapsCancelledState_ToFailed passes in the same red run.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.RunPodHttpClientTests.Every_RunPod_operation_preserves_refusal_as_a_distinct_failure"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s16-runpodhttpclient-catch-2",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual operation-specific runtime mismatch, not merely the shared test name: Every_RunPod_operation_preserves_refusal_as_a_distinct_failure fails its final OnlyContain predicate at RunPodHttpClientTests line 39. The reported offending error is runpod.dispatch_exception, Message=\"RunPod dispatch failed.\", Detail=\"wrapper\", rather than runpod.egress_refused with the original refusal message. The fixture supplies HttpRequestException(\"wrapper\", refusal) at line 26; the exact added ex.Message.Length == 0 predicate skips the DispatchJob refusal catch at RunPodHttpClient line 118 and reaches its generic return at 125. The DispatchJob call is at test line 33. All five operation calls at 32-36 complete, and calls==5 at 38 passes before the common assertion. The actual output identifies exactly this mutated operation error. PollJobStatus_MapsCancelledState_ToFailed passes in the same red run.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.RunPodHttpClientTests.Every_RunPod_operation_preserves_refusal_as_a_distinct_failure"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s17-runpodhttpclient-catch-3",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual operation-specific runtime mismatch, not merely the shared test name: Every_RunPod_operation_preserves_refusal_as_a_distinct_failure fails its final OnlyContain predicate at RunPodHttpClientTests line 39. The reported offending error is runpod.poll_exception, Message=\"RunPod polling failed.\", Detail=\"wrapper\", rather than runpod.egress_refused with the original refusal message. The fixture supplies HttpRequestException(\"wrapper\", refusal) at line 26; the exact added ex.Message.Length == 0 predicate skips the PollJobStatus refusal catch at RunPodHttpClient line 154 and reaches its generic return at 161. The PollJobStatus call is at test line 34. All five operation calls at 32-36 complete, and calls==5 at 38 passes before the common assertion. The actual output identifies exactly this mutated operation error. PollJobStatus_MapsCancelledState_ToFailed passes in the same red run.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.RunPodHttpClientTests.Every_RunPod_operation_preserves_refusal_as_a_distinct_failure"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s18-runpodhttpclient-catch-4",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual operation-specific runtime mismatch, not merely the shared test name: Every_RunPod_operation_preserves_refusal_as_a_distinct_failure fails its final OnlyContain predicate at RunPodHttpClientTests line 39. The reported offending error is runpod.pull_exception, Message=\"RunPod result pull failed.\", Detail=\"wrapper\", rather than runpod.egress_refused with the original refusal message. The fixture supplies HttpRequestException(\"wrapper\", refusal) at line 26; the exact added ex.Message.Length == 0 predicate skips the PullResults refusal catch at RunPodHttpClient line 182 and reaches its generic return at 189. The PullResults call is at test line 35. All five operation calls at 32-36 complete, and calls==5 at 38 passes before the common assertion. The actual output identifies exactly this mutated operation error. PollJobStatus_MapsCancelledState_ToFailed passes in the same red run.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.RunPodHttpClientTests.Every_RunPod_operation_preserves_refusal_as_a_distinct_failure"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s19-runpodhttpclient-catch-5",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual operation-specific runtime mismatch, not merely the shared test name: Every_RunPod_operation_preserves_refusal_as_a_distinct_failure fails its final OnlyContain predicate at RunPodHttpClientTests line 39. The reported offending error is runpod.terminate_exception, Message=\"RunPod instance termination failed.\", Detail=\"wrapper\", rather than runpod.egress_refused with the original refusal message. The fixture supplies HttpRequestException(\"wrapper\", refusal) at line 26; the exact added ex.Message.Length == 0 predicate skips the TerminateInstance refusal catch at RunPodHttpClient line 209 and reaches its generic return at 216. The TerminateInstance call is at test line 36. All five operation calls at 32-36 complete, and calls==5 at 38 passes before the common assertion. The actual output identifies exactly this mutated operation error. PollJobStatus_MapsCancelledState_ToFailed passes in the same red run.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.RunPodHttpClientTests.Every_RunPod_operation_preserves_refusal_as_a_distinct_failure"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s20-ashlarpeerbrickexecutor-catch-1",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual runtime fallback result failure: Peer_fallback_preserves_first_refusal_unless_an_alternative_succeeds(succeeds:false) fails at AshlarPeerBrickExecutorGapCoverageTests line 42 with peer-routing.all_peers_failed instead of peer.egress_refused. The exact empty-message condition skips the product refusal catch at 177 for the first peer HttpRequestException(\"wrapped\", refusal), so the following HTTP catch classifies it as peer.http_request_failed. The fallback loop therefore cannot retain it as firstRefusal at 77/88; after the second peer returns 503, the final generic all-peers-failed result is returned. The preceding hosts==[peer-a, peer-b] assertion at 37 and IsFailure assertion at 41 pass. The succeeds:true control and other 22 tests pass.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Execution.AshlarPeerBrickExecutorGapCoverageTests.Peer_fallback_preserves_first_refusal_unless_an_alternative_succeeds(succeeds: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s21-mcpclientconnectionmanager-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is McpEgressTwinTests:41: logger.Warnings is empty instead of [7307]. The fixture overrides the client factory to throw IOException private-canary around the same refusal for two configured servers. Its preceding assertions confirm two connection attempts and no contributed tools. Adding an empty-message prerequisite to StartAsync's catch at McpClientConnectionManager:98 excludes that nonempty wrapper; source then enters the generic error-log path at 102–106 instead of the refusal warning window. The recording logger captures only Warning-level IDs, so absence of 7307 is the directly observed defect; generic Error output is source-explained rather than separately recorded by this logger. This is a diagnostic runtime detection with no extra red rows.",
+      "observed_failure_names": [
+        "Ashlar.Mcp.Client.Tests.McpEgressTwinTests.Refused_connections_contribute_no_tools_and_share_a_disposable_warning_window"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s22-mcpclientconnectionmanager-catch-2",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is McpRoundTripTests:135: error should be the identical EgressRefusedException but is null. The fixture establishes a real MCP SDK session over in-memory pipes, captures a pinned tool, then makes RefusingWriteStream throw IOException private-canary with that refusal before each underlying write. The preceding refresh and same-tool pin assertions pass. Disabling InvokeProxiedToolAsync's refusal catch at McpClientConnectionManager:182 skips EgressRefusal.ThrowIfPresent; its generic catch at 192–197 returns a Failure ToolResult, so Record.ExceptionAsync observes no exception. This establishes loss of typed refusal propagation from invocation, rather than a timeout or connection setup failure. The later warning assertion is not reached; there are no additional red results.",
+      "observed_failure_names": [
+        "Ashlar.Mcp.Client.Tests.McpRoundTripTests.Local_refusal_during_drift_and_invocation_preserves_pins_and_the_typed_error"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s23-mcpclientconnectionmanager-catch-3",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is McpRoundTripTests:136: logger.Warnings is [0,7307] rather than [7307]. The exact change bypasses RefreshOnceAsync's refusal catch at McpClientConnectionManager:213 for the injected nonempty stream-write wrapper. The generic catch at 222–226 retains the existing pins but emits event-0 drift-check warning; the later invocation still uses the unchanged refusal catch and emits the proper 7307 warning. Earlier assertions confirm the pinned tool is unchanged and the identical typed refusal propagates from invocation. Thus this mutation is detected solely in diagnostic classification/window sharing during drift refresh, while pin preservation and typed invocation refusal remain observed. No other actual failed result is present.",
+      "observed_failure_names": [
+        "Ashlar.Mcp.Client.Tests.McpRoundTripTests.Local_refusal_during_drift_and_invocation_preserves_pins_and_the_typed_error"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s24-toolboxmcptoolcontributor-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "Both actual failures at ToolboxMcpToolContributorTests:42 directly detect loss of fixed boundary text. The wrapped=True row returns Tool 'tool-canary' failed: One or more errors occurred. (unrelated-canary) (wrapper-canary), rather than egress refused by policy (ref ...). The wrapped=False row returns the generic tool failure prefix plus the detailed refusal containing site-canary, family, class and reference instead of the same fixed form. Both rows already passed outcome.IsError=true. The mutation disables the line-101 refusal catch for these nonempty messages and routes them to the generic line-115 formatting path. These exact actual output strings establish boundary-output redaction failures for both nested aggregate and direct refusal; all two red results are accounted for.",
+      "observed_failure_names": [
+        "Ashlar.Mcp.Server.Tests.ToolboxMcpToolContributorTests.Egress_refusal_crosses_the_Mcp_boundary_as_fixed_text_only(wrapped: True)",
+        "Ashlar.Mcp.Server.Tests.ToolboxMcpToolContributorTests.Egress_refusal_crosses_the_Mcp_boundary_as_fixed_text_only(wrapped: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s25-inprocessagenttransport-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "Both direct and wrapped variants fail InProcessAgentTransportTests:28 with ErrorCode TRANSPORT_ERROR rather than EGRESS_REFUSED, after result.Success=false passes. The fixture registers a RefusingAgent whose OnExecuteAsync throws the chosen refusal or IOException private-canary wrapper. Adding the empty-message condition to the dedicated catch at InProcessAgentTransport:53 sends both cases into the generic catch at 105–123, which explicitly produces TRANSPORT_ERROR. This causally detects wrong structured failure classification in actual returned AgentResult objects. The remaining metadata, reference, message, output and call-count assertions follow the first failure and are not independent observations from these red rows. Both failed results are relevant runtime behavior.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Orchestration.Transport.InProcessAgentTransportTests.SendAsync_maps_refusal_to_structured_failure_without_wrapper_details(wrapped: False)",
+        "Ashlar.Tests.Orchestration.Transport.InProcessAgentTransportTests.SendAsync_maps_refusal_to_structured_failure_without_wrapper_details(wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s26-endpointhealthmonitor-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole failed row is EndpointHealthMonitorTests:58 with registryRefuses=True: expected one Warning event 7307 but observed zero. The complete mock log instead records event-0 Endpoint health probe failed ... after 1 failed probes, carrying the injected registry-wrapped refusal; its source frames are the one-shot UpdateHealth throw at test line 414 and ProbeAllAsync line 90. The earlier assertions confirm one unhealthy registry update and one channel-factory call. Bypassing the dedicated catch at EndpointHealthMonitor:117 selects the generic catch at 127–138, which performs the retrying unhealthy update, increments failure accounting and logs the ordinary failure warning. The registryRefuses=False control remains green because its typed health.Refusal value takes the unchanged branch at 92–96. This is a relevant runtime diagnostic-path detection, not a probe timeout or real remote-network failure.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Orchestration.Routing.EndpointHealthMonitorTests.Refused_health_probe_is_unhealthy_without_a_degraded_warning(registryRefuses: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s27-autonomyloopservice-catch-1",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is AutonomyLoopServiceTests:58: the count of messages containing Autonomy egress refused is zero instead of one. The mock store throws a wrapped refusal for its first two pending-list calls, then signals a continuation task on a later successful empty sweep. The test reaches this assertion only after that continuation completes and the service stops, so timer-loop survival after the refused store calls is observed. Adding the empty-message condition to ExecuteAsync's sweep catch at AutonomyLoopService:184 routes the nonempty wrappers to the generic cadence-continues warning at 188–192 instead of the refusal window configured at 129–132. The detection is missing typed refusal diagnostics while the timer continues; there are no extra failed rows or timeout-based acceptance.",
+      "observed_failure_names": [
+        "Ashlar.Tests.BackgroundAgents.Autonomy.AutonomyLoopServiceTests.Refused_store_sweeps_warn_once_and_the_timer_keeps_running"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s28-autonomyloopservice-catch-2",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is AutonomyLoopServiceTests:75 on the first sweep: result.Refused is zero instead of one. The RefusingProposer throws IOException wrapped around the refusal before attempted is incremented. The mutation bypasses SweepAsync's dedicated catch at AutonomyLoopService:267, whose separate failed++ and refused++ accounting is replaced by the generic catch's failed++ only; the returned SweepOutcome at 297 therefore lacks the refusal count. This directly detects incorrect refusal accounting rather than an arbitrary failure of the scripted harness. Later Failed, Attempted, second-sweep, proposer-call and warning/disposal assertions are not reached by this red test. No other row fails in the filter.",
+      "observed_failure_names": [
+        "Ashlar.Tests.BackgroundAgents.Autonomy.AutonomyLoopServiceTests.Refused_proposal_is_counted_and_later_sweeps_remain_available"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s29-warning-repeat-count-lost",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "All three actual failures are caused by replacing existing.Suppressed++ with +=0 in EgressRefusalWarnings.Report. In actual TRX order, the faulty-sink fixture reaches EgressRefusalWarningTests:79 with one callback rather than two: the initial throwing callback is contained, but zero suppressed count prevents the expected disposal-summary callback. The expiry fixture reaches line 43 with the last write still (two,0,false), instead of (one,2,true), after initial writes, two timers and disposal of the fired timer passed. The dispose fixture reaches line 65 with only two initial (0,false) writes and no expected (1,true) summary after repeated disposal, reporting after disposal and firing all callbacks; its timers-disposed assertion already passed. The production expiry and dispose paths write summaries only for nonzero suppressed counts, explaining every additional red result. These tests instantiate the compiled internal class and execute it with a deterministic manual scheduler, so they are runtime diagnostic behavior assertions, not source conventions.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalWarningTests.A_faulty_sink_does_not_escape_report_or_dispose",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalWarningTests.Repeats_are_summarized_on_expiry_and_a_new_window_can_start",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalWarningTests.Dispose_flushes_suppressed_counts_cancels_timers_and_is_idempotent"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s30-warning-summary-expiry-lost",
+      "reviewer": "/root/audit_resume/review_producers_00_09",
+      "rationale": "The sole actual failure is EgressRefusalWarningTests:43: after the first manual timer fires, the last write remains (two,0,false) rather than the expected (one,2,true) summary. Initial report suppression, two timer creations and disposal of the expired timer have already passed their assertions. Changing Expire's nonzero condition at EgressRefusalWarnings:66 to suppressed<0 omits the summary for the observed two positive suppressed reports. The separate disposal and faulty-sink tests remain green because the mutation affects only expiry emission, not Dispose's condition. The relevant red row is a deterministic runtime callback/output comparison, not a five-minute wall-clock timeout or convention scan.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalWarningTests.Repeats_are_summarized_on_expiry_and_a_new_window_can_start"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s31-warning-disposal-summary-lost",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from both actual runtime failures: changing Suppressed != 0 to Suppressed < 0 at EgressRefusalWarnings line 82 skips the disposal write for a positive suppressed count. Dispose_flushes_suppressed_counts_cancels_timers_and_is_idempotent fails EgressRefusalWarningTests line 65 because its actual writes contain the two initial (0,false) records but omit the (1,true) summary. Its timer-disposed assertion at 64 passes; repeated disposal, post-disposal reporting and manual callbacks have executed. A_faulty_sink_does_not_escape_report_or_dispose fails line 79 because the sink is called once instead of twice: the initial throwing sink was contained and explicit disposal returned, but the skipped summary never calls it again. The remaining two warning tests pass.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalWarningTests.Dispose_flushes_suppressed_counts_cancels_timers_and_is_idempotent",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalWarningTests.A_faulty_sink_does_not_escape_report_or_dispose"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s32-aggregate-branches-lost",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from all 16 actual runtime failures. The exact loop mutation in EgressRefusal.Find visits only aggregate child0; the test wrapper puts an unrelated exception in child0 and nests the refusal in child1. Three unkeyed DI/router rows fail their first identity assertion at EgressRefusalPropagationTests line 49: stages0/1 retain HttpRequestException(\"wrapper-canary\"), while stage3 ends with InvalidOperationException(\"dispose-canary\"). All ten direct auditing rows (stages0-4 by auditThrows false/true) fail identity at 153. Seven retain the wrapper: stage0/false and both variants of stages1,2,4. Stage0/true instead exposes audit-canary because missing refusal detection selects ordinary fault emission at AuditingChatClient line 67, whose auditor throws. Both stage3 variants expose dispose-canary because activeRefusal remains unset and the disposal protection at line 168 cannot apply; in stage3/true disposal can also supersede the auditor exception. Two wrapped echo rows, deterministic true/false, fail identity at test113 with actual null because ThrowIfPresent misses the refusal and fallback returns. The classifier row fails124 because wrapped-refusal classification becomes true, after direct-refusal false at123 passes. All extra failures therefore follow from the omitted aggregate branch, including the changed audit/disposal exception identities. Five controls pass: both direct-refusal echo rows, both direct guard-refusal DI rows and reference formatting.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Unkeyed_DI_router_audits_refused_calls_and_stream_creation_or_iteration(stage: 0)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 1, auditThrows: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 4, auditThrows: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 4, auditThrows: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 2, auditThrows: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 1, auditThrows: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Echo_fallback_never_masks_a_direct_or_wrapped_refusal(deterministic: True, wrapped: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 0, auditThrows: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 2, auditThrows: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Network_classifier_checks_every_exception_branch_before_retrying",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Unkeyed_DI_router_audits_refused_calls_and_stream_creation_or_iteration(stage: 3)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Echo_fallback_never_masks_a_direct_or_wrapped_refusal(deterministic: False, wrapped: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 3, auditThrows: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Unkeyed_DI_router_audits_refused_calls_and_stream_creation_or_iteration(stage: 1)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 0, auditThrows: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 3, auditThrows: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s33-reference-validation-lost",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual runtime formatting failure at EgressRefusalPropagationTests line 170. Replacing the canonical 16-lowercase-hex reference validation with reference is not null lets RemoteMessage retain arbitrary supplied text. The actual output is egress refused by policy (ref secret-site-label-sequence-canary), which fails the canonical-reference regex. Valid-reference passthrough at line 168 passes first. The exact failure text independently exposes the marker in the generated message; this is execution of the formatter through reflection, not a source-convention check.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Remote_text_contains_only_fixed_text_and_a_canonical_random_reference"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s34-echo-refusal-1",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from exactly two actual failures: deterministic:true with wrapped:false and wrapped:true both fail the first identity assertion at EgressRefusalPropagationTests line 113, reporting null instead of the original refusal. Removing ThrowIfPresent at HotSwappableModel line 70 lets the changed catch reach deterministic echo at72. Both nondeterministic variants and the rest of the 21-test suite pass, isolating the changed deterministic fallback path.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Echo_fallback_never_masks_a_direct_or_wrapped_refusal(deterministic: True, wrapped: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Echo_fallback_never_masks_a_direct_or_wrapped_refusal(deterministic: True, wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s35-echo-refusal-2",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from exactly two actual failures: deterministic:false with wrapped:false and wrapped:true both fail the first identity assertion at EgressRefusalPropagationTests line 113, reporting null instead of the original refusal. Removing ThrowIfPresent at HotSwappableModel line 88 lets the catch reach fallback98 under the fixture ASHLAR_ALLOW_MOCK=1 setting. Both deterministic variants and the rest of the suite pass, isolating this ordinary provider fallback path.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Echo_fallback_never_masks_a_direct_or_wrapped_refusal(deterministic: False, wrapped: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Echo_fallback_never_masks_a_direct_or_wrapped_refusal(deterministic: False, wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s36-provider-first-replaced",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from both actual identity failures at EgressProviderFallbackTests line 98: the unsuccessful LLM and vision fallback rows receive a different, later EgressRefusedException instance instead of the first refusal object. Replacing CompareExchange(ref scope._first, refusal, null) with Exchange at ProviderRefusalScope line 22 overwrites the retained first refusal. The actual error paths surface the later refusal through scope30 and adaptive LLM87/vision130. Both successful-alternative variants pass as controls; the red failure is exact object-identity preservation, not just exception type.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Refused_attempt_keeps_first_refusal_unless_an_alternative_succeeds(vision: False, succeeds: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Refused_attempt_keeps_first_refusal_unless_an_alternative_succeeds(vision: True, succeeds: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s37-provider-refusal-lost",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from all six actual failures caused by adding refusal.Message.Length == 0 to ProviderRefusalScope.ThrowIfRefused at line 30. Each nonempty retained refusal is suppressed and replaced by ModelUnavailableException. In actual TRX order: concurrent invocation fails EgressProviderFallbackTests line148 on the first invocation identity, with ordinary-failure IOException inside the generic exception; wrapped and direct Ollama-health rows fail69 on generic unavailability from adaptive59; unsuccessful vision fallback fails98 on No vision model available from adaptive131, with a later refusal inside; availability probe without an alternative fails121 on generic unavailability from adaptive59 after its IsProviderAvailable(\"ollama\") Times.Once verification119 passes; unsuccessful LLM fallback fails98 on generic unavailability from adaptive88 with a later refusal inside. The concurrency synchronization wait145, second invocation146 and release147 complete before failure148. Six controls pass: both chat variants, both successful-alternative fallbacks, availability with an alternative, and multiframe vision. Direct chat and multiframe paths preserve their refusal before the scope fallback and are controls, not extra failures.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Refusal_state_does_not_escape_into_a_concurrent_invocation",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Real_Ollama_health_refusal_survives_provider_availability_conversion(wrapped: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Real_Ollama_health_refusal_survives_provider_availability_conversion(wrapped: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Refused_attempt_keeps_first_refusal_unless_an_alternative_succeeds(vision: True, succeeds: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Refused_availability_probe_is_retained_without_blocking_an_available_provider(alternative: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Refused_attempt_keeps_first_refusal_unless_an_alternative_succeeds(vision: False, succeeds: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s38-ollama-health-refusal-not-retained",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from both actual health identity failures, wrapped:true and wrapped:false, at EgressProviderFallbackTests line 69. Replacing ProviderRefusalScope.Record(refusal) with a discard at ProviderFactory line 810 permits the health false-return without retaining the discovered refusal. Both runs receive ModelUnavailableException from AdaptiveProviderFactory line 59 instead of the original refusal instance. This directly exposes the missing handoff from health availability conversion into the invocation refusal scope.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Real_Ollama_health_refusal_survives_provider_availability_conversion(wrapped: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Real_Ollama_health_refusal_survives_provider_availability_conversion(wrapped: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s39-ollama-chat-refusal-consumed",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the sole wrapped:true chat failure at EgressProviderFallbackTests line 39: the captured error is null rather than the original EgressRefusedException. Adding the empty-message condition to the OllamaProvider refusal catch at line284 bypasses it for the HttpRequestException(\"private-canary\", refusal) wrapper. Source shows the following HttpRequestException catch at295 returns OLLAMA_UNREACHABLE, but the actual test does not capture or assert that result; the observed kill is that the expected typed refusal does not escape. RefreshModelsAsync success at test37 passes first, and the unwrapped-refusal variant passes as a control.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressProviderFallbackTests.Real_Ollama_chat_preserves_refusal_instead_of_an_unreachable_result(wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s40-network-refusal-retried",
+      "reviewer": "codex/audit_resume/review_producers_10_19",
+      "rationale": "Accepted from the actual boolean assertion at EgressRefusalPropagationTests line124: TransientClassifiers.Network(Wrap(refusal)) returns true instead of false. The exact mutation replaces the EgressRefusal.Find(exception) is null exclusion with a mere nonnull check. Wrap constructs an HttpRequestException containing an aggregate with the refusal in its second branch, so the mutant accepts the outer HttpRequestException as transient without consulting the refusal tree. The preceding direct-refusal classification at123 still returns false because that exception is not a listed transient type. The failed wrapped-refusal assertion directly detects the missing exclusion.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Network_classifier_checks_every_exception_branch_before_retrying"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s41-workflow-first-refusal-lost-1",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The mutated first-refusal throw in WorkflowExecutor.cs:325 is skipped for the nonempty original refusal. In the actual clusterNode=False, succeeds=False row, WorkflowExecutorEdgeCaseTests.cs:53 expected that same refusal object but observed InvalidOperationException('later ordinary failure') from product line326. The fixture first throws a wrapped refusal and then an ordinary failure from its alternative; the changed throw therefore loses the preserved refusal when fallback is exhausted. The other three theory rows pass, and restoration returns all four rows to passing.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Application.WorkflowExecutorEdgeCaseTests.Fallback_preserves_first_refusal_unless_an_alternative_succeeds(clusterNode: False, succeeds: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s42-workflow-first-refusal-lost-2",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The mutation skips the cluster fallback's preserved-refusal throw at WorkflowExecutor.cs:407. The actual clusterNode=True, succeeds=False theory fails the identity assertion at WorkflowExecutorEdgeCaseTests.cs:53: expected the original refusal, observed InvalidOperationException('DomainBrick execution failed: fallback-brick') from product409. This is the source's Abort failure path reached after the preserved refusal is suppressed. The other three rows pass and restoration returns all four to passing.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Application.WorkflowExecutorEdgeCaseTests.Fallback_preserves_first_refusal_unless_an_alternative_succeeds(clusterNode: True, succeeds: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s43-toolcallingagent-refusal-1",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The altered ThinkAsync refusal catch at ToolCallingAgent.cs:117 rejects the synthetic aggregate's nonempty message and reaches the generic catch129, whose source returns no actions. In the actual Model_refusal_is_recorded_and_stops_the_cycle_but_Think_rethrows_it row, the cycle assertions at ToolCallingAgentReActTests.cs:86-88 pass (egress-refused stop reason, one refusal, no executed tools). The separate ThinkAsync invocation89 then produces no exception; identity assertion90 expected the original refusal and observed null. Thus the observed kill concerns failure to propagate the refusal from ThinkAsync, rather than failure of the preceding cycle.",
+      "observed_failure_names": [
+        "Ashlar.Tests.BackgroundAgents.Agents.ToolCallingAgentReActTests.Model_refusal_is_recorded_and_stops_the_cycle_but_Think_rethrows_it"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s44-toolcallingagent-refusal-2",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The per-tool refusal catch at ToolCallingAgent.cs:248 is bypassed for the tool's nonempty HttpRequestException('wrapper', refusal). The unchanged outer refusal catch292 counts one refusal and ends the cycle. Both actual cap-theory variants pass the stop-reason assertion44 and fail ToolCallingAgentReActTests.cs:45 with one refusal instead of three. The actual below-cap row fails at71 with egress_refused instead of empty. These three failures directly establish altered refusal accounting and premature termination under the mutation, with all 19 selected rows restored to passing afterward.",
+      "observed_failure_names": [
+        "Ashlar.Tests.BackgroundAgents.Agents.ToolCallingAgentReActTests.Egress_refusal_cap_stops_both_loops_without_signing_or_advancing(chain: True)",
+        "Ashlar.Tests.BackgroundAgents.Agents.ToolCallingAgentReActTests.Egress_refusal_cap_stops_both_loops_without_signing_or_advancing(chain: False)",
+        "Ashlar.Tests.BackgroundAgents.Agents.ToolCallingAgentReActTests.Below_the_cap_the_model_can_choose_an_allowed_tool"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s45-toolcallingagent-refusal-3",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The mutation skips the outer cycle refusal catch at ToolCallingAgent.cs:292 for the scripted aggregate refusal and reaches generic error handling315-319. The actual Model_refusal_is_recorded_and_stops_the_cycle_but_Think_rethrows_it row fails its first assertion after RunCycleAsync, ToolCallingAgentReActTests.cs:86: error was returned instead of egress_refused. This directly binds the mutation to incorrect cycle refusal classification; restoration returns all 19 rows to passing.",
+      "observed_failure_names": [
+        "Ashlar.Tests.BackgroundAgents.Agents.ToolCallingAgentReActTests.Model_refusal_is_recorded_and_stops_the_cycle_but_Think_rethrows_it"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s46-auditingchatclient-refusal-1",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The mutation bypasses the nonstream refusal catch at AuditingChatClient.cs:45. All three actual failures occur at the first refusal-identity assertion: EgressRefusalPropagationTests.cs:153 for stage0 auditThrows=False/True and test49 for the unkeyed DI stage0 row. Without an audit exception, the observed error is the original HttpRequestException wrapper-canary containing the refusal, rather than the refusal object itself. With auditThrows=True, the observed error is audit-canary from Audit.Record187 through Emit216 and generic fault emission67: ordinary auditing masks the pending refusal. The DI row similarly observes the wrapper through the sanitizer/router/auditing composition. The caught-refusal path's protected EmitRefusal and ThrowIfPresent are skipped. Restoration passes all 21 rows.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 0, auditThrows: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 0, auditThrows: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Unkeyed_DI_router_audits_refused_calls_and_stream_creation_or_iteration(stage: 0)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s47-auditingchatclient-refusal-2",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The mutation bypasses stream-creation refusal handling at AuditingChatClient.cs:92. Four actual main-theory rows (stage1 False, stage2 True, stage1 True, stage2 False in TRX order) fail identity assertion EgressRefusalPropagationTests.cs:153, observing HttpRequestException wrapper-canary instead of the embedded refusal. Actual stacks identify RefusingClient.GetStreamingResponseAsync199 for stage1 and GetAsyncEnumerator201 for stage2, followed by product89/181. The nonempty wrapper fails the new condition, so activeRefusal assignment94, EmitRefusal96 and ThrowIfPresent97 are skipped. Enumerator assignment does not complete; the finally has no enumerator to dispose. Both audit settings consequently expose the wrapper along these fixture paths; all 21 rows pass after restoration.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 1, auditThrows: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 2, auditThrows: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 1, auditThrows: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 2, auditThrows: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s48-auditingchatclient-refusal-3",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The mutation bypasses iteration refusal handling at AuditingChatClient.cs:108, leaving activeRefusal null. The actual stage3 auditThrows=True, unkeyed DI stage3, and stage3 auditThrows=False rows each observe InvalidOperationException dispose-canary instead of the original refusal at their first identity assertions (main test153, DI49). Actual stacks include RefusingClient.DisposeAsync208 and product disposal166; DI propagation also crosses sanitizer/router/outer auditing. Source analysis shows generic fault handling128-132 followed by finally disposal, where activeRefusal suppression168 is disabled and the ordinary disposal error is not a refusal for catch172. Disposal therefore replaces the pending wrapper or audit-path error. The recorded final error is dispose-canary in all three rows; restoration passes all 21 selected rows.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 3, auditThrows: True)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Unkeyed_DI_router_audits_refused_calls_and_stream_creation_or_iteration(stage: 3)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 3, auditThrows: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s49-auditingchatclient-refusal-4",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The mutation bypasses the disposal refusal catch at AuditingChatClient.cs:172. The two actual stage4 main-theory rows, auditThrows=False and True, both fail EgressRefusalPropagationTests.cs:153: the observed error is HttpRequestException wrapper-canary instead of the embedded refusal object. Actual stacks place the throw in RefusingClient.DisposeAsync206 reached from product166. In source, stage4 MoveNext returns false, the loop marks completed, then finally disposal throws with activeRefusal still null. The altered catch skips protected EmitRefusal and ThrowIfPresent; success auditing after the finally is also unreached. All 21 selected rows pass after restoration.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 4, auditThrows: False)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Auditing_preserves_refusal_from_call_stream_creation_iteration_and_disposal(stage: 4, auditThrows: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s50-a2aagenttransport-refusal-1",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "The altered A2AAgentTransport.cs:99 refusal catch rejects the nonempty direct or wrapped refusal. The actual wrapped=False row fails before any assertion: the original EgressRefusedException escapes transport.SendAsync at test27, with a stack through HttpClient/A2AClient and product96. The wrapped=True row reaches A2AAgentTransportTests.cs:29 and reports four handler calls instead of one. Source retry handling115-123 retries the HttpRequestException three times under MaxRetries=3, then the ordinary transport-failure path125-128 returns. These are distinct relevant runtime regressions: escaped direct refusal and retrying the same destination after a wrapped refusal. Restored code passes all ten selected tests.",
+      "observed_failure_names": [
+        "Ashlar.Transport.A2A.Tests.A2AAgentTransportTests.Refusals_are_classified_before_retrying_the_same_destination(wrapped: False)",
+        "Ashlar.Transport.A2A.Tests.A2AAgentTransportTests.Refusals_are_classified_before_retrying_the_same_destination(wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s51-a2aagenttransport-refusal-2",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from both actual wrapped/unwrapped health-message failures. Adding ex.Message.Length == 0 to the endpoint-health refusal catch in A2AAgentTransport.cs159 skips typed refusal conversion for these nonempty exceptions. CheckEndpointAsync falls through to its generic error response: the actual unwrapped health message includes the detailed EgressRefusedException text and the wrapped variant says Agent card fetch failed: HTTP request failed, instead of the fixed refusal text and reference. Both fail A2AAgentTransportTests.cs35. The preceding SendAsync checks at29–32 (one handler call, unsuccessful result, typed refusal code and reference metadata) and unhealthy health flag at34 pass; the mutated catch is the separate health path. The remaining eight rows pass.",
+      "observed_failure_names": [
+        "Ashlar.Transport.A2A.Tests.A2AAgentTransportTests.Refusals_are_classified_before_retrying_the_same_destination(wrapped: False)",
+        "Ashlar.Transport.A2A.Tests.A2AAgentTransportTests.Refusals_are_classified_before_retrying_the_same_destination(wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s52-agenttransportserviceimpl-refusal-1",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from the actual form0 gRPC round-trip failure: the new nonempty-message gate on AgentTransportServiceImpl.cs51 suppresses the typed-refusal exception catch. The injected transport throws an AggregateException containing an unrelated IOException and an RpcException whose inner exception is the refusal. The raw InvokeAsync at GrpcAgentTransportTests.cs85 now throws RpcException StatusCode Unknown with Detail Exception was thrown by handler, instead of producing a refused response. This is causally the missing server catch, not an unrelated runner or network outage: the scoped baseline and restored run pass, while the other nine red rows, including returned-result forms1/2, pass.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Egress_refusal_round_trip_clears_output_and_preserves_only_code_and_random_ref(form: 0)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s53-ashlara2aagenthandler-refusal-1",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from the actual form0 A2A result classification failure. Adding the nonempty-message gate to AshlarA2AAgentHandler.cs96 skips the typed-refusal catch for the injected AggregateException/HttpRequestException chain; the generic exception path at110–118 emits an ordinary failed task instead of RefusalMessage. A2AServerRoundTripTests.cs110 has already confirmed result.Success is false, then line111 observes a2a.task.failed instead of a2a.egress_refused. The other seven rows, including returned-result forms1/2, pass, and the baseline and restored runs pass all eight.",
+      "observed_failure_names": [
+        "Ashlar.Transport.A2A.Server.Tests.A2AServerRoundTripTests.Egress_refusal_round_trip_preserves_code_and_reference_without_raw_details(form: 0)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s54-agent-cap-raised",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from both actual chain true/false failures: changing the outer ToolCallingAgent.cs289 break threshold from three refusals to four allows another scripted iteration after the unchanged inner cap has set StoppedReason to egress_refused. Both ToolCallingAgentReActTests variants pass StoppedReason at44, then fail EgressRefusals at45 with actual4 versus expected3. The scripted model presents four refusal-bearing turns and RefusingTool throws a wrapped refusal; the mutant count directly demonstrates the extra refusal. Baseline and restored runs pass both rows.",
+      "observed_failure_names": [
+        "Ashlar.Tests.BackgroundAgents.Agents.ToolCallingAgentReActTests.Egress_refusal_cap_stops_both_loops_without_signing_or_advancing(chain: True)",
+        "Ashlar.Tests.BackgroundAgents.Agents.ToolCallingAgentReActTests.Egress_refusal_cap_stops_both_loops_without_signing_or_advancing(chain: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s55-inner-exception-edge-lost",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from both actual failures caused by losing the ordinary InnerException edge in EgressRefusal.Find at40 when the wrapper message is nonempty. The local wrapped RpcException variant first establishes the SDK DebugException/InnerException identity at GrpcAgentTransportTests.cs39–40 and an unsuccessful result at47, then observes TRANSPORT_UNAVAILABLE rather than EGRESS_REFUSED at48. The form0 server round trip also fails at raw InvokeAsync85 with RpcException Unknown because traversal through the aggregate reaches the RpcException but cannot follow its inner refusal, so server refusal conversion is missed. The direct-refusal and returned-result control rows remain among the eight passing tests.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Egress_refusal_round_trip_clears_output_and_preserves_only_code_and_random_ref(form: 0)",
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Local_transport_refusals_are_not_reported_as_rpc_outages(wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s56-orchestrator-refusal-counts-as-breaker-failure",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from all four actual direct-code/metadata-only and EGRESS_REFUSED/a2a.egress_refused failures. Adding initialResult.Success to Orchestrator.cs583 makes refusal recognition contradictory because EgressRefusal.IsRefused requires an unsuccessful result; the early refusal return is lost and execution enters the circuit-breaker path. Every OrchestratorTransportTests theory row completes four outer calls and unsuccessful-result assertions at42, then fails VerifyNoOtherCalls at44 with exactly four unverified ICircuitBreaker.ExecuteAsync invocations. The other eleven scoped tests pass; baseline and restored runs pass all fifteen.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Orchestration.Coordination.OrchestratorTransportTests.Egress_refusals_never_enter_the_circuit_breaker_or_retry(code: \"a2a.egress_refused\", metadataOnly: True)",
+        "Ashlar.Tests.Orchestration.Coordination.OrchestratorTransportTests.Egress_refusals_never_enter_the_circuit_breaker_or_retry(code: \"a2a.egress_refused\", metadataOnly: False)",
+        "Ashlar.Tests.Orchestration.Coordination.OrchestratorTransportTests.Egress_refusals_never_enter_the_circuit_breaker_or_retry(code: \"EGRESS_REFUSED\", metadataOnly: True)",
+        "Ashlar.Tests.Orchestration.Coordination.OrchestratorTransportTests.Egress_refusals_never_enter_the_circuit_breaker_or_retry(code: \"EGRESS_REFUSED\", metadataOnly: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s57-warning-reasons-collapsed",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from the actual independent-warning-window failure. Replacing refusal.Reason with default in EgressRefusalWarnings.cs21 merges different reasons for the same site into one window. EgressRefusalWarningTests.cs19 first confirms the two reasons differ; both reports at23–24 execute. The line25 collection assertion then sees only the first refusal, while the expected sequence contains first and second. The remaining three warning rows pass, and baseline/restored runs pass all four.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalWarningTests.The_same_site_with_different_reasons_has_independent_windows"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s58-remote-format-leaks-extra-text",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from the actual formatting-helper assertion. Adding the literal private-canary to EgressRefusal.RemoteMessage at53 causes the reflected helper call with a valid refusal reference to return the fixed refusal string plus that suffix. EgressRefusalPropagationTests.cs168 records the exact expected fixed text and reference versus the actual extra text. Baseline and restored runs pass the single selected test.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRefusalPropagationTests.Remote_text_contains_only_fixed_text_and_a_canonical_random_reference"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s59-agenttransportserviceimpl-result-conversion-lost",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from both actual returned-refusal form1/form2 output failures. Adding result.Success to AgentTransportServiceImpl.cs187 disables refusal conversion because IsRefused requires !Success. The ordinary SerializeOutput/copy path therefore emits the synthetic output payload. The raw responses pass Success false at GrpcAgentTransportTests.cs86, then fail the empty Output assertion at87: each contains result with {\"secret\":\"output-canary\"}. Form0 typed-exception handling and seven other red rows pass; baseline/restored runs pass all ten.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Egress_refusal_round_trip_clears_output_and_preserves_only_code_and_random_ref(form: 1)",
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Egress_refusal_round_trip_clears_output_and_preserves_only_code_and_random_ref(form: 2)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s60-ashlara2aagenthandler-result-conversion-lost",
+      "reviewer": "/root/audit_finish/review17_last",
+      "rationale": "Accepted from both actual form1/form2 returned-result classification failures. Adding result.Success to AshlarA2AAgentHandler.cs74 disables IsRefused conversion for unsuccessful results; the ordinary failed-task branch runs instead of RefusalMessage. Both A2AServerRoundTripTests rows pass Success false at110 and then observe a2a.task.failed instead of a2a.egress_refused at111. The typed-exception form0 and five other scoped rows pass, and baseline/restored runs pass all eight.",
+      "observed_failure_names": [
+        "Ashlar.Transport.A2A.Server.Tests.A2AServerRoundTripTests.Egress_refusal_round_trip_preserves_code_and_reference_without_raw_details(form: 1)",
+        "Ashlar.Transport.A2A.Server.Tests.A2AServerRoundTripTests.Egress_refusal_round_trip_preserves_code_and_reference_without_raw_details(form: 2)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s61-grpc-client-code-ignored",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "Inverting the gRPC response refusal-code condition at GrpcAgentTransport.cs:69 produces three actual failures (forms0,2,1 in TRX order). Each fails at GrpcAgentTransportTests.cs:95 with KeyNotFoundException for egressRef. The raw-wire assertions86-90 have already passed: unsuccessful response, empty output, refusal code/reference and sanitized message. Client result success/code assertions93-94 also pass. The mutation bypasses refusal conversion and takes ordinary metadata construction at product274-284, which retains errorCode but omits egressRef. Thus the observed kill specifically establishes lost client refusal-reference metadata. Restoration passes all ten selected rows.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Egress_refusal_round_trip_clears_output_and_preserves_only_code_and_random_ref(form: 0)",
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Egress_refusal_round_trip_clears_output_and_preserves_only_code_and_random_ref(form: 2)",
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Egress_refusal_round_trip_clears_output_and_preserves_only_code_and_random_ref(form: 1)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s62-a2a-client-code-ignored",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "Changing the A2A mapper's refusal predicate at A2AAgentTransport.cs:104 to require TaskState.Completed prevents recognition of the server's failed refusal task. Three actual forms0,1,2 fail A2AServerRoundTripTests.cs:111: expected a2a.egress_refused, observed a2a.task.failed. The unsuccessful-result check110 passes. Source follows ordinary failure mapping124 after the refusal branch is skipped. Restoration passes all eight selected rows.",
+      "observed_failure_names": [
+        "Ashlar.Transport.A2A.Server.Tests.A2AServerRoundTripTests.Egress_refusal_round_trip_preserves_code_and_reference_without_raw_details(form: 0)",
+        "Ashlar.Transport.A2A.Server.Tests.A2AServerRoundTripTests.Egress_refusal_round_trip_preserves_code_and_reference_without_raw_details(form: 1)",
+        "Ashlar.Transport.A2A.Server.Tests.A2AServerRoundTripTests.Egress_refusal_round_trip_preserves_code_and_reference_without_raw_details(form: 2)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s63-health-refusal-becomes-degraded",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "Adding health.IsHealthy to EndpointHealthMonitor.cs:92 prevents refusal-warning handling for an unhealthy refused health result. The actual registryRefuses=False row fails EndpointHealthMonitorTests.cs:58 because the expected event7307 warning occurs zero times. The full Moq failure independently records an event0 degraded warning containing the refused-health message, consistent with the alternate product99-109 branch. Before this failure, assertions56-57 pass for one unhealthy registry update and one channel-factory call. The registryRefuses=True variant remains passing via a separate exception catch. Restoration passes all nine selected rows.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Orchestration.Routing.EndpointHealthMonitorTests.Refused_health_probe_is_unhealthy_without_a_degraded_warning(registryRefuses: False)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s64-grpc-local-catch-1",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "Adding the nonempty-message exclusion to GrpcAgentTransport.cs:88 skips local invocation refusal handling. Both actual rows first fail GrpcAgentTransportTests.cs:48: direct refusal maps to TRANSPORT_ERROR via generic catch109, while the injected wrapped RpcException(Unavailable) maps to TRANSPORT_UNAVAILABLE via catch95/status mapping316, instead of EGRESS_REFUSED. The unsuccessful-result assertion47 passes; wrapped dependency-chain checks39-40 also pass. Restoration passes both selected rows.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Local_transport_refusals_are_not_reported_as_rpc_outages(wrapped: False)",
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Local_transport_refusals_are_not_reported_as_rpc_outages(wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    },
+    {
+      "manifest": "scripts/mutations/spec007-refusal-surfaces.json",
+      "id": "s65-grpc-local-catch-2",
+      "reviewer": "/root/audit_finish/review17_first",
+      "rationale": "Bypassing local health refusal catch177 in GrpcAgentTransport.cs lets the generic health catch181-188 return ex.Message. Both actual rows fail GrpcAgentTransportTests.cs:55, which expects only the sanitized 'egress refused by policy (ref ...)' message. The direct row exposes the full local refusal message including site grpc.client, family and class; the wrapped row exposes StatusCode Unavailable, Detail private-canary and the embedded refusal. Invocation checks47-52 have already passed, as has the unhealthy-state assertion54. This is a causally relevant runtime health-message sanitization regression; restoration passes both rows.",
+      "observed_failure_names": [
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Local_transport_refusals_are_not_reported_as_rpc_outages(wrapped: False)",
+        "Ashlar.Tests.Transport.GrpcAgentTransportTests.Local_transport_refusals_are_not_reported_as_rpc_outages(wrapped: True)"
+      ],
+      "evidence_kind": "runtime-assertion",
+      "accepted": true
+    }
+  ]
+}

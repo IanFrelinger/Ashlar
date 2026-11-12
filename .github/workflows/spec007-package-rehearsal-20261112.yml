@@ -1,0 +1,53 @@
+# Local draft. Commit only after campaign reconciliation and all 65 semantic reviews.
+# Separate from the mutation campaign; no workflow_run trigger.
+name: SPEC007 nonpublishing package rehearsal 20261112
+on:
+  push:
+    branches: [codex/spec007-package-rehearsal-20261112]
+    paths:
+      - '.github/workflows/spec007-package-rehearsal-20261112.yml'
+      - 'ci-package-rehearsal/**'
+permissions:
+  contents: read
+concurrency:
+  group: ashlar-spec007-campaign-serial
+  cancel-in-progress: false
+jobs:
+  clean-package-trust:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout reviewed controller and prerequisite evidence
+        uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - name: Checkout exact campaign source
+        uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify prior evidence, then rehearse in one Linux devtest container
+        shell: bash
+        env:
+          REHEARSAL_ARTIFACT_ROOT: ${{ runner.temp }}/spec007-package-rehearsal
+        run: |
+          set -euo pipefail
+          version="0.0.0-rehearsal.792446d09b59.$GITHUB_RUN_ID.$GITHUB_RUN_ATTEMPT"
+          bash control/ci-package-rehearsal/run-package-rehearsal.sh \
+            source \
+            "$REHEARSAL_ARTIFACT_ROOT" \
+            control/ci-package-rehearsal/reconciliation.json \
+            control/ci-package-rehearsal/semantic-reviews.json \
+            "$version"
+      - name: Retain packages, digests, prerequisite evidence, and complete logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-package-rehearsal-792446d09b59f98b47e08279907cb3d4df314caa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/spec007-package-rehearsal
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
