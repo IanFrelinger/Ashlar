@@ -1,4 +1,4 @@
-# Controller branch only. Replace 5ee6a07c42ccbc40ce53b8a3c8d16db183fe4be1 and red-plan.json after committing tests/fix.
+# Controller branch only. Replace dfb18f088ab0f41b1eea3f9fa72c0fac2fcffd4b and red-plan.json after committing tests/fix.
 name: Decision478 exact SHA proof 20261112
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
       - name: Checkout exact tested source
         uses: actions/checkout@v7
         with:
-          ref: 5ee6a07c42ccbc40ce53b8a3c8d16db183fe4be1
+          ref: dfb18f088ab0f41b1eea3f9fa72c0fac2fcffd4b
           path: source
           fetch-depth: 0
           persist-credentials: false
