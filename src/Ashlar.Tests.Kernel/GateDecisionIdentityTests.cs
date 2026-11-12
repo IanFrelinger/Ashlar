@@ -34,9 +34,7 @@ public sealed class GateDecisionIdentityTests : IDisposable
         Directory.Delete(_root, recursive: true);
     }
 
-    public static IEnumerable<object[]> InvalidActors()
-    {
-        (string Name, string? Actor)[] cases =
+    private static (string Name, string? Actor)[] InvalidActorValues() =>
         [
             ("null", null), ("empty", ""), ("blank", " \t"),
             ("format-only", "\u200B\u200D"), ("variation-only", "\uFE0F"),
@@ -60,16 +58,23 @@ public sealed class GateDecisionIdentityTests : IDisposable
             ("noncharacter", "human\ufffe"),
             ("too-long", new string('a', 257)),
         ];
-        foreach (var item in cases)
+
+    public static IEnumerable<object[]> InvalidActors()
+    {
+        // xUnit serializes theory strings through UTF-8, which replaces unpaired surrogates.
+        // Transport only safe case names; construct the actual input inside the test process.
+        foreach (var item in InvalidActorValues())
         foreach (var signed in new[] { false, true })
-            yield return [item.Name, item.Actor!, signed];
+            yield return [item.Name, signed];
     }
 
     [Theory]
     [MemberData(nameof(InvalidActors))]
-    public async Task Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(string name, string actor, bool signed)
+    public async Task Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(string name, bool signed)
     {
-        _ = name; // Names keep otherwise invisible attack vectors identifiable in TRX evidence.
+        var actor = InvalidActorValues().Single(item => item.Name == name).Actor;
+        if (name == "unpaired-high") actor![^1].Should().Be('\ud800', "the API must receive the original invalid code unit");
+        if (name == "unpaired-low") actor![^1].Should().Be('\udfff', "the API must receive the original invalid code unit");
         var signer = signed ? OperatorKey.Generate(Path.Combine(_root, "signing-key")) : null;
         var store = new GateStore(_root, signer);
         await store.RecordAsync(Proposal(), new AdmissionOutcome { State = ProposalState.Held, Reason = "review" }, Now);
@@ -77,7 +82,7 @@ public sealed class GateDecisionIdentityTests : IDisposable
         await File.WriteAllTextAsync(Path.Combine(_root, "gates", "orphan.json.tmp"), "uncommitted bytes");
         var before = Snapshot();
 
-        Func<Task> decide = () => store.DecideAsync("ext-identity", admit: true, actor, "reviewed", Now.AddMinutes(1));
+        Func<Task> decide = () => store.DecideAsync("ext-identity", admit: true, actor!, "reviewed", Now.AddMinutes(1));
 
         var thrown = await decide.Should().ThrowAsync<ArgumentException>();
         thrown.Which.ParamName.Should().Be("actor");
