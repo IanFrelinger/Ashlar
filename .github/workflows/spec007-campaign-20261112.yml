@@ -1,0 +1,597 @@
+name: SPEC007 nonpublishing campaign 20261112
+on:
+  push:
+    branches: [codex/spec007-campaign-20261112]
+    paths:
+      - '.github/workflows/spec007-campaign-20261112.yml'
+      - 'ci-spec007/**'
+permissions:
+  contents: read
+concurrency:
+  group: ashlar-spec007-campaign-serial
+  cancel-in-progress: false
+jobs:
+  batch_00:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 00 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_00"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-default-enforcement.json' 'mode-sw-default,mode-ag-default,mode-ag-report-ignored,mode-sw-break-glass,mode-sw-break-glass-basis,route-owned-ag-floor,route-host-ag-floor,route-ag-profile,opt-out-owned-mode,opt-out-protected-name,leak-m01-chat-discards,leak-m02-rag-no-report,leak-m03-sw-reports,leak-m04-always-refuse,leak-m07-stop-error,leak-m08-message-detail,leak-m09-unknown-public,leak-m16-bing-discards,leak-m05-innermost-only,leak-m06-unreported-public' "${{ runner.temp }}/spec007/batch_00"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_00
+          path: ${{ runner.temp }}/spec007/batch_00
+          if-no-files-found: error
+          retention-days: 90
+  batch_01:
+    needs: batch_00
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 01 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_01"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-default-enforcement.json' 'leak-m15-thrown-read-discarded,leak-m10-classification-fault-allows,leak-m11-composition-full,leak-m12-factory-removes-handler,leak-m13-process-host,leak-m14-observe-reports-read,registry-new-client,registry-missing-client' "${{ runner.temp }}/spec007/batch_01"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_01
+          path: ${{ runner.temp }}/spec007/batch_01
+          if-no-files-found: error
+          retention-days: 90
+  batch_02:
+    needs: batch_01
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 02 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_02"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-enforcement-routes.json' 'r1-refusal-helper-disabled,r2-http-decision-discarded,r3-chat-decision-discarded,r4-host-fault-replaced-with-ordinary-decision,r5-refusal-warning-hidden,r6-summary-not-scheduled,r7-event-two-hidden,r8-chat-refusal-audit-lost,r9-resolution-counter-lost,r10-http-fallback-warning-hidden,r11-chat-fallback-warning-hidden,r12-reentrant-refusal-counter-lost,r13-netstandard-enforcement-lost,r14-startup-claims-records-only,r15-opaque-redirect-warning-lost,r16-warning-window-merges-reasons' "${{ runner.temp }}/spec007/batch_02"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_02
+          path: ${{ runner.temp }}/spec007/batch_02
+          if-no-files-found: error
+          retention-days: 90
+  batch_03:
+    needs: batch_02
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 03 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_03"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-explicit-egress.json' 'action-dotnetrunner-1,action-filebasedsharedadaptationstore-1,action-sneakernettransport-1,action-sneakernettransport-2,action-dotnetinstancespawner-1,action-validationserviceadapter-1,action-validationserviceadapter-2,action-dockerservice-1,action-dockerservice-2,action-dockerexecutionplatform-1,action-dockerexecutionplatform-2,action-postgresephemerallifecycle-1,action-ollamaephemerallifecycle-1,action-ollamaprovider-1,action-dotnetregressiontestrunner-1,action-ollamaproposalsource-1,action-bingwebsearchprovider-1,action-bootstrapruntime-1,action-dogfoodtestcommand-1,action-exportcommand-1' "${{ runner.temp }}/spec007/batch_03"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_03
+          path: ${{ runner.temp }}/spec007/batch_03
+          if-no-files-found: error
+          retention-days: 90
+  batch_04:
+    needs: batch_03
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 04 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_04"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-explicit-egress.json' 'action-multiplatformtestcommand-1,action-nativebundle-1,action-nativebundle-2,action-pkgcommand-1,action-pkgcommand-2,action-pkgcommand-3,action-testportablecommand-1,action-testportablecommand-2,action-workflowcommand-1,graceful-mesh-serve,graceful-discovery,graceful-otlp,graceful-admission,operator-requires-initiator,operator-requires-file-family,operator-requires-named-site,operator-mode-fault-stays-enforcing,operator-mode-basis-recorded,timed-public-process-is-offhost,timed-internal-rechecks-decision' "${{ runner.temp }}/spec007/batch_04"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_04
+          path: ${{ runner.temp }}/spec007/batch_04
+          if-no-files-found: error
+          retention-days: 90
+  batch_05:
+    needs: batch_04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 05 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_05"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-explicit-egress.json' 'timed-bounded-public-process-is-offhost,timed-bounded-internal-rechecks-decision,process-funnel-records-once,docker-network-proof-required,docker-pull-never-required,docker-context-precedence,docker-tcp-daemon-is-offhost,docker-persisted-selection-read,docker-malformed-selection-fails-closed,native-operator-initiator,cloud-operator-initiator,mesh-operator-initiator,pkg-operator-initiator,mesh-index-refusal-count,mesh-package-refusal-count,mesh-refusal-warning-not-windowed,mesh-discovery-refusal-warning-not-windowed,ide-sse-redacts-wrapper,ide-model-discovery-warning,release-probe-does-not-execute-command' "${{ runner.temp }}/spec007/batch_05"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_05
+          path: ${{ runner.temp }}/spec007/batch_05
+          if-no-files-found: error
+          retention-days: 90
+  batch_06:
+    needs: batch_05
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 06 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_06"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-explicit-egress.json' 'improve-refusal-audit-outcome,improve-refusal-not-promoted,improve-refusal-audit-message,improve-wrapped-refusal,cli-export-refusal-exit-1,cli-export-refusal-exit-2,cli-pkg-refusal-exit-1,cli-pkg-refusal-exit-2,cli-pkg-refusal-exit-3,cli-mesh-refusal-exit-1,convention-discarded-decision,convention-requires-local-action,convention-refuses-cannot-escape-scope,convention-evaluated-entry-confined,convention-process-funnel-no-direct-launch,convention-process-guard-exemption-narrow,startup-states-explicit-enforcement,cli-runtime-publish-refusal-exit,operator-refusal-precedes-bundle-cleanup,operator-allowed-export-cleans-stale-bundle' "${{ runner.temp }}/spec007/batch_06"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_06
+          path: ${{ runner.temp }}/spec007/batch_06
+          if-no-files-found: error
+          retention-days: 90
+  batch_07:
+    needs: batch_06
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 07 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_07"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-explicit-egress.json' 'cli-all-refusal-exit,cli-caught-refusal-retention,cli-invocation-isolation,docker-bind-mounts-remain-network-export,initiator-writer-removed' "${{ runner.temp }}/spec007/batch_07"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_07
+          path: ${{ runner.temp }}/spec007/batch_07
+          if-no-files-found: error
+          retention-days: 90
+  batch_08:
+    needs: batch_07
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 08 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_08"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-hygiene.json' 'api-missing-addresses,loopback-http-ports,api-prebind,api-postbind,api-verifier-wiring,loopback-ipv6,listener-scheme,adaptive-multiframe,profile-postconfigure,d5-strictest,mcp-direct-http,validator-bedrock,validator-brickhost,validator-meshlab,router-peer-refusal,profile-reader-convention,mcp-callers-convention,mesh-anyip,mesh-refusal,loopback-mapped-address' "${{ runner.temp }}/spec007/batch_08"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_08
+          path: ${{ runner.temp }}/spec007/batch_08
+          if-no-files-found: error
+          retention-days: 90
+  batch_09:
+    needs: batch_08
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 09 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_09"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-hygiene.json' 'mesh-mapped-socket' "${{ runner.temp }}/spec007/batch_09"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_09
+          path: ${{ runner.temp }}/spec007/batch_09
+          if-no-files-found: error
+          retention-days: 90
+  batch_10:
+    needs: batch_09
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 10 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_10"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-inbound-hosts.json' 'inbound-prebind,inbound-postbind' "${{ runner.temp }}/spec007/batch_10"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_10
+          path: ${{ runner.temp }}/spec007/batch_10
+          if-no-files-found: error
+          retention-days: 90
+  batch_11:
+    needs: batch_10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 11 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_11"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-producers.json' 'm01-begin-read-does-not-enter,m02-live-does-not-skip-read,m03-read-frame-observes-outward,m04-complete-before-tool-invoke,m05-labelled-tool-never-reports,m06-rag-does-not-report-hits,m07-unknown-tier-public,m08-rag-does-not-trim,m09-rag-accepts-custom-same-level,m10-refusal-not-read-nothing,m11-empty-hits-not-read-nothing,m12-no-target-is-agent-backed,m13-stream-observed-only-at-end,m14-selfextend-no-frame,m15-selfextend-public-floor,m16-selfextend-not-using,m17-every-target-is-agent-backed,m18-stream-end-not-observed,m19-response-end-not-observed,m20-synchronous-response-throw-not-observed' "${{ runner.temp }}/spec007/batch_11"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_11
+          path: ${{ runner.temp }}/spec007/batch_11
+          if-no-files-found: error
+          retention-days: 90
+  batch_12:
+    needs: batch_11
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 12 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_12"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-producers.json' 'm21-synchronous-stream-throw-not-observed,m22-production-tool-declares-labelled,m23-all-argument-exceptions-read-nothing,m24-no-canonical-spelling-check,m25-production-egresssubject-alias,m26-report-completes-read,m27-rag-accepts-wrong-canonical-primitive,m28-production-labelled-marker-alias,m29-unrankable-message-spoof' "${{ runner.temp }}/spec007/batch_12"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_12
+          path: ${{ runner.temp }}/spec007/batch_12
+          if-no-files-found: error
+          retention-days: 90
+  batch_13:
+    needs: batch_12
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 13 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_13"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-redirects.json' 'm1-per-authority-decision-dropped,m2-egresshttp-installs-no-follower,m3-factory-filter-installs-no-follower,m4-guard-handler-not-restored,m5-p2-cross-origin-followed,m6-https-to-http-followed,m7-authorization-not-cleared,m8-post-send-check-dropped-async,m9-original-setting-forgotten,m10-method-rewrite-dropped,m11-walker-stops-at-the-hop,m12-credentials-ignored,m13-api-sns-follows,m14-fleet-sns-follows,m15-bedrock-follows,m17-unknown-primary-warning-inverted,m18-redirect-limit-off-by-one,m19-no-note-treated-as-decided,m20-hop-decided-by-process-default,m21-started-primary-as-if-flipped' "${{ runner.temp }}/spec007/batch_13"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_13
+          path: ${{ runner.temp }}/spec007/batch_13
+          if-no-files-found: error
+          retention-days: 90
+  batch_14:
+    needs: batch_13
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 14 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_14"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-redirects.json' 'm22-known-primary-by-exact-type,m23-composite-primary-skipped,m24-cancellation-between-hops-ignored,m25-intermediate-response-not-disposed,m26-follower-follows-into-the-host-boundary,m27-unknown-warning-not-deduplicated,m28-nested-P2-flag-ignored,m29-sockets-credentials-ignored,m30-primary-auto-redirect-not-disabled,m31-filter-before-factory-logging,m32-per-hop-decision-dropped,m33-client-no-follow-marker-dropped,m34-started-sockets-redundant-setter' "${{ runner.temp }}/spec007/batch_14"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_14
+          path: ${{ runner.temp }}/spec007/batch_14
+          if-no-files-found: error
+          retention-days: 90
+  batch_15:
+    needs: batch_14
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 15 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_15"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-refusal-surfaces.json' 's1-httpremotebrickcatalog-catch-1,s2-httpremotebrickcatalog-catch-2,s3-httpremotebrickcatalog-catch-3,s4-compositebrickregistry-catch-1,s5-compositebrickregistry-catch-2,s6-modelartifactcatalogservice-catch-1,s7-remoteexecutionplatform-catch-1,s8-remoteexecutionplatform-catch-2,s9-remoteexecutionplatform-catch-3,s10-validationserviceadapter-catch-1,s11-validationserviceadapter-catch-2,s12-meshlabworkerexecutorbackgroundservice-catch-1,s13-elasticworkloadautoscaleservice-catch-1,s14-ollamaprovider-catch-1,s15-runpodhttpclient-catch-1,s16-runpodhttpclient-catch-2,s17-runpodhttpclient-catch-3,s18-runpodhttpclient-catch-4,s19-runpodhttpclient-catch-5,s20-ashlarpeerbrickexecutor-catch-1' "${{ runner.temp }}/spec007/batch_15"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_15
+          path: ${{ runner.temp }}/spec007/batch_15
+          if-no-files-found: error
+          retention-days: 90
+  batch_16:
+    needs: batch_15
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 16 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_16"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-refusal-surfaces.json' 's21-mcpclientconnectionmanager-catch-1,s22-mcpclientconnectionmanager-catch-2,s23-mcpclientconnectionmanager-catch-3,s24-toolboxmcptoolcontributor-catch-1,s25-inprocessagenttransport-catch-1,s26-endpointhealthmonitor-catch-1,s27-autonomyloopservice-catch-1,s28-autonomyloopservice-catch-2,s29-warning-repeat-count-lost,s30-warning-summary-expiry-lost,s31-warning-disposal-summary-lost,s32-aggregate-branches-lost,s33-reference-validation-lost,s34-echo-refusal-1,s35-echo-refusal-2,s36-provider-first-replaced,s37-provider-refusal-lost,s38-ollama-health-refusal-not-retained,s39-ollama-chat-refusal-consumed,s40-network-refusal-retried' "${{ runner.temp }}/spec007/batch_16"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_16
+          path: ${{ runner.temp }}/spec007/batch_16
+          if-no-files-found: error
+          retention-days: 90
+  batch_17:
+    needs: batch_16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 17 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_17"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-refusal-surfaces.json' 's41-workflow-first-refusal-lost-1,s42-workflow-first-refusal-lost-2,s43-toolcallingagent-refusal-1,s44-toolcallingagent-refusal-2,s45-toolcallingagent-refusal-3,s46-auditingchatclient-refusal-1,s47-auditingchatclient-refusal-2,s48-auditingchatclient-refusal-3,s49-auditingchatclient-refusal-4,s50-a2aagenttransport-refusal-1,s51-a2aagenttransport-refusal-2,s52-agenttransportserviceimpl-refusal-1,s53-ashlara2aagenthandler-refusal-1,s54-agent-cap-raised,s55-inner-exception-edge-lost,s56-orchestrator-refusal-counts-as-breaker-failure,s57-warning-reasons-collapsed,s58-remote-format-leaks-extra-text,s59-agenttransportserviceimpl-result-conversion-lost,s60-ashlara2aagenthandler-result-conversion-lost' "${{ runner.temp }}/spec007/batch_17"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_17
+          path: ${{ runner.temp }}/spec007/batch_17
+          if-no-files-found: error
+          retention-days: 90
+  batch_18:
+    needs: batch_17
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 18 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_18"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-refusal-surfaces.json' 's61-grpc-client-code-ignored,s62-a2a-client-code-ignored,s63-health-refusal-becomes-degraded,s64-grpc-local-catch-1,s65-grpc-local-catch-2,s66-orchestration-echo-answers-refusal,s67-provider-backed-model-drops-probe-refusal,s68-factory-probe-refusal-not-retained-outside-adaptive,s69-behavior-step-drops-probe-refusal,s70-ollama-probe-warning-not-windowed,s71-factory-dispose-does-not-flush-window,s72-planning-agent-canned-recommendation-answers-refusal,s73-synthesis-fallback-answers-refusal,s74-behavior-in-chain-refusal-not-kept,s75-behavior-fallback-error-outranks-refusal,s76-material-heuristics-answer-refusal,s77-vector-map-pass-through-answers-refusal,s78-behavior-refusal-flag-sticks,s79-behavior-probe-refusal-not-seeded,s80-behavior-refusal-flag-ignores-written-text' "${{ runner.temp }}/spec007/batch_18"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_18
+          path: ${{ runner.temp }}/spec007/batch_18
+          if-no-files-found: error
+          retention-days: 90
+  batch_19:
+    needs: batch_18
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 792446d09b59f98b47e08279907cb3d4df314caa
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run pinned batch 19 serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/spec007/batch_19"
+          bash control/ci-spec007/run-batch.sh source 'scripts/mutations/spec007-refusal-surfaces.json' 's81-behavior-refusal-duplicated-when-last' "${{ runner.temp }}/spec007/batch_19"
+      - name: Retain evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec007-792446d09b59f98b47e08279907cb3d4df314caa-batch_19
+          path: ${{ runner.temp }}/spec007/batch_19
+          if-no-files-found: error
+          retention-days: 90
+  evidence_notice:
+    needs: batch_19
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo 'All serial batches returned success. Download and independently reconcile every case before any completion claim or package rehearsal.'
