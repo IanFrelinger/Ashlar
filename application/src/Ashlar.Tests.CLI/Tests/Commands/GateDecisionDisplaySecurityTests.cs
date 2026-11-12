@@ -171,13 +171,20 @@ public sealed class GateDecisionDisplaySecurityTests : IDisposable
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Historical_diff_preserves_its_lines_but_bounds_total_output(bool manyLines)
+    [InlineData("single-line")]
+    [InlineData("many-lines")]
+    [InlineData("total-characters")]
+    public async Task Historical_diff_preserves_its_lines_but_bounds_total_output(string shape)
     {
         var historical = Historical(ProposalState.Held);
+        var body = shape switch
+        {
+            "many-lines" => string.Concat(Enumerable.Repeat("x\n", 10000)),
+            "total-characters" => string.Join("\n", Enumerable.Repeat(new string('x', 1000), 60)),
+            _ => new string('x', 30000),
+        };
         var diff = "+ " + Human + "\n- ordinary second line\n"
-            + (manyLines ? string.Concat(Enumerable.Repeat("x\n", 10000)) : new string('x', 30000))
+            + body
             + "UNRENDERED-DIFF-TAIL";
         var record = await SeedAsync(historical with
         {

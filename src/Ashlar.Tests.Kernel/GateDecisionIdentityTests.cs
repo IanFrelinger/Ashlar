@@ -39,6 +39,10 @@ public sealed class GateDecisionIdentityTests : IDisposable
         (string Name, string? Actor)[] cases =
         [
             ("null", null), ("empty", ""), ("blank", " \t"),
+            ("format-only", "\u200B\u200D"), ("variation-only", "\uFE0F"),
+            ("format-blank", "\u200B \u200B"),
+            ("automatic-hidden-trailing-space", "gate \u200D"),
+            ("automatic-hidden-leading-space", "\u200D gate"),
             ("automatic", "gate"), ("automatic-case", "GaTe"),
             ("automatic-width", "ｇａｔｅ"), ("automatic-joiner", "g\u200Date"),
             ("automatic-nonjoiner", "g\u200Cate"), ("automatic-zero-width", "g\u200Bate"),
@@ -53,6 +57,7 @@ public sealed class GateDecisionIdentityTests : IDisposable
             ("bidi-pop", "human\u202c"), ("bidi-isolate", "human\u2066"),
             ("bidi-isolate-pop", "human\u2069"),
             ("unpaired-high", "human\ud800"), ("unpaired-low", "human\udfff"),
+            ("noncharacter", "human\ufffe"),
             ("too-long", new string('a', 257)),
         ];
         foreach (var item in cases)
@@ -195,8 +200,8 @@ public sealed class GateDecisionIdentityTests : IDisposable
         CanonicalJson.Bytes(record).Should().Equal(CanonicalJson.Bytes(legacy));
     }
 
-    private Dictionary<string, string> Snapshot() => Directory.EnumerateFiles(Path.Combine(_root, "gates"))
-        .ToDictionary(path => Path.GetFileName(path)!, path => Convert.ToBase64String(File.ReadAllBytes(path)));
+    private Dictionary<string, string> Snapshot() => Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories)
+        .ToDictionary(path => Path.GetRelativePath(_root, path), path => Convert.ToBase64String(File.ReadAllBytes(path)));
 
     private static ExtensionProposal Proposal() => new()
     {

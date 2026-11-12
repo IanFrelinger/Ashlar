@@ -1,3 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Ashlar.Manifest.Admission;
 using Ashlar.Manifest.Ledger;
 using Ashlar.Manifest.Signing;
@@ -11,6 +15,7 @@ internal static class Program
     {
         if (args.Length > 0 && args[0] == "yaml") return YamlProbe.Run(args[1..]);
         if (args.Length == 2 && args[0] == "raw-lock") return RawLock(args[1]);
+        if (args.Length == 2 && args[0] == "decision-normalization") return await DecisionNormalizationAsync(args[1]);
         if (args.Length != 3) return 2;
         var (store, root, mode) = (args[0], args[1], args[2]);
         Environment.SetEnvironmentVariable("ASHLAR_KEY_DIR", Path.Combine(root, "keys"));
@@ -50,6 +55,108 @@ internal static class Program
             return 24;
         }
     }
+
+    private static async Task<int> DecisionNormalizationAsync(string root)
+    {
+        // The runtime globalization switch is read at startup, before this probe can execute.
+        // Exercise the public store APIs; no production switch or bypass is introduced.
+        Directory.CreateDirectory(root);
+        var keyDir = Path.Combine(root, "keys");
+        Environment.SetEnvironmentVariable("ASHLAR_KEY_DIR", keyDir);
+        var signer = OperatorKey.Generate(keyDir);
+        var store = new GateStore(root, signer);
+        var now = new DateTimeOffset(2026, 11, 12, 12, 0, 0, TimeSpan.Zero);
+        var actors = new[]
+        {
+            (Id: "human-ascii", Actor: "operator"),
+            (Id: "human-unicode", Actor: "Zoë Zoe\u0308 李 مریم\u200Cرضا 👩\u200D💻"),
+            (Id: "reserved-width", Actor: "ｇａｔｅ"),
+        };
+        var automaticActors = new List<string>();
+        GateRecord? first = null;
+        foreach (var item in actors)
+        {
+            var proposal = new ExtensionProposal
+            {
+                Id = item.Id, Kind = "brick", Summary = "normalization probe", ProposedBy = "probe",
+                ProposedAt = now, Courses = [],
+            };
+            var recorded = await store.RecordAsync(proposal,
+                new AdmissionOutcome { State = ProposalState.Held, Reason = "awaiting human" }, now);
+            automaticActors.Add(recorded.Actor);
+            first ??= recorded;
+        }
+
+        // Historical records bypass new-write validation and retain their existing signed bytes.
+        const string historicalActor = "historical\noperator";
+        var historical = first! with
+        {
+            Proposal = first!.Proposal with { Id = "historical-record" },
+            Actor = historicalActor, State = ProposalState.Admitted, Sig = null, Signer = null,
+        };
+        historical = historical with
+        {
+            Sig = signer.Sign(CanonicalJson.Bytes(historical)), Signer = signer.PublicKeyBase64,
+        };
+        var json = new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } };
+        var historicalPath = Path.Combine(root, "gates", "historical-record.json");
+        await File.WriteAllTextAsync(historicalPath, JsonSerializer.Serialize(historical, json));
+        var historicalBytes = await File.ReadAllBytesAsync(historicalPath);
+        var historicalBefore = await store.GetAsync("historical-record");
+        var attempts = new List<object>();
+        foreach (var item in actors)
+        {
+            // A lock acquisition sweeps this file. Rejection must precede that side effect too.
+            await File.WriteAllTextAsync(Path.Combine(root, "gates", "orphan.json.tmp"), "uncommitted bytes");
+            var before = Snapshot(root);
+            Exception? failure = null;
+            try { await store.DecideAsync(item.Id, true, item.Actor, "reviewed", now.AddMinutes(1)); }
+            catch (Exception ex) { failure = ex; }
+            var after = Snapshot(root);
+            var persisted = await store.GetAsync(item.Id);
+            attempts.Add(new
+            {
+                id = item.Id,
+                outcome = failure is null ? "written" : "rejected",
+                exceptionType = failure?.GetType().Name,
+                parameter = (failure as ArgumentException)?.ParamName,
+                message = failure?.Message,
+                beforeSha256 = SnapshotDigest(before), afterSha256 = SnapshotDigest(after),
+                filesBefore = before.Keys, filesAfter = after.Keys,
+                persistedActor = persisted!.Actor, persistedState = persisted.State.ToString(),
+                signatureVerified = OperatorKey.Verify(persisted.Signer!,
+                    CanonicalJson.Bytes(persisted with { Sig = null, Signer = null }), persisted.Sig!),
+            });
+        }
+        var historicalAfter = await store.GetAsync("historical-record");
+        var all = await store.ListAsync();
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            schema = 1,
+            invariantSetting = Environment.GetEnvironmentVariable("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT"),
+            normalizationAvailable = "ｇａｔｅ".Normalize(NormalizationForm.FormKC) == "gate",
+            automaticActors,
+            historicalActorPreserved = historicalBefore!.Actor == historicalActor && historicalAfter!.Actor == historicalActor,
+            historicalBytesUnchanged = historicalBytes.SequenceEqual(await File.ReadAllBytesAsync(historicalPath)),
+            historicalSignatureVerified = OperatorKey.Verify(historicalAfter!.Signer!,
+                CanonicalJson.Bytes(historicalAfter with { Sig = null, Signer = null }), historicalAfter.Sig!),
+            historicalListed = all.Count == 4 && all.Any(record => record.Proposal.Id == "historical-record" && record.Actor == historicalActor),
+            attempts,
+        }));
+        return 0;
+    }
+
+    private static SortedDictionary<string, string> Snapshot(string root)
+    {
+        var files = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+            files[Path.GetRelativePath(root, path).Replace(Path.DirectorySeparatorChar, '/')] =
+                Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+        return files;
+    }
+
+    private static string SnapshotDigest(SortedDictionary<string, string> files) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(files))));
 
     private static void ConstructConcurrently(string root)
     {
