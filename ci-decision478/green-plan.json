@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "source_sha": "ba3ad5d70de76a390bf1542282a2f8b7b201b79f",
+  "steps": [
+    {
+      "id": "kernel-net8",
+      "kind": "tests",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests|FullyQualifiedName~GateDecisionNormalizationProcessTests",
+      "expected_total": 94,
+      "expected_failures": []
+    },
+    {
+      "id": "kernel-net10",
+      "kind": "tests",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests|FullyQualifiedName~GateDecisionNormalizationProcessTests",
+      "expected_total": 94,
+      "expected_failures": []
+    },
+    {
+      "id": "cli-net10",
+      "kind": "tests",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionDisplaySecurityTests|FullyQualifiedName~KeysGateDisplaySecurityTests|FullyQualifiedName~Human_report_defuses_historical_rejection_reason_without_changing_record|FullyQualifiedName~Human_report_defuses_historical_gate_error_while_json_preserves_its_data",
+      "expected_total": 25,
+      "expected_failures": []
+    },
+    {
+      "id": "full-cert-gate",
+      "kind": "cert-gate"
+    }
+  ]
+}
