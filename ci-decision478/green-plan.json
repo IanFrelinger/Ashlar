@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "source_sha": "e4bdeb46374cc7c6aaf8d6c9ebbb73f6fe10254a",
+  "source_sha": "a0f7492fccee9cc40c3d8a5108a53149f4cf950f",
   "steps": [
     {
       "id": "kernel-net8",
@@ -8,7 +8,7 @@
       "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
       "framework": "net8.0",
       "filter": "FullyQualifiedName~GateDecisionIdentityTests|FullyQualifiedName~GateDecisionNormalizationProcessTests",
-      "expected_total": 94,
+      "expected_total": 119,
       "expected_failures": []
     },
     {
@@ -17,7 +17,7 @@
       "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
       "framework": "net10.0",
       "filter": "FullyQualifiedName~GateDecisionIdentityTests|FullyQualifiedName~GateDecisionNormalizationProcessTests",
-      "expected_total": 94,
+      "expected_total": 119,
       "expected_failures": []
     },
     {

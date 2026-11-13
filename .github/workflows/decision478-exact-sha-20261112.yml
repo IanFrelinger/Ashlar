@@ -1,4 +1,4 @@
-# Controller branch only. Replace ceab96831b0e6e3ce26d40d56516262c96d64b30 and selector-red-plan.json after committing tests/fix.
+# Controller branch only. Replace a0f7492fccee9cc40c3d8a5108a53149f4cf950f and green-plan.json after committing tests/fix.
 name: Decision478 exact SHA proof 20261112
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
       - name: Checkout exact tested source
         uses: actions/checkout@v7
         with:
-          ref: ceab96831b0e6e3ce26d40d56516262c96d64b30
+          ref: a0f7492fccee9cc40c3d8a5108a53149f4cf950f
           path: source
           fetch-depth: 0
           persist-credentials: false
@@ -34,7 +34,7 @@ jobs:
           EVIDENCE_ROOT: ${{ runner.temp }}/decision478
         run: |
           set -euo pipefail
-          bash control/ci-decision478/run-host.sh source "$EVIDENCE_ROOT" control/ci-decision478/selector-red-plan.json
+          bash control/ci-decision478/run-host.sh source "$EVIDENCE_ROOT" control/ci-decision478/green-plan.json
       - name: Retain complete evidence
         if: always()
         uses: actions/upload-artifact@v4
