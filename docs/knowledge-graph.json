@@ -22,7 +22,7 @@
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 865,
     "declared_facts": 5776,
-    "workflows": 71
+    "workflows": 72
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -8843,6 +8843,13 @@
       "triggers": [
         "pull_request",
         "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/bedrock-region-reproduction.yml",
+      "name": "Bedrock region reproduction",
+      "triggers": [
+        "pull_request"
       ]
     },
     {

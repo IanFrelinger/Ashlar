@@ -21,7 +21,7 @@ remembered to update — staleness here is a red build.
 | **mentioned in no document at all** | **0** |
 | test files declaring xUnit facts | 865 |
 | declared facts | 5776 |
-| workflows | 71 |
+| workflows | 72 |
 
 ## Namespaces cert-gate selects
 

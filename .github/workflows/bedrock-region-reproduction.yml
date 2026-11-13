@@ -1,0 +1,101 @@
+name: Bedrock region reproduction
+
+on:
+  pull_request:
+    paths:
+      - 'src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs'
+      - 'src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRedirectHardeningTests.cs'
+      - 'scripts/diagnostics/bedrock-region-probe.cs'
+      - 'scripts/bedrock-region-reproduction.py'
+      - 'scripts/test-in-container.sh'
+      - 'scripts/ensure-devtest-image.sh'
+      - '.docker/Dockerfile.devtest'
+      - 'Directory.Packages.props'
+      - '.github/workflows/bedrock-region-reproduction.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bedrock-region-reproduction-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  controlled-reproduction:
+    name: Bedrock default-region controlled reproduction
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Reproduce original assertions in devtest with controlled regions
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          mkdir -p "$RUNNER_TEMP/bedrock-region"
+          bash scripts/test-in-container.sh --ref "$EXPECTED_SHA" -- \
+            "python3 scripts/bedrock-region-reproduction.py $EXPECTED_SHA" \
+            2>&1 | tee "$RUNNER_TEMP/bedrock-region/reproduction.log"
+
+      - name: Retain and verify controlled reproduction evidence
+        if: always()
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/bedrock-region" "$EXPECTED_SHA" <<'PY'
+          from pathlib import Path, PurePosixPath
+          import base64
+          import hashlib
+          import io
+          import json
+          import re
+          import stat
+          import sys
+          import zipfile
+
+          root, expected_sha = Path(sys.argv[1]), sys.argv[2]
+          log = (root / "reproduction.log").read_text()
+          blocks = re.findall(r"^ASHLAR_BEDROCK_REGION_EVIDENCE_BEGIN\n([A-Za-z0-9+/=\n]+)^ASHLAR_BEDROCK_REGION_EVIDENCE_END$", log, re.M)
+          digests = re.findall(r"^ASHLAR_BEDROCK_REGION_EVIDENCE_SHA256 ([0-9a-f]{64})$", log, re.M)
+          if len(blocks) != 1 or len(digests) != 1:
+              raise SystemExit("Missing or ambiguous region evidence")
+          data = base64.b64decode("".join(blocks[0].splitlines()), validate=True)
+          if len(data) > 50_000_000 or hashlib.sha256(data).hexdigest() != digests[0]:
+              raise SystemExit("Region evidence digest/size mismatch")
+          (root / "evidence.zip").write_bytes(data)
+          target = root / "evidence"
+          with zipfile.ZipFile(io.BytesIO(data)) as archive:
+              names = set()
+              if sum(item.file_size for item in archive.infolist()) > 100_000_000:
+                  raise SystemExit("Expanded evidence is too large")
+              for item in archive.infolist():
+                  path = PurePosixPath(item.filename)
+                  if path.is_absolute() or ".." in path.parts or "\\" in item.filename or item.filename in names or stat.S_ISLNK(item.external_attr >> 16):
+                      raise SystemExit("Unsafe or duplicate archive path")
+                  names.add(item.filename)
+              archive.extractall(target)
+          summary = json.loads((target / "summary.json").read_text())
+          if summary.get("source_sha") != expected_sha or summary.get("verdict") != "REPRODUCED" or summary.get("source_restored") is not True:
+              raise SystemExit("Incomplete controlled reproduction")
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bedrock-region-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/bedrock-region
+          if-no-files-found: error
+          retention-days: 90
