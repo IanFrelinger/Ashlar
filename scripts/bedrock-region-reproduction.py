@@ -82,7 +82,10 @@ def read_trx(path, kind, region, exit_code):
         message = row.findtext("t:Output/t:ErrorInfo/t:Message", default="", namespaces=NS)
         stack = row.findtext("t:Output/t:ErrorInfo/t:StackTrace", default="", namespaces=NS)
         if row.get("outcome") == "Failed":
-            require(message.strip() == f'Expected string to be <null>, but found "{region}".' and ORIGINAL_ID in stack and "EgressRedirectHardeningTests.cs:line 124" in stack, "Failure is not the expected region assertion")
+            # FluentAssertions can name the source expression when the PDB/source is available.
+            expected_messages = {f'Expected {subject} to be <null>, but found "{region}".'
+                                 for subject in ("string", "config.RegionEndpoint?.SystemName")}
+            require(message.strip() in expected_messages and ORIGINAL_ID in stack and "EgressRedirectHardeningTests.cs:line 124" in stack, "Failure is not the expected region assertion")
         results.append({"name": row.get("testName"), "id": row.get("testId"), "outcome": row.get("outcome"), "message": message, "stack": stack})
     return {"total": len(rows), "failed": len(failed), "results": results, "trx_sha256": digest(path)}
 
