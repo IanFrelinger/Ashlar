@@ -8847,7 +8847,7 @@
     },
     {
       "file": ".github/workflows/bedrock-region-reproduction.yml",
-      "name": "Bedrock region reproduction",
+      "name": "Bedrock region contracts",
       "triggers": [
         "pull_request"
       ]

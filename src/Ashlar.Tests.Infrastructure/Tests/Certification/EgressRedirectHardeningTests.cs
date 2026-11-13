@@ -9,12 +9,13 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Ashlar.Tests.Infrastructure.Tests.Certification;
 
 /// <summary>SPEC-007 PR 4.3b: regression twins for inward redirects, origin boundaries, handler chains and factory binding.</summary>
 [Trait("Category", "Certification")]
-public sealed class EgressRedirectHardeningTests
+public sealed class EgressRedirectHardeningTests(ITestOutputHelper output)
 {
     private const string FollowerTypeName = "EgressRedirectHandler";
     private static readonly EgressGuard Guard = new("full");
@@ -111,17 +112,23 @@ public sealed class EgressRedirectHardeningTests
     [Theory]
     [InlineData("us-west-2", "us-west-2")]
     [InlineData(" us-west-2 ", "us-west-2")]
+    [InlineData("eu-central-1", "eu-central-1")]
     [InlineData("", null)]
     [InlineData(null, null)]
+    [InlineData("   ", null)]
     public void CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(string? region, string? expectedRegion)
     {
+        output.WriteLine($"BEDROCK_RUNTIME {Environment.Version}");
+        // An omitted region preserves the SDK default chain, which can resolve on an AWS runner.
+        // Observe it before invoking the factory so a factory override cannot change our oracle.
+        var expected = expectedRegion ?? new Amazon.BedrockRuntime.AmazonBedrockRuntimeConfig().RegionEndpoint?.SystemName;
         var seam = typeof(Ashlar.AI.Pipeline.Clients.AwsBedrockChatClientFactory)
             .GetMethod("RuntimeConfig", BindingFlags.NonPublic | BindingFlags.Static);
-        seam.Should().NotBeNull("the SDK-owned transport has a configuration seam without contacting AWS");
+        seam.Should().NotBeNull("the SDK-owned transport exposes its configuration without constructing an AWS client");
         var config = (Amazon.BedrockRuntime.AmazonBedrockRuntimeConfig)seam!.Invoke(null, [region])!;
 
         config.AllowAutoRedirect.Should().BeFalse();
-        config.RegionEndpoint?.SystemName.Should().Be(expectedRegion);
+        config.RegionEndpoint?.SystemName.Should().Be(expected);
     }
 
     [Fact]

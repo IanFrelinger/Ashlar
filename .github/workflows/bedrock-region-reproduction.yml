@@ -1,4 +1,4 @@
-name: Bedrock region reproduction
+name: Bedrock region contracts
 
 on:
   pull_request:
@@ -7,6 +7,8 @@ on:
       - 'src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRedirectHardeningTests.cs'
       - 'scripts/diagnostics/bedrock-region-probe.cs'
       - 'scripts/bedrock-region-reproduction.py'
+      - 'scripts/mutations/bedrock-region-contracts.json'
+      - 'scripts/run-spec007-mutation-batch.py'
       - 'scripts/test-in-container.sh'
       - 'scripts/ensure-devtest-image.sh'
       - '.docker/Dockerfile.devtest'
@@ -22,7 +24,7 @@ concurrency:
 
 jobs:
   controlled-reproduction:
-    name: Bedrock default-region controlled reproduction
+    name: Bedrock default-region contracts and mutations
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -33,7 +35,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Reproduce original assertions in devtest with controlled regions
+      - name: Verify region contracts and mutations in controlled devtest processes
         shell: bash
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
@@ -43,7 +45,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           mkdir -p "$RUNNER_TEMP/bedrock-region"
           bash scripts/test-in-container.sh --ref "$EXPECTED_SHA" -- \
-            "python3 scripts/bedrock-region-reproduction.py $EXPECTED_SHA" \
+            "python3 scripts/bedrock-region-reproduction.py $EXPECTED_SHA --regression" \
             2>&1 | tee "$RUNNER_TEMP/bedrock-region/reproduction.log"
 
       - name: Retain and verify controlled reproduction evidence
@@ -86,8 +88,9 @@ jobs:
                   names.add(item.filename)
               archive.extractall(target)
           summary = json.loads((target / "summary.json").read_text())
-          if summary.get("source_sha") != expected_sha or summary.get("verdict") != "REPRODUCED" or summary.get("source_restored") is not True:
-              raise SystemExit("Incomplete controlled reproduction")
+          mutations = summary.get("mutations", {})
+          if summary.get("source_sha") != expected_sha or summary.get("verdict") != "REGRESSION_VERIFIED" or summary.get("source_restored") is not True or mutations.get("verdict") != "KILLED" or mutations.get("cases") != 8:
+              raise SystemExit("Incomplete controlled regression and mutation evidence")
           print(json.dumps(summary, indent=2))
           PY
 
