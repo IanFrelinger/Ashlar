@@ -40,7 +40,7 @@ public sealed record NodeHeartbeat
     [JsonPropertyName("nodeId")]
     public string? NodeId { get; init; }
 
-    /// <summary>Operator key fingerprint, or null when no key exists — which means gate decisions are unsigned.</summary>
+    /// <summary>Configured public identity, or null when unavailable. This does not prove private-key possession, signing readiness or authenticated peer identity.</summary>
     [JsonPropertyName("keyFingerprint")]
     public string? KeyFingerprint { get; init; }
 
@@ -105,18 +105,17 @@ public sealed record NodeHeartbeat
         }
     }
 
-    /// <summary>Reads the operator key fingerprint, or null when there is no key.</summary>
+    /// <summary>Reads public identity metadata only; unavailable or malformed public material yields null.</summary>
     public static string? TryFingerprint()
     {
         try
         {
-            var key = OperatorKey.TryLoad();
-            return key is null ? null : OperatorKey.Fingerprint(Convert.FromBase64String(key.PublicKeyBase64));
+            return OperatorKey.TryReadPublicIdentity()?.Fingerprint;
         }
-        catch (Exception ex) when (ex is IOException or FormatException or InvalidOperationException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException or InvalidOperationException)
         {
-            // A corrupt key is a real condition, and `keys show` reports it properly. Here it just
-            // means the fingerprint is unknown; it must not stop the node describing itself.
+            // Metadata is unknown, never a substitute signing identity or trust decision.
+            // Private-key health remains the responsibility of explicit signing/diagnostic paths.
             return null;
         }
     }

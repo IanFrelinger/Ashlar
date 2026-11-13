@@ -106,6 +106,29 @@ public static class OperatorKey
         }
     }
 
+    /// <summary>
+    /// Reads only <c>operator.pub</c> for identity/status display, or returns null when that
+    /// file or its directory is absent. Malformed public material and other read failures
+    /// are errors; private-key files and trust/peer keychains are never consulted.
+    /// This is not a signing-readiness or keypair-consistency check.
+    /// </summary>
+    public static OperatorPublicIdentity? TryReadPublicIdentity(string? keyDir = null)
+    {
+        var dir = keyDir ?? ResolveKeyDir();
+        try
+        {
+            return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, "operator.pub")));
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>SPEC-006 §3 fingerprint: <c>ed25519:</c> + first 16 lowercase hex chars of
     /// SHA-256 over the raw public key.</summary>
     public static string Fingerprint(byte[] rawPublicKey) =>
