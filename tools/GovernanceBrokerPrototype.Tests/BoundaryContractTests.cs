@@ -126,6 +126,11 @@ public sealed class BrokerConfigurationTests
     {
         var config = BrokerConfiguration.Parse(Valid) with { SocketPath = "/" + new string('x', 101) };
         Assert.Throws<ArgumentException>(() => config.ValidateIdentity(11001));
+        // The socket limit counts UTF-8 bytes, preserving legitimate Unicode paths.
+        config = config with { SocketPath = "/" + new string('界', 33) };
+        config.ValidateIdentity(11001); // 100 UTF-8 bytes
+        config = config with { SocketPath = "/" + new string('界', 34) };
+        Assert.Throws<ArgumentException>(() => config.ValidateIdentity(11001)); // 103 bytes
     }
 
     [Theory]

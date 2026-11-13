@@ -128,7 +128,14 @@ public sealed class BrokerParserTests
     public void Request_and_text_lengths_are_bounded()
     {
         Assert.Throws<ArgumentException>(() => BrokerRequest.Parse(ReadOnlyMemory<byte>.Empty));
-        Assert.Throws<ArgumentException>(() => BrokerRequest.Parse(new byte[BrokerRequest.MaxBytes + 1]));
+        // Valid JSON at the exact limit proves this is a byte-bound check, not
+        // rejection caused only by malformed input or a JSON parser exception.
+        var json = Encoding.UTF8.GetString(Requests.Submit());
+        var atLimit = Encoding.UTF8.GetBytes(json.PadRight(BrokerRequest.MaxBytes));
+        Assert.Equal(BrokerRequest.MaxBytes, atLimit.Length);
+        Assert.Equal("submit", BrokerRequest.Parse(atLimit).Op);
+        var oversized = Encoding.UTF8.GetBytes(json.PadRight(BrokerRequest.MaxBytes + 1));
+        Assert.Throws<ArgumentException>(() => BrokerRequest.Parse(oversized));
         var request = Requests.SubmitNode(summary: new string('x', 2048));
         Assert.Equal(2048, BrokerRequest.Parse(Requests.Bytes(request)).Summary!.Length);
         request["summary"] = new string('x', 2049);
@@ -146,6 +153,10 @@ public sealed class BrokerParserTests
     }
 }
 
+[CollectionDefinition("GovernanceBrokerEnvironment", DisableParallelization = true)]
+public sealed class GovernanceBrokerEnvironmentCollection { }
+
+[Collection("GovernanceBrokerEnvironment")]
 public sealed class BrokerPersistenceTests : IDisposable
 {
     private const uint Worker = 12001;

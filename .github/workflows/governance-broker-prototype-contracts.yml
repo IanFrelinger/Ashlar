@@ -17,6 +17,8 @@ on:
       - 'VERSION'
       - 'scripts/test-in-container.sh'
       - 'scripts/ensure-devtest-image.sh'
+      - 'scripts/run-spec007-mutation-batch.py'
+      - 'scripts/decode-spec007-mutation-evidence.py'
       - '.docker/Dockerfile.devtest'
       - '.github/workflows/governance-broker-prototype-contracts.yml'
 
@@ -42,7 +44,9 @@ jobs:
 
       - name: Validate evidence parser negative controls
         shell: bash
-        run: python3 tools/GovernanceBrokerPrototype/ci-evidence.py self-test
+        run: |
+          python3 tools/GovernanceBrokerPrototype/ci-evidence.py self-test
+          python3 tools/GovernanceBrokerPrototype/ci-mutation-evidence.py --self-test
 
       - name: Run ordinary contract tests in the devtest container
         shell: bash
@@ -70,7 +74,36 @@ jobs:
             --output "$RUNNER_TEMP/governance-broker-contracts/decoded" \
             --expected-sha "$EXPECTED_SHA"
 
-      - name: Upload exact-SHA contract evidence
+      - name: Run ordinary contract mutations after green contract proof
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          bash scripts/test-in-container.sh --ref "$EXPECTED_SHA" -- \
+            "bash tools/GovernanceBrokerPrototype/ci-mutations.sh $EXPECTED_SHA" \
+            2>&1 | tee "$RUNNER_TEMP/governance-broker-contracts/mutations.log"
+
+      - name: Decode and verify retained mutation evidence
+        if: always()
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          evidence_root="$RUNNER_TEMP/governance-broker-contracts"
+          if [[ ! -f "$evidence_root/mutations.log" ]]; then
+            echo 'Mutation execution did not run; no mutation evidence is available.'
+            exit 1
+          fi
+          python3 scripts/decode-spec007-mutation-evidence.py \
+            --log "$evidence_root/mutations.log" --output "$evidence_root/mutations" --repo .
+          python3 tools/GovernanceBrokerPrototype/ci-mutation-evidence.py \
+            --evidence "$evidence_root/mutations" --repo . --expected-sha "$EXPECTED_SHA"
+
+      - name: Upload exact-SHA contract and mutation evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:

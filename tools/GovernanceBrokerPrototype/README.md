@@ -114,3 +114,31 @@ These are application and metadata-policy contracts, not an OS isolation test. T
 does not start the service, create identities, change system security settings, replace locks
 or recreate the previously blocked harness. No isolation or production-readiness claim follows
 from green contract tests.
+
+### Ordinary contract mutation evidence
+
+After the same-SHA green contract evidence has been decoded and verified, the workflow
+runs only `mutations.json` through the unchanged `run-spec007-mutation-batch.py` runner
+in a fresh devtest clone. Workflow runs queue serially for each PR; within a run, each
+mutation's red test, byte restoration and green rebuild finish before the next mutation.
+The manifest selects 35 distinct source changes on each of net8.0 and net10.0, for 70
+planned mutation cases, with a 300-second timeout for each test invocation. It names the
+expected failing tests for each case; execution remains pending until evidence is accepted.
+
+Synthetic verifier controls reject malformed or misleading receipts and do not count as
+.NET mutation executions. The full mutation log retains the runner's digest-checked archive. The existing safe decoder
+extracts it outside the checkout, and `ci-mutation-evidence.py` verifies the exact manifest,
+SHA, complete KILLED case set, original/restored source hashes, clean restoration receipts,
+actual baseline/red/green TRXs and every expected failing test. Missing evidence, build errors,
+skips, survivors and incomplete restoration fail the job. Shared baseline selections are
+explicitly counted; each mutation still requires its own red and restored-green TRX.
+
+Both the environment and test project use patch-only runtime roll-forward. The preceding
+same-SHA contract step retains runtime configuration and inventory; the unchanged mutation
+runner retains its commands and TRXs but does not capture the mutation test-host runtime
+or a separate runtime configuration for each red/green invocation. Mutation validation is
+pending until this workflow produces accepted per-case evidence. A KILLED result demonstrates
+that the selected application or pure metadata assertion detects that exact source change.
+It does not exercise service startup, native peer credentials, cross-identity access, filesystem
+lock replacement or a deployed isolation boundary, and cannot establish OS isolation or
+production readiness. The earlier blocked isolation harness remains blocked and is not retried.

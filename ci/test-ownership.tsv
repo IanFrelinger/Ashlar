@@ -60,3 +60,4 @@ src/Ashlar.Tests.Orchestration/Ashlar.Tests.Orchestration.csproj	perf-gate-tier-
 src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj	kernel-gate-tier-c	-	transport
 src/Ashlar.Transport.A2A.Server.Tests/Ashlar.Transport.A2A.Server.Tests.csproj	mcp-a2a-gate	-	A2A server
 src/Ashlar.Transport.A2A.Tests/Ashlar.Transport.A2A.Tests.csproj	mcp-a2a-gate	-	A2A client
+tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj	governance-broker-prototype-contracts	-	PR-only devtest contract and mutation evidence on net8.0/net10.0; application and pure metadata rules only, not deployed isolation
