@@ -22,7 +22,7 @@
     "operator_vars_absent_from_all_documentation": 0,
     "test_files_declaring_facts": 864,
     "declared_facts": 5764,
-    "workflows": 70
+    "workflows": 71
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -9019,6 +9019,13 @@
         "push",
         "schedule",
         "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/governance-broker-prototype-contracts.yml",
+      "name": "Governance broker prototype contracts",
+      "triggers": [
+        "pull_request"
       ]
     },
     {

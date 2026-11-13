@@ -30,6 +30,20 @@ This matches how the product is actually used today: one operator, one machine, 
 It replaces the committed dev-HMAC (tamper-evidence masquerading as authentication) with
 real asymmetric signatures whose private half never leaves the operator's disk.
 
+### Experimental isolation decision (2026-11-13)
+
+| Date | Decision | Source and limits |
+| --- | --- | --- |
+| 2026-11-13 | Prototype a Linux service under a distinct OS identity that owns governance state and signing keys, before any reference app. | Ian approved the proposed next step with “Ok execute” in the owner thread on 2026-11-13. The goal is to test that an untrusted worker cannot replace locks or write decisions directly. This authorizes bounded experimental work, not production migration, deployment, a new signing identity, or a claim of proven isolation. |
+
+Existing signed bytes and production protections must remain intact. The one-operator
+identity decision remains unchanged. Separate human approval authority, complete writer/key
+migration and deployment policy remain unresolved. The first prototype's sealed-only
+proposal/read contract is an integrator scope choice while trusted evaluation and human
+approval are unavailable; it does not change production semantics. The previously blocked
+runtime harness must not be retried through another route. Record permitted contract-test
+results separately from any unproved operating-system isolation.
+
 ## 2. Identities
 
 | Identity | v1 | v2 (deferred) |

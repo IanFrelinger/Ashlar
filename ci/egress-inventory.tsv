@@ -92,3 +92,4 @@ src/Ashlar.Transport.A2A/A2AAgentTransport.cs	http.new	1	1	Wrapped	-	EG-XPT-01,E
 src/Ashlar.Transport.A2A/A2AAgentTransport.cs	sdk.client	2	2	Wrapped	-	EG-XPT-01,EG-XPT-02	A2AClient (:82) and A2ACardResolver (:148) over the EgressHttp per-authority client
 src/Ashlar.Transport.Grpc/DefaultGrpcChannelFactory.cs	http.new	2	2	Wrapped	-	EG-XPT-03,EG-XPT-04,EG-XPT-05	gRPC channel handler: EgressHttp.Wrap over the configured new HttpClientHandler() (:77)
 src/Ashlar.Transport.Grpc/DefaultGrpcChannelFactory.cs	sdk.client	1	1	Wrapped	-	EG-XPT-03,EG-XPT-04,EG-XPT-05	GrpcChannel.ForAddress over the wrapped handler (:67)
+tools/GovernanceBrokerPrototype/Program.cs	socket	1	0	-	Exempt:Inbound	EG-SRV-07	Main wraps the inherited systemd fd 3 Unix Stream listener; no outbound connect, only accept and bounded local protocol responses; prototype not deployed or isolation-validated

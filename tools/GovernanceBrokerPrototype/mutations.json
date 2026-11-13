@@ -1,0 +1,854 @@
+{
+  "schema": 1,
+  "note": "Bounded application-contract mutation campaign for the nonpublishing #480 prototype. 35 deliberate changes, each selected separately on net8.0 and net10.0. Tests use ordinary application calls, in-memory streams, disposable signed fixtures and pure metadata/configuration values only. Native peer/path checks, service startup, OS identity/permission isolation and the previously blocked isolation harness are outside this campaign; no isolation claim follows from these results.",
+  "mutations": [
+    {
+      "id": "broker-peer-authorization-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "peerUid != workerUid",
+      "new": "peerUid != workerUid && peerUid == uint.MaxValue",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Unauthorized_peer_is_rejected_before_any_persistence"
+      ]
+    },
+    {
+      "id": "broker-project-authorization-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "!string.Equals(request.Project, project, StringComparison.Ordinal)",
+      "new": "!string.Equals(request.Project, project, StringComparison.Ordinal) && request.Project.Length == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Unknown_project_is_rejected_before_persistence"
+      ]
+    },
+    {
+      "id": "broker-sealed-rejection-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "Mode = SelfExtendMode.Sealed",
+      "new": "Mode = SelfExtendMode.Proposing",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Submission_uses_server_time_and_identity_and_can_only_be_signed_rejected"
+      ]
+    },
+    {
+      "id": "broker-server-clock-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "var now = clock.GetUtcNow();",
+      "new": "var now = clock.GetUtcNow().AddDays(-1);",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Submission_uses_server_time_and_identity_and_can_only_be_signed_rejected"
+      ]
+    },
+    {
+      "id": "broker-server-attribution-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "ProposedBy = attribution, ProposedAt = now, Courses = [],",
+      "new": "ProposedBy = \"client\", ProposedAt = now, Courses = [],",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Submission_uses_server_time_and_identity_and_can_only_be_signed_rejected"
+      ]
+    },
+    {
+      "id": "broker-replay-conflict-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "previous.Proposal.Summary != request.Summary",
+      "new": "false",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Reused_id_with_different_content_conflicts_without_rewrite"
+      ]
+    },
+    {
+      "id": "broker-capacity-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": ".Count >= recordLimit",
+      "new": ".Count > recordLimit",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Full_capacity_refuses_new_ID_but_retains_retry_and_read"
+      ]
+    },
+    {
+      "id": "broker-retry-idempotence-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "return BrokerResponse.Success(previous);",
+      "new": "return BrokerResponse.Failure(\"request-conflict\");",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Same_request_after_restart_returns_same_record_without_changing_bytes"
+      ]
+    },
+    {
+      "id": "broker-generic-store-error-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "return BrokerResponse.Failure(\"store-unavailable\");",
+      "new": "return BrokerResponse.Failure(ex.Message);",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Unreadable_record_returns_generic_failure_without_a_new_unsigned_record"
+      ]
+    },
+    {
+      "id": "broker-read-does-not-write-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "if (request.Op == \"read\")",
+      "new": "if (request.Op == \"submit\")",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Missing_read_does_not_create_a_record"
+      ]
+    },
+    {
+      "id": "broker-duplicate-field-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "if (!names.Add(field.Name)) throw new ArgumentException(\"Duplicate field.\");",
+      "new": "names.Add(field.Name);",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Duplicate_field_in_an_otherwise_complete_request_is_rejected"
+      ]
+    },
+    {
+      "id": "broker-extra-authority-field-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "names.Count != allowed.Length || names.Except(allowed, StringComparer.Ordinal).Any()",
+      "new": "names.Count < allowed.Length",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Extra_authority_fields_are_rejected",
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Extra_authority_field_is_rejected_before_persistence"
+      ]
+    },
+    {
+      "id": "broker-operation-allowlist-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "_ => throw new ArgumentException(\"Unsupported operation.\"),",
+      "new": "_ => new[] { \"op\", \"project\", \"requestId\", \"kind\", \"summary\", \"diff\" },",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Unsupported_operations_are_rejected",
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Unsupported_operation_is_rejected_before_persistence"
+      ]
+    },
+    {
+      "id": "broker-nonzero-request-id-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": " || id == Guid.Empty",
+      "new": "",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_id_requires_nonempty_D_format_guid"
+      ]
+    },
+    {
+      "id": "broker-canonical-request-id-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "Guid.TryParseExact(idText, \"D\", out var id)",
+      "new": "Guid.TryParse(idText, out var id)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_id_requires_nonempty_D_format_guid"
+      ]
+    },
+    {
+      "id": "broker-summary-bound-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "Required(\"summary\", 2048)",
+      "new": "Required(\"summary\", 2049)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_and_text_lengths_are_bounded"
+      ]
+    },
+    {
+      "id": "broker-diff-bound-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "Required(\"diff\", 24000)",
+      "new": "Required(\"diff\", 24001)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_and_text_lengths_are_bounded"
+      ]
+    },
+    {
+      "id": "broker-unicode-preservation-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "return text;",
+      "new": "return text.Normalize();",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Exact_Unicode_text_survives_without_normalization"
+      ]
+    },
+    {
+      "id": "broker-request-byte-bound-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "bytes.Length == 0 || bytes.Length > MaxBytes",
+      "new": "bytes.Length == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_and_text_lengths_are_bounded"
+      ]
+    },
+    {
+      "id": "broker-metadata-entry-type-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "type != DirectoryType && type != RegularFileType",
+      "new": "type == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Nonregular_nondirectory_entries_are_refused"
+      ]
+    },
+    {
+      "id": "broker-metadata-ancestor-directory-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "requireDirectory && type != DirectoryType",
+      "new": "requireDirectory && type == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Regular_file_cannot_be_an_ancestor"
+      ]
+    },
+    {
+      "id": "broker-metadata-owner-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "metadata.OwnerUid != serviceUid && (privateTree || metadata.OwnerUid != 0)",
+      "new": "metadata.OwnerUid == uint.MaxValue",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Third_party_owner_is_refused",
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Private_tree_requires_service_ownership"
+      ]
+    },
+    {
+      "id": "broker-metadata-private-access-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "privateTree ? GroupOtherAccess : GroupOtherWrite",
+      "new": "GroupOtherWrite",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Private_tree_rejects_all_group_or_other_access"
+      ]
+    },
+    {
+      "id": "broker-metadata-ancestor-write-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "privateTree ? GroupOtherAccess : GroupOtherWrite",
+      "new": "privateTree ? GroupOtherAccess : (ushort)0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Group_or_other_write_on_an_ancestor_is_refused"
+      ]
+    },
+    {
+      "id": "broker-metadata-single-link-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "type == RegularFileType && metadata.LinkCount != 1",
+      "new": "type == RegularFileType && metadata.LinkCount == uint.MaxValue",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Files_must_have_exactly_one_hard_link"
+      ]
+    },
+    {
+      "id": "broker-explicit-key-root-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "OperatorKey.TryLoad(keyDir)",
+      "new": "OperatorKey.TryLoad()",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Explicit_signer_load_preserves_bytes_and_ignores_unrelated_ambient_keys"
+      ]
+    },
+    {
+      "id": "broker-configured-trust-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "var trust = OperatorKey.TrustedPublicKeysBase64(keyDir);",
+      "new": "var trust = new[] { signer.PublicKeyBase64 };",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Required_signer_refuses_malformed_trusted_key_without_state_writes"
+      ]
+    },
+    {
+      "id": "broker-frame-terminator-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "if (count == 0) throw new ArgumentException(\"Unterminated frame.\");",
+      "new": "if (count == 0) return bytes[..length];",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Empty_unterminated_or_coalesced_extra_frames_are_refused"
+      ]
+    },
+    {
+      "id": "broker-fragmented-frame-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "bytes.AsMemory(length)",
+      "new": "bytes.AsMemory(0)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Fragmented_multibyte_text_is_not_decoded_between_reads"
+      ]
+    },
+    {
+      "id": "broker-one-frame-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "newline != length - 1 || newline == 0",
+      "new": "newline > length || newline == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Empty_unterminated_or_coalesced_extra_frames_are_refused"
+      ]
+    },
+    {
+      "id": "broker-frame-byte-bound-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "new byte[BrokerRequest.MaxBytes + 1]",
+      "new": "new byte[BrokerRequest.MaxBytes + 2]",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Exact_limit_is_accepted_and_one_extra_byte_is_refused"
+      ]
+    },
+    {
+      "id": "broker-config-fields-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "fields.Length != expected.Length || fields.Distinct(StringComparer.Ordinal).Count() != fields.Length\n            || fields.Except(expected, StringComparer.Ordinal).Any()",
+      "new": "fields.Length < expected.Length",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Missing_duplicate_unknown_and_badly_typed_config_fields_are_refused"
+      ]
+    },
+    {
+      "id": "broker-distinct-identity-rule-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "serviceUid == 0 || WorkerUid == 0 || WorkerUid == serviceUid",
+      "new": "serviceUid == uint.MaxValue",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Root_or_shared_identity_is_refused"
+      ]
+    },
+    {
+      "id": "broker-canonical-config-paths-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)\n                || Path.GetFullPath(path) != path || path == \"/\"",
+      "new": "string.IsNullOrWhiteSpace(path)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Root_requires_a_normalized_absolute_nonroot_path",
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Socket_requires_a_normalized_absolute_nonroot_path"
+      ]
+    },
+    {
+      "id": "broker-socket-path-bound-net8.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "Encoding.UTF8.GetByteCount(SocketPath) > 100",
+      "new": "SocketPath.Length > 100",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Socket_length_is_bounded"
+      ]
+    },
+    {
+      "id": "broker-peer-authorization-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "peerUid != workerUid",
+      "new": "peerUid != workerUid && peerUid == uint.MaxValue",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Unauthorized_peer_is_rejected_before_any_persistence"
+      ]
+    },
+    {
+      "id": "broker-project-authorization-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "!string.Equals(request.Project, project, StringComparison.Ordinal)",
+      "new": "!string.Equals(request.Project, project, StringComparison.Ordinal) && request.Project.Length == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Unknown_project_is_rejected_before_persistence"
+      ]
+    },
+    {
+      "id": "broker-sealed-rejection-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "Mode = SelfExtendMode.Sealed",
+      "new": "Mode = SelfExtendMode.Proposing",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Submission_uses_server_time_and_identity_and_can_only_be_signed_rejected"
+      ]
+    },
+    {
+      "id": "broker-server-clock-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "var now = clock.GetUtcNow();",
+      "new": "var now = clock.GetUtcNow().AddDays(-1);",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Submission_uses_server_time_and_identity_and_can_only_be_signed_rejected"
+      ]
+    },
+    {
+      "id": "broker-server-attribution-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "ProposedBy = attribution, ProposedAt = now, Courses = [],",
+      "new": "ProposedBy = \"client\", ProposedAt = now, Courses = [],",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Submission_uses_server_time_and_identity_and_can_only_be_signed_rejected"
+      ]
+    },
+    {
+      "id": "broker-replay-conflict-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "previous.Proposal.Summary != request.Summary",
+      "new": "false",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Reused_id_with_different_content_conflicts_without_rewrite"
+      ]
+    },
+    {
+      "id": "broker-capacity-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": ".Count >= recordLimit",
+      "new": ".Count > recordLimit",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Full_capacity_refuses_new_ID_but_retains_retry_and_read"
+      ]
+    },
+    {
+      "id": "broker-retry-idempotence-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "return BrokerResponse.Success(previous);",
+      "new": "return BrokerResponse.Failure(\"request-conflict\");",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Same_request_after_restart_returns_same_record_without_changing_bytes"
+      ]
+    },
+    {
+      "id": "broker-generic-store-error-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "return BrokerResponse.Failure(\"store-unavailable\");",
+      "new": "return BrokerResponse.Failure(ex.Message);",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Unreadable_record_returns_generic_failure_without_a_new_unsigned_record"
+      ]
+    },
+    {
+      "id": "broker-read-does-not-write-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "if (request.Op == \"read\")",
+      "new": "if (request.Op == \"submit\")",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Missing_read_does_not_create_a_record"
+      ]
+    },
+    {
+      "id": "broker-duplicate-field-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "if (!names.Add(field.Name)) throw new ArgumentException(\"Duplicate field.\");",
+      "new": "names.Add(field.Name);",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Duplicate_field_in_an_otherwise_complete_request_is_rejected"
+      ]
+    },
+    {
+      "id": "broker-extra-authority-field-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "names.Count != allowed.Length || names.Except(allowed, StringComparer.Ordinal).Any()",
+      "new": "names.Count < allowed.Length",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Extra_authority_fields_are_rejected",
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Extra_authority_field_is_rejected_before_persistence"
+      ]
+    },
+    {
+      "id": "broker-operation-allowlist-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "_ => throw new ArgumentException(\"Unsupported operation.\"),",
+      "new": "_ => new[] { \"op\", \"project\", \"requestId\", \"kind\", \"summary\", \"diff\" },",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Unsupported_operations_are_rejected",
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Unsupported_operation_is_rejected_before_persistence"
+      ]
+    },
+    {
+      "id": "broker-nonzero-request-id-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": " || id == Guid.Empty",
+      "new": "",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_id_requires_nonempty_D_format_guid"
+      ]
+    },
+    {
+      "id": "broker-canonical-request-id-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "Guid.TryParseExact(idText, \"D\", out var id)",
+      "new": "Guid.TryParse(idText, out var id)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_id_requires_nonempty_D_format_guid"
+      ]
+    },
+    {
+      "id": "broker-summary-bound-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "Required(\"summary\", 2048)",
+      "new": "Required(\"summary\", 2049)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_and_text_lengths_are_bounded"
+      ]
+    },
+    {
+      "id": "broker-diff-bound-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "Required(\"diff\", 24000)",
+      "new": "Required(\"diff\", 24001)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_and_text_lengths_are_bounded"
+      ]
+    },
+    {
+      "id": "broker-unicode-preservation-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "return text;",
+      "new": "return text.Normalize();",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Exact_Unicode_text_survives_without_normalization"
+      ]
+    },
+    {
+      "id": "broker-request-byte-bound-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Broker.cs",
+      "old": "bytes.Length == 0 || bytes.Length > MaxBytes",
+      "new": "bytes.Length == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerParserTests.Request_and_text_lengths_are_bounded"
+      ]
+    },
+    {
+      "id": "broker-metadata-entry-type-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "type != DirectoryType && type != RegularFileType",
+      "new": "type == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Nonregular_nondirectory_entries_are_refused"
+      ]
+    },
+    {
+      "id": "broker-metadata-ancestor-directory-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "requireDirectory && type != DirectoryType",
+      "new": "requireDirectory && type == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Regular_file_cannot_be_an_ancestor"
+      ]
+    },
+    {
+      "id": "broker-metadata-owner-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "metadata.OwnerUid != serviceUid && (privateTree || metadata.OwnerUid != 0)",
+      "new": "metadata.OwnerUid == uint.MaxValue",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Third_party_owner_is_refused",
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Private_tree_requires_service_ownership"
+      ]
+    },
+    {
+      "id": "broker-metadata-private-access-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "privateTree ? GroupOtherAccess : GroupOtherWrite",
+      "new": "GroupOtherWrite",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Private_tree_rejects_all_group_or_other_access"
+      ]
+    },
+    {
+      "id": "broker-metadata-ancestor-write-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "privateTree ? GroupOtherAccess : GroupOtherWrite",
+      "new": "privateTree ? GroupOtherAccess : (ushort)0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Group_or_other_write_on_an_ancestor_is_refused"
+      ]
+    },
+    {
+      "id": "broker-metadata-single-link-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/LinuxBoundary.cs",
+      "old": "type == RegularFileType && metadata.LinkCount != 1",
+      "new": "type == RegularFileType && metadata.LinkCount == uint.MaxValue",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.LinuxMetadataPolicyTests.Files_must_have_exactly_one_hard_link"
+      ]
+    },
+    {
+      "id": "broker-explicit-key-root-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "OperatorKey.TryLoad(keyDir)",
+      "new": "OperatorKey.TryLoad()",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Explicit_signer_load_preserves_bytes_and_ignores_unrelated_ambient_keys"
+      ]
+    },
+    {
+      "id": "broker-configured-trust-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "var trust = OperatorKey.TrustedPublicKeysBase64(keyDir);",
+      "new": "var trust = new[] { signer.PublicKeyBase64 };",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerPersistenceTests.Required_signer_refuses_malformed_trusted_key_without_state_writes"
+      ]
+    },
+    {
+      "id": "broker-frame-terminator-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "if (count == 0) throw new ArgumentException(\"Unterminated frame.\");",
+      "new": "if (count == 0) return bytes[..length];",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Empty_unterminated_or_coalesced_extra_frames_are_refused"
+      ]
+    },
+    {
+      "id": "broker-fragmented-frame-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "bytes.AsMemory(length)",
+      "new": "bytes.AsMemory(0)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Fragmented_multibyte_text_is_not_decoded_between_reads"
+      ]
+    },
+    {
+      "id": "broker-one-frame-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "newline != length - 1 || newline == 0",
+      "new": "newline > length || newline == 0",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Empty_unterminated_or_coalesced_extra_frames_are_refused"
+      ]
+    },
+    {
+      "id": "broker-frame-byte-bound-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "new byte[BrokerRequest.MaxBytes + 1]",
+      "new": "new byte[BrokerRequest.MaxBytes + 2]",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Exact_limit_is_accepted_and_one_extra_byte_is_refused"
+      ]
+    },
+    {
+      "id": "broker-config-fields-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "fields.Length != expected.Length || fields.Distinct(StringComparer.Ordinal).Count() != fields.Length\n            || fields.Except(expected, StringComparer.Ordinal).Any()",
+      "new": "fields.Length < expected.Length",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Missing_duplicate_unknown_and_badly_typed_config_fields_are_refused"
+      ]
+    },
+    {
+      "id": "broker-distinct-identity-rule-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "serviceUid == 0 || WorkerUid == 0 || WorkerUid == serviceUid",
+      "new": "serviceUid == uint.MaxValue",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Root_or_shared_identity_is_refused"
+      ]
+    },
+    {
+      "id": "broker-canonical-config-paths-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)\n                || Path.GetFullPath(path) != path || path == \"/\"",
+      "new": "string.IsNullOrWhiteSpace(path)",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Root_requires_a_normalized_absolute_nonroot_path",
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Socket_requires_a_normalized_absolute_nonroot_path"
+      ]
+    },
+    {
+      "id": "broker-socket-path-bound-net10.0",
+      "file": "tools/GovernanceBrokerPrototype/Program.cs",
+      "old": "Encoding.UTF8.GetByteCount(SocketPath) > 100",
+      "new": "SocketPath.Length > 100",
+      "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
+      "expected_failures": [
+        "GovernanceBrokerPrototype.Tests.BrokerConfigurationTests.Socket_length_is_bounded"
+      ]
+    }
+  ]
+}
