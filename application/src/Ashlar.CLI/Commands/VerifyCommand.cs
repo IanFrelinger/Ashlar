@@ -16,9 +16,9 @@ namespace Ashlar.CLI.Commands;
 /// NO_COLOR honoured), and maps the outcome to exit codes — 0 verified, 65 verification
 /// failed, 1 usage/environment.</para>
 ///
-/// <para>The verdict word is VERIFIED, not CERTIFIED: certified means signed, and nothing
-/// signs yet. When real keys land, the provenance course and the signature line appear here;
-/// until then this command prints <c>unsigned</c> and nothing else.</para>
+/// <para>By default an available operator key can certify the current documents by appending
+/// a signed ledger entry. <c>--read-only</c> instead reports the existing verification result,
+/// including any provenance course, without loading the private key or writing certification.</para>
 /// </summary>
 public sealed class VerifyCommand : Command
 {
@@ -30,7 +30,12 @@ public sealed class VerifyCommand : Command
             description: "Project directory containing ashlar.yaml and ashlar.policy.yaml (defaults to current).",
             getDefaultValue: () => new DirectoryInfo(Environment.CurrentDirectory));
 
+        var readOnlyOpt = new Option<bool>(
+            name: "--read-only",
+            description: "Verify existing project and ledger state without loading signing keys or writing certification.");
+
         AddOption(pathOpt);
+        AddOption(readOnlyOpt);
 
         this.SetHandler(async (InvocationContext ctx) =>
         {
@@ -44,7 +49,7 @@ public sealed class VerifyCommand : Command
             }
 
             var path = ctx.ParseResult.GetValueForOption(pathOpt)!;
-            ctx.ExitCode = await ExecuteAsync(path);
+            ctx.ExitCode = await ExecuteAsync(path, ctx.ParseResult.GetValueForOption(readOnlyOpt));
         });
     }
 
@@ -52,7 +57,7 @@ public sealed class VerifyCommand : Command
     private const int ExitVerificationFailed = 65;
     private const int ExitUsage = 1;
 
-    private static async Task<int> ExecuteAsync(DirectoryInfo directory)
+    private static async Task<int> ExecuteAsync(DirectoryInfo directory, bool readOnly)
     {
         var manifestPath = Path.Combine(directory.FullName, "ashlar.yaml");
         var policyPath = Path.Combine(directory.FullName, "ashlar.policy.yaml");
@@ -71,6 +76,20 @@ public sealed class VerifyCommand : Command
         var manifestYaml = File.ReadAllText(manifestPath);
         var policyYaml = File.ReadAllText(policyPath);
         var result = ProjectVerifier.Verify(manifestYaml, policyYaml, directory.FullName);
+
+        if (readOnly)
+        {
+            // Evaluate existing state as-is. In particular, an available operator key must
+            // not turn stale provenance into a fresh certification during a bundle launch.
+            RenderCourses(result);
+            if (!result.Verified)
+            {
+                RenderFailed(result);
+                return ExitVerificationFailed;
+            }
+            RenderReadOnly(result);
+            return ExitVerified;
+        }
 
         // The provenance course fails when the documents no longer match the certification. For
         // an operator holding the key that is not a dead end — it is a re-certification: the base
@@ -165,6 +184,12 @@ public sealed class VerifyCommand : Command
     private static void RenderUnsigned(ProjectVerification result) =>
         Console.WriteLine(
             $"  {Gold("✓ VERIFIED")}  {Dim($"{result.Courses.Count} courses · unsigned — run `ashlar keys init` to certify")}");
+
+    // Existing provenance is rendered among the courses; this operation does not create
+    // a new certification or infer signing-key availability from the presence of history.
+    private static void RenderReadOnly(ProjectVerification result) =>
+        Console.WriteLine(
+            $"  {Gold("✓ VERIFIED")}  {Dim($"{result.Courses.Count} courses · read-only · no certification written")}");
 
     // CERTIFIED means signed: a real Ed25519 signature over this verification is now the head of
     // the project's instance ledger.

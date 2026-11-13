@@ -20,9 +20,9 @@
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 864,
-    "declared_facts": 5764,
-    "workflows": 70
+    "test_files_declaring_facts": 865,
+    "declared_facts": 5776,
+    "workflows": 71
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -2994,7 +2994,7 @@
       "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/NativeBundleTests.cs",
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
-      "declared_facts": 6,
+      "declared_facts": 7,
       "in_cert_gate_filter": false
     },
     {
@@ -3107,6 +3107,13 @@
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
       "declared_facts": 4,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/VerifyReadOnlyTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 11,
       "in_cert_gate_filter": false
     },
     {
@@ -9240,6 +9247,13 @@
         "push",
         "schedule",
         "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/read-only-verification-regression.yml",
+      "name": "Read-only verification regressions",
+      "triggers": [
+        "pull_request"
       ]
     },
     {

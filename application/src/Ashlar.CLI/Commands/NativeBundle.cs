@@ -155,16 +155,16 @@ public static class NativeBundle
         var written = StageAppWithInitiator(projectDir, bundleDir, "EG-FILE-01", initiator);
 
         var exe = "ashlar" + (info.Rid.StartsWith("win", StringComparison.Ordinal) ? ".exe" : string.Empty);
-        // The launcher must not overclaim: "certified" is only true when a signed ledger attests
-        // these exact documents — bundle.json and the README already say it honestly.
-        var readiness = info.Certified ? "certified and ready." : "verified and ready (unsigned).";
+        // BundleInfo records export-time metadata, not a fresh runtime certification.
+        // The verifier reports the existing courses; the launcher's banner stays neutral.
+        const string readiness = "verification passed.";
 
-        // run.sh — verify (self-prove), then run whatever the user asked for.
+        // run.sh — check existing state without certification writes, then run the request.
         var runSh =
             "#!/usr/bin/env sh\n"
             + "set -e\n"
             + "DIR=\"$(cd \"$(dirname \"$0\")\" && pwd)\"\n"
-            + "\"$DIR/" + exe + "\" verify --path \"$DIR/app\"\n"
+            + "\"$DIR/" + exe + "\" verify --path \"$DIR/app\" --read-only\n"
             + "if [ \"$#\" -gt 0 ]; then\n"
             + "  exec \"$DIR/" + exe + "\" run \"$@\" --path \"$DIR/app\"\n"
             + "else\n"
@@ -178,7 +178,7 @@ public static class NativeBundle
             "@echo off\r\n"
             + "setlocal\r\n"
             + "set \"DIR=%~dp0\"\r\n"
-            + "\"%DIR%" + exe + "\" verify --path \"%DIR%app\"\r\n"
+            + "\"%DIR%" + exe + "\" verify --path \"%DIR%app\" --read-only\r\n"
             + "if errorlevel 1 exit /b %errorlevel%\r\n"
             + "if \"%~1\"==\"\" (\r\n"
             + "  echo.\r\n"
@@ -206,8 +206,8 @@ public static class NativeBundle
 
         // README — the human's five-second orientation.
         var certLine = info.Certified
-            ? $"It is **certified**: signed {info.SignerFingerprint}, with {info.LedgerEntries} entr{(info.LedgerEntries == 1 ? "y" : "ies")} in its tamper-evident ledger."
-            : "It is **unsigned** — it verifies, but was not certified with an operator key. Run `ashlar keys init` at the source and re-export to certify.";
+            ? $"At export it was **certified**: signed {info.SignerFingerprint}, with {info.LedgerEntries} entr{(info.LedgerEntries == 1 ? "y" : "ies")} in its ledger."
+            : "At export it was **unsigned** — it verified, but had no certification of the current documents. To certify, run `ashlar keys init` and `ashlar verify` at the source, then re-export.";
         var readme =
             $"# {info.Name} — a portable Ashlar application\n\n"
             + "This folder is a governed AI application you can run offline, with no install.\n\n"
@@ -216,9 +216,12 @@ public static class NativeBundle
             + (info.Rid.StartsWith("win", StringComparison.Ordinal)
                 ? "```\nrun.cmd \"<your request>\"\n```\n\n"
                 : "```\n./run.sh \"<your request>\"\n```\n\n")
-            + "The launcher **verifies the application against its own contract and ledger before it runs** —\n"
-            + "if the app or its history were altered, it refuses. That is the whole point: the download\n"
-            + "proves its own certification.\n\n"
+            + "The launcher **verifies the existing contract and ledger before it runs**, without loading\n"
+            + "signing keys or writing new certification. A failed verification stops launch.\n\n"
+            + "The bundled runtime must support `verify --read-only`, including a manually supplied runtime.\n"
+            + "An unsupported option must stop launch; never retry without `--read-only`.\n\n"
+            + "The certification above describes the export-time snapshot. Existing ledger checks do not\n"
+            + "authenticate the publisher or detect complete history deletion; this is not an isolation proof.\n\n"
             + "- `app/` — the project: its contract, its operator-owned policy, its signed ledger.\n"
             + $"- `{exe}` — the self-contained runtime (no .NET install required).\n"
             + "- `bundle.json` — what is inside and what certifies it.\n";
