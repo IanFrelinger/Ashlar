@@ -57,6 +57,18 @@ jobs:
           # explicit and auditable: the PR body must carry [coordinated-integration] plus a
           # rationale humans can review. Mirrors the [skip-prod-style] convention in the
           # testing-strategy gate.
+          #
+          # LEGITIMATE USE CASES (require [coordinated-integration] token + justification):
+          #   * application/src/Ashlar.CLI consumes new src/ kernel feature
+          #     Example: CLI VerifyCommand adds --read-only flag using new ProjectVerifier.Verify(..., readOnly) API
+          #   * application/src/Ashlar.API adds endpoint for new src/ use case
+          #     Example: API endpoint wraps new Ashlar.Core.Application port
+          #   * application/* integration branches land accumulated work onto master
+          #     Example: accumulated CLI/API features from a feature branch merge to master
+          #
+          # The exemption requires PR body justification because it crosses the architectural
+          # boundary deliberately; reviewers must affirm the integration is intentional and
+          # that src/ code remains reusable (no application-layer logic pulled down into kernel).
           COORDINATED_INTEGRATION=0
           if [[ "${PR_BODY:-}" == *"[coordinated-integration]"* ]]; then
             COORDINATED_INTEGRATION=1
