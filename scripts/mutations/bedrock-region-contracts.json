@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "note": "Eight application configuration mutations: four factory contracts on each of net8.0 and net10.0. Run only through bedrock-region-reproduction.py --regression with AWS_REGION=eu-central-1, pre-existing empty synthetic profile files, metadata disabled, and LatestPatch. The wrapper requires all six exact theory identities, exact failed-row sets, fresh green rebuilds, actual runtime receipts, and byte restoration. No AWS client/network request or OS isolation harness is exercised. Definitions alone are not execution evidence.",
+  "mutations": [
+    {
+      "id": "bedrock-redirects-enabled-net8.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = false }",
+      "new": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = true }",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "expected_failures": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"us-west-2\", expectedRegion: \"us-west-2\")",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \" us-west-2 \", expectedRegion: \"us-west-2\")",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"\", expectedRegion: null)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: null, expectedRegion: null)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"eu-central-1\", expectedRegion: \"eu-central-1\")",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"   \", expectedRegion: null)"
+      ],
+      "evidence_scope": "runtime-configuration"
+    },
+    {
+      "id": "bedrock-explicit-region-discarded-net8.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "config.RegionEndpoint = RegionEndpoint.GetBySystemName(region.Trim());",
+      "new": "config.RegionEndpoint = new AmazonBedrockRuntimeConfig().RegionEndpoint;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "expected_failures": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"us-west-2\", expectedRegion: \"us-west-2\")",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \" us-west-2 \", expectedRegion: \"us-west-2\")"
+      ],
+      "evidence_scope": "runtime-configuration"
+    },
+    {
+      "id": "bedrock-trim-removed-net8.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "config.RegionEndpoint = RegionEndpoint.GetBySystemName(region.Trim());",
+      "new": "config.RegionEndpoint = RegionEndpoint.GetBySystemName(region);",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "expected_failures": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \" us-west-2 \", expectedRegion: \"us-west-2\")"
+      ],
+      "evidence_scope": "runtime-configuration"
+    },
+    {
+      "id": "bedrock-default-overridden-net8.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "        return config;",
+      "new": "        if (string.IsNullOrWhiteSpace(region))\n            config.RegionEndpoint = RegionEndpoint.GetBySystemName(\"us-west-2\");\n        return config;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "expected_failures": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"\", expectedRegion: null)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: null, expectedRegion: null)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"   \", expectedRegion: null)"
+      ],
+      "evidence_scope": "runtime-configuration"
+    },
+    {
+      "id": "bedrock-redirects-enabled-net10.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = false }",
+      "new": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = true }",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "expected_failures": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"us-west-2\", expectedRegion: \"us-west-2\")",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \" us-west-2 \", expectedRegion: \"us-west-2\")",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"\", expectedRegion: null)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: null, expectedRegion: null)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"eu-central-1\", expectedRegion: \"eu-central-1\")",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"   \", expectedRegion: null)"
+      ],
+      "evidence_scope": "runtime-configuration"
+    },
+    {
+      "id": "bedrock-explicit-region-discarded-net10.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "config.RegionEndpoint = RegionEndpoint.GetBySystemName(region.Trim());",
+      "new": "config.RegionEndpoint = new AmazonBedrockRuntimeConfig().RegionEndpoint;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "expected_failures": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"us-west-2\", expectedRegion: \"us-west-2\")",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \" us-west-2 \", expectedRegion: \"us-west-2\")"
+      ],
+      "evidence_scope": "runtime-configuration"
+    },
+    {
+      "id": "bedrock-trim-removed-net10.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "config.RegionEndpoint = RegionEndpoint.GetBySystemName(region.Trim());",
+      "new": "config.RegionEndpoint = RegionEndpoint.GetBySystemName(region);",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "expected_failures": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \" us-west-2 \", expectedRegion: \"us-west-2\")"
+      ],
+      "evidence_scope": "runtime-configuration"
+    },
+    {
+      "id": "bedrock-default-overridden-net10.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "        return config;",
+      "new": "        if (string.IsNullOrWhiteSpace(region))\n            config.RegionEndpoint = RegionEndpoint.GetBySystemName(\"us-west-2\");\n        return config;",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "expected_failures": [
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"\", expectedRegion: null)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: null, expectedRegion: null)",
+        "Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(region: \"   \", expectedRegion: null)"
+      ],
+      "evidence_scope": "runtime-configuration"
+    }
+  ]
+}

@@ -63,7 +63,7 @@ fresh valid-looking entry can never be used to bury a broken one.
   holds that key can author history; v1 does not distinguish "the operator" from "an attacker who
   stole the operator's key." Org roots, revocation, and HSM-backed keys are **v2** (SPEC-006).
 
-## How `verify` uses it (next slice)
+## How `verify` uses it
 
 1. Run the existing courses (`contract`, `composition`, `envelope`).
 2. Add a `provenance` course that calls `VerifyChain` on the existing ledger — a broken chain
@@ -71,6 +71,11 @@ fresh valid-looking entry can never be used to bury a broken one.
 3. On success, if an operator key is present, append a signed `verification` entry whose
    `Subject` is the current documents' hash, and render **CERTIFIED · signed ed25519:… · #Seq**.
    With no key, render **VERIFIED · unsigned** exactly as today.
+
+Use `verify --read-only` to run the same courses without loading an operator private
+key or appending a new entry. Stale certification remains a failure even when a
+signing key is available. New native launchers use this mode. See
+[read-only verification](ReadOnlyVerification.md) for compatibility and limits.
 
 ## Locking prerequisites and limits
 

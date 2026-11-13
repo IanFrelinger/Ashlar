@@ -192,4 +192,44 @@ public sealed class NativeBundleTests : IDisposable
         descriptor.GetProperty("runtime").GetString().Should().Be("ashlar.exe");
         File.ReadAllText(Path.Combine(bundle, "run.cmd")).Should().Contain("ashlar.exe");
     }
+
+    [Theory]
+    [InlineData("linux-x64", "run.sh")]
+    [InlineData("linux-x64", "run.cmd")]
+    [InlineData("win-x64", "run.sh")]
+    [InlineData("win-x64", "run.cmd")]
+    public async Task Stage_native_launchers_verify_read_only_and_stop_on_failure(string rid, string launcher)
+    {
+        Scaffold();
+        await Certify();
+        var bundle = Path.Combine(_dir, "out-read-only");
+        NativeBundle.Stage(_dir, bundle, NativeBundle.Describe(_dir, rid));
+
+        // This checks generated templates, not execution of a shell or Windows process.
+        var script = File.ReadAllText(Path.Combine(bundle, launcher)).Replace("\r\n", "\n");
+        var verifyLine = script.Split('\n').Single(line => line.Contains(" verify --path ", StringComparison.Ordinal));
+        verifyLine.Should().EndWith(" --read-only", "even an available local key must not recertify a launch");
+        var verifyAt = script.IndexOf(verifyLine, StringComparison.Ordinal);
+        var runToken = launcher == "run.sh" ? " run \"$@\" --path " : " run %* --path ";
+        var runAt = script.IndexOf(runToken, StringComparison.Ordinal);
+        verifyAt.Should().BeGreaterThan(-1);
+        runAt.Should().BeGreaterThan(verifyAt, "verification must finish before the request runs");
+
+        if (launcher == "run.sh")
+        {
+            var stopAt = script.IndexOf("\nset -e\n", StringComparison.Ordinal);
+            stopAt.Should().BeGreaterThan(-1);
+            stopAt.Should().BeLessThan(verifyAt, "a failed verifier must stop the POSIX launcher");
+        }
+        else
+        {
+            var stopAt = script.IndexOf("if errorlevel 1 exit /b %errorlevel%", StringComparison.Ordinal);
+            stopAt.Should().BeGreaterThan(verifyAt);
+            stopAt.Should().BeLessThan(runAt, "a failed verifier must stop the Windows launcher");
+        }
+
+        script.Should().Contain("verification passed.").And.NotContain("certified and ready")
+            .And.NotContain("verified and ready");
+    }
+
 }

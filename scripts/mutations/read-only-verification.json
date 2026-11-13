@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "note": "Eleven CLI net10.0 mutation definitions: six runtime parser/handler/result contracts and five generated-native-launcher template contracts. The single focused ordinary baseline selects all VerifyReadOnlyTests, the new four-case native launcher contract, and the existing stage-layout regression. Template failures prove generated text/content, not shell execution or Windows process behavior. No service, generated launcher, OS-isolation probe or previously blocked harness is run. Definitions are not execution evidence.",
+  "mutations": [
+    {
+      "id": "readonly-flag-not-forwarded-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/VerifyCommand.cs",
+      "old": "ctx.ExitCode = await ExecuteAsync(path, ctx.ParseResult.GetValueForOption(readOnlyOpt));",
+      "new": "ctx.ExitCode = await ExecuteAsync(path, false);",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_unsigned_project_never_creates_governance_state_or_reads_private_key",
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_current_signed_project_preserves_ledger_and_ignores_private_key",
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_provenance_failure_never_recertifies"
+      ],
+      "evidence_scope": "runtime-cli"
+    },
+    {
+      "id": "readonly-branch-bypassed-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/VerifyCommand.cs",
+      "old": "if (readOnly)\n        {",
+      "new": "if (readOnly && directory.FullName.Length < 0)\n        {",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_unsigned_project_never_creates_governance_state_or_reads_private_key",
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_current_signed_project_preserves_ledger_and_ignores_private_key",
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_provenance_failure_never_recertifies"
+      ],
+      "evidence_scope": "runtime-cli"
+    },
+    {
+      "id": "readonly-loads-private-key-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/VerifyCommand.cs",
+      "old": "if (readOnly)\n        {",
+      "new": "if (readOnly)\n        {\n            _ = OperatorKey.TryLoad();",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_unsigned_project_never_creates_governance_state_or_reads_private_key",
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_current_signed_project_preserves_ledger_and_ignores_private_key"
+      ],
+      "evidence_scope": "runtime-cli"
+    },
+    {
+      "id": "readonly-ignores-provenance-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/VerifyCommand.cs",
+      "old": "            if (!result.Verified)\n            {\n                RenderFailed(result);\n                return ExitVerificationFailed;\n            }\n            RenderReadOnly(result);",
+      "new": "            if (!result.Courses.Where(c => c.Name != \"provenance\").All(c => c.Passed))\n            {\n                RenderFailed(result);\n                return ExitVerificationFailed;\n            }\n            RenderReadOnly(result);",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_provenance_failure_never_recertifies"
+      ],
+      "evidence_scope": "runtime-cli"
+    },
+    {
+      "id": "readonly-failure-exits-success-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/VerifyCommand.cs",
+      "old": "            if (!result.Verified)\n            {\n                RenderFailed(result);\n                return ExitVerificationFailed;\n            }\n            RenderReadOnly(result);",
+      "new": "            if (!result.Verified)\n            {\n                RenderFailed(result);\n                return ExitVerified;\n            }\n            RenderReadOnly(result);",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_provenance_failure_never_recertifies"
+      ],
+      "evidence_scope": "runtime-cli"
+    },
+    {
+      "id": "readonly-claims-certification-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/VerifyCommand.cs",
+      "old": "$\"  {Gold(\"\u2713 VERIFIED\")}  {Dim($\"{result.Courses.Count} courses \u00b7 read-only \u00b7 no certification written\")}\");",
+      "new": "$\"  {Gold(\"\u2713 CERTIFIED\")}  {Dim($\"{result.Courses.Count} courses \u00b7 read-only \u00b7 no certification written\")}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_unsigned_project_never_creates_governance_state_or_reads_private_key",
+        "Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests.Read_only_current_signed_project_preserves_ledger_and_ignores_private_key"
+      ],
+      "evidence_scope": "runtime-cli"
+    },
+    {
+      "id": "native-sh-omits-readonly-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "+ \"\\\"$DIR/\" + exe + \"\\\" verify --path \\\"$DIR/app\\\" --read-only\\n\"",
+      "new": "+ \"\\\"$DIR/\" + exe + \"\\\" verify --path \\\"$DIR/app\\\"\\n\"",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure"
+      ],
+      "evidence_scope": "launcher-template"
+    },
+    {
+      "id": "native-cmd-omits-readonly-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "+ \"\\\"%DIR%\" + exe + \"\\\" verify --path \\\"%DIR%app\\\" --read-only\\r\\n\"",
+      "new": "+ \"\\\"%DIR%\" + exe + \"\\\" verify --path \\\"%DIR%app\\\"\\r\\n\"",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure"
+      ],
+      "evidence_scope": "launcher-template"
+    },
+    {
+      "id": "native-banner-claims-certification-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "const string readiness = \"verification passed.\";",
+      "new": "const string readiness = \"certified and ready.\";",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure"
+      ],
+      "evidence_scope": "launcher-template"
+    },
+    {
+      "id": "native-sh-ignores-verification-failure-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "+ \"set -e\\n\"",
+      "new": "+ \"set +e\\n\"",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure"
+      ],
+      "evidence_scope": "launcher-template"
+    },
+    {
+      "id": "native-cmd-ignores-verification-failure-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/NativeBundle.cs",
+      "old": "+ \"if errorlevel 1 exit /b %errorlevel%\\r\\n\"",
+      "new": "+ \"rem verification failure ignored\\r\\n\"",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.VerifyReadOnlyTests|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure|FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_lays_out_a_self_proving_bundle",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.NativeBundleTests.Stage_native_launchers_verify_read_only_and_stop_on_failure"
+      ],
+      "evidence_scope": "launcher-template"
+    }
+  ]
+}

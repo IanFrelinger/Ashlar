@@ -28,6 +28,7 @@ The trust loop is how "certified" is a checkable claim: analyzer fence → witne
 - `docs/specs/SPEC-008-flight-recorder-and-evidence-bundle.md` — **Flight Recorder and `ashlar-evidence/v1` stub**: decisions log O1–O8 (owner-delegated 2026-10-25). Normative body lands after 0.4.0 and the MCP audit prerequisite PRs.
 - `docs/specs/SPEC-010-privacy-labels.md` — **privacy labels replace classification levels**, **PROPOSED** 2026-10-27 on the owner's decision: keeps SPEC-007's egress guard and replaces its levels, clearances, compartments, caveats and downgrade path with four flat privacy labels (`local-only`, `no-external-model`, `no-web`, `no-network-export`), in a seven-PR sequence that changes no production decision.
 - `docs/InstanceLedger.md` — the instance ledger: durable course records and their signing story.
+- [Read-only verification](ReadOnlyVerification.md) — check projects and native launches without loading private keys or appending certification.
 - `docs/certification-evidence.md` — the **falsifiable proof ledger**: every ADMIT/REJECT with the test or spike and the CI run that proved it; "Known v0 limitations" at the end. Read this before judging any "certified" claim.
 - `docs/dogfood-ledger.md` — **dated pass/fail dogfood evidence** for autonomy marketing unlock: scheduled CI runs of Strict extend→certify→admit on canary objectives, automatically appended by `.github/workflows/dogfood-continuous-proof.yml`.
 - `docs/dogfood-scorecard.md` — **autonomy marketing thresholds** (last-N green %, mean time-to-admit, Strict rejection rate, consecutive days hold) and self-apply bar. Marketing claims MUST remain HOLD until thresholds met for ~7 consecutive days AND dated Strict production Ed25519 passes appear in the ledger.
@@ -143,6 +144,7 @@ The plans below describe programs that have since finished; they are kept as the
 
 ## Additional Material
 
+- [Bedrock default-region regression evidence](BedrockRegionValidation.md) — controlled reproduction of the environment-dependent region assertion, its test-only correction and required mutation checks.
 - **`docs/benchmarks/blockers-accuracy.md`** — **accuracy study** of "what is blocking this PR?": 44 real pull requests in 5 public repositories, ground truth from GitHub's API at a recorded snapshot, the brick versus a native GitHub API arm on Sonnet; written rubric, results, brick findings (F1–F3) and limits; harness in `tools/blockers-accuracy/`.
 - **`docs/benchmarks/token-benchmark.md`** — **live token benchmark** (D9): one `github.blockers` brick call versus a native GitHub API tool loop on the Anthropic API, method, result and limits; harness in `tools/token-benchmark/`.
 - **`docs/commercial/go-to-market.md`** — **go-to-market decisions log**: positioning wedge, pricing tiers, billing, channels, partner terms and token-claim rule (D1–D10, owner-delegated 2026-10-25).
