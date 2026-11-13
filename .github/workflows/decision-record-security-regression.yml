@@ -1,0 +1,86 @@
+name: Decision record security regressions
+
+on:
+  pull_request:
+    paths:
+      - 'src/Ashlar.Manifest/Admission/**'
+      - 'src/Ashlar.Tests.Kernel/GateDecisionIdentityTests.cs'
+      - 'src/Ashlar.Tests.Kernel/GateDecisionNormalizationProcessTests.cs'
+      - 'tools/InputSafetyProbe/Program.cs'
+      - 'application/src/Ashlar.CLI/Commands/GatesCommand.cs'
+      - 'application/src/Ashlar.CLI/Commands/KeysCommand.cs'
+      - 'application/src/Ashlar.CLI/Commands/PkgCommand.cs'
+      - 'application/src/Ashlar.CLI/Commands/BackgroundAgent/ReportBackgroundAgentCommand.cs'
+      - 'application/src/Ashlar.CLI/Output/UntrustedText.cs'
+      - 'application/src/Ashlar.Tests.CLI/Tests/Commands/GateDecisionDisplaySecurityTests.cs'
+      - 'application/src/Ashlar.Tests.CLI/Tests/Commands/KeysGateDisplaySecurityTests.cs'
+      - 'application/src/Ashlar.Tests.CLI/Tests/Commands/ReportBackgroundAgentCommandTests.cs'
+      - 'scripts/decision-record-security-regression.sh'
+      - 'scripts/mutations/decision-records.json'
+      - 'scripts/run-spec007-mutation-batch.py'
+      - 'scripts/decode-spec007-mutation-evidence.py'
+      - '.github/workflows/decision-record-security-regression.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: decision-record-security-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  focused-and-mutations:
+    name: Decision identity, safe rendering, and mutation proofs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate human identities and historical record rendering
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/decision-record-security"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf '%s\n' "$EXPECTED_SHA" > "${RUNNER_TEMP}/decision-record-security/source-sha.txt"
+          bash scripts/test-in-container.sh --ref "$EXPECTED_SHA" -- \
+            'bash scripts/decision-record-security-regression.sh' \
+            2>&1 | tee "${RUNNER_TEMP}/decision-record-security/focused.log"
+
+      - name: Prove identity and rendering assertions fail under mutation
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          bash scripts/test-in-container.sh --ref "$EXPECTED_SHA" -- \
+            'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/decision-records.json --archive-stdout' \
+            2>&1 | tee "${RUNNER_TEMP}/decision-record-security/mutations.log"
+
+      - name: Decode per-case mutation evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "${RUNNER_TEMP}/decision-record-security/mutations.log" ]; then
+            python3 scripts/decode-spec007-mutation-evidence.py \
+              --log "${RUNNER_TEMP}/decision-record-security/mutations.log" \
+              --output "${RUNNER_TEMP}/decision-record-security/mutation-evidence" --repo .
+          fi
+
+      - name: Upload exact-SHA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: decision-record-security-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/decision-record-security
+          if-no-files-found: error
+          retention-days: 90

@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Ashlar.CLI.Output;
 using Ashlar.Manifest.Admission;
 using Ashlar.Manifest.Signing;
 
@@ -64,13 +65,13 @@ public sealed class KeysCommand : Command
         }
         catch (InvalidOperationException ex)
         {
-            // The key already exists and --rotate was not given: the kernel's refusal, verbatim.
-            Console.Error.WriteLine(ex.Message);
+            // Preserve the kernel's refusal while defusing terminal controls in paths it names.
+            Console.Error.WriteLine(UntrustedText.ForConsole(ex.Message));
             return 1;
         }
         Console.WriteLine($"  {Gold(rotate ? "✓ operator key rotated" : "✓ operator key ready")}");
         Console.WriteLine($"  {Dim($"fingerprint {id.Fingerprint}")}");
-        Console.WriteLine($"  {Dim($"stored in {dir}")}");
+        Console.WriteLine($"  {Dim($"stored in {UntrustedText.ForConsole(dir, UntrustedText.ComponentMaxChars)}")}");
         Console.WriteLine();
         Console.WriteLine($"  {Dim("gate decisions on this machine are now signed. keep the private key here — never commit it.")}");
 
@@ -105,13 +106,13 @@ public sealed class KeysCommand : Command
                     $"  {Dim("if that is more than you decided yourself, stop: an admitted record spends self-extension budget. inspect with: ashlar gates")}");
             }
 
-            Console.WriteLine($"  {Dim($"gate records under {stateRoot} are signed from {outcome.Marker.ActivatedAt:u}; earlier unsigned records stay readable.")}");
+            Console.WriteLine($"  {Dim($"gate records under {UntrustedText.ForConsole(stateRoot, UntrustedText.ComponentMaxChars)} are signed from {outcome.Marker.ActivatedAt:u}; earlier unsigned records stay readable.")}");
             return 0;
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             // The key is ready; the activation is not. Say so rather than look like both landed.
-            Console.Error.WriteLine($"  the key is ready but signing could not be activated for {project.FullName}: {ex.Message}");
+            Console.Error.WriteLine($"  the key is ready but signing could not be activated for {UntrustedText.ForConsole(project.FullName, UntrustedText.ComponentMaxChars)}: {UntrustedText.ForConsole(ex.Message)}");
             Console.Error.WriteLine("  activate it later with:  ashlar gates sign-activate");
             return 1;
         }
@@ -140,7 +141,7 @@ public sealed class KeysCommand : Command
         {
             // A corrupt key pair (e.g. a crash mid-rotation) must not be papered over: signing
             // with a mismatched identity is exactly what poisons the store. Surface it and stop.
-            Console.Error.WriteLine(ex.Message);
+            Console.Error.WriteLine(UntrustedText.ForConsole(ex.Message));
             return 1;
         }
 
@@ -153,7 +154,7 @@ public sealed class KeysCommand : Command
         }
 
         Console.WriteLine($"  {Gold("operator key")}  {Dim(id.Fingerprint)}");
-        Console.WriteLine($"  {Dim($"stored in {dir}")}");
+        Console.WriteLine($"  {Dim($"stored in {UntrustedText.ForConsole(dir, UntrustedText.ComponentMaxChars)}")}");
         return 0;
     }
 

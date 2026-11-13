@@ -107,7 +107,7 @@ public sealed class PkgCommand : Command
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
-            Console.Error.WriteLine(ex.Message);
+            Console.Error.WriteLine(Safe(ex.Message));
             return 1;
         }
     }
@@ -128,7 +128,7 @@ public sealed class PkgCommand : Command
         var record = await store.GetAsync(id);
         if (record is null)
         {
-            Console.Error.WriteLine($"no proposal '{id}' in the store.");
+            Console.Error.WriteLine($"no proposal '{Safe(id)}' in the store.");
             return (1, null, null);
         }
 
@@ -139,14 +139,14 @@ public sealed class PkgCommand : Command
             var proposal = forge.Find(forgeId);
             if (proposal is null)
             {
-                Console.Error.WriteLine($"forge proposal '{forgeId}' referenced by '{id}' is missing from the forge store — cannot package an incomplete extension.");
+                Console.Error.WriteLine($"forge proposal '{Safe(forgeId)}' referenced by '{Safe(id)}' is missing from the forge store — cannot package an incomplete extension.");
                 return (1, null, null);
             }
             // An admitted record's rows are Applied. Anything else under this id is a row the
             // gate did not admit-and-apply (a shadow, a replacement) — refuse to seal it.
             if (proposal.Status != ChangeProposalStatus.Applied)
             {
-                Console.Error.WriteLine($"forge proposal '{forgeId}' is {proposal.Status}, not Applied — only content the gate admitted AND applied may travel.");
+                Console.Error.WriteLine($"forge proposal '{Safe(forgeId)}' is {proposal.Status}, not Applied — only content the gate admitted AND applied may travel.");
                 return (1, null, null);
             }
             files.Add(new PackageFile { Path = proposal.TargetPath, Content = proposal.NewContent });
@@ -156,7 +156,7 @@ public sealed class PkgCommand : Command
         // admission and packaging must not travel under the origin's signature.
         if (!ExtensionPackaging.VerifyFileClaims(record.Proposal, files, out var claimReason))
         {
-            Console.Error.WriteLine(claimReason);
+            Console.Error.WriteLine(Safe(claimReason));
             return (65, null, null);
         }
         return (0, record, files);
@@ -464,16 +464,11 @@ public sealed class PkgCommand : Command
             // Same refusal shape as `pkg publish`: a package that does not verify is a 65, not an
             // operational error — share must hold every property export + publish had separately.
             //
-            // NO Safe() HERE, and that is checked rather than assumed. The other four verbs escape
-            // this reason because it quotes the file's own formatVersion; here the json was produced
-            // one line above by ExtensionPackaging.Pack, which sets
-            // FormatVersion = ExtensionPackage.ExpectedFormatVersion from the constant — so the
-            // format branch is unreachable, and every other reason TryOpen can build on this input
-            // is either a fixed string or composed from the record and files THIS project just
-            // gathered. Nothing on this path came off a share.
+            // Even locally gathered historical records and file claims contain untrusted text.
+            // Escaping is presentation-only: package bytes and their signatures stay unchanged.
             if (!ExtensionPackaging.TryOpen(json, out _, out var reason))
             {
-                Console.Error.WriteLine(reason);
+                Console.Error.WriteLine(Safe(reason));
                 return 65;
             }
             var dest = MeshStore.Publish(storeDir, json);
@@ -491,7 +486,7 @@ public sealed class PkgCommand : Command
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
-            Console.Error.WriteLine(ex.Message);
+            Console.Error.WriteLine(Safe(ex.Message));
             return 1;
         }
     }

@@ -1,0 +1,626 @@
+{
+  "schema": 1,
+  "note": "Issue478 bounded identity validation and human CLI presentation. Kernel mutation cases target their declared net8/net10 framework individually; CLI targets net10 only. The normalization-error mutation proves the fixed actor argument error contract, not a unique persistence guard. Every case requires exact source apply, named runtime assertion failures, clean restoration and green rerun. Historical read/signature compatibility remains unchanged. No claim of authenticated actors, complete decision history or same-user isolation.",
+  "mutations": [
+    {
+      "id": "human-actor-validation-omitted",
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "old": "        GateDecisionActor.Validate(actor);",
+      "new": "        // mutation: human actor validation omitted",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence",
+        "Invalid_actor_is_rejected_even_when_the_store_lock_is_held",
+        "Refusal_cannot_use_the_automatic_actor_either"
+      ]
+    },
+    {
+      "id": "human-actor-length-unbounded",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "actor.Length > MaxChars",
+      "new": "actor.Length > int.MaxValue",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    },
+    {
+      "id": "human-actor-length-boundary-too-strict",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "actor.Length > MaxChars",
+      "new": "actor.Length >= MaxChars",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Legitimate_unicode_and_exact_length_boundary_round_trip_without_normalization"
+      ]
+    },
+    {
+      "id": "human-actor-edge-whitespace-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "char.IsWhiteSpace(actor[0]) || char.IsWhiteSpace(actor[^1])",
+      "new": "actor.Length < 0 && (char.IsWhiteSpace(actor[0]) || char.IsWhiteSpace(actor[^1]))",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    },
+    {
+      "id": "human-actor-control-characters-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "        char.IsControl(c)",
+      "new": "        char.IsControl(c) && char.IsLetter(c)",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    },
+    {
+      "id": "human-actor-directional-controls-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "        || c is '\\u061C' or '\\u200E' or '\\u200F' or '\\u2028' or '\\u2029'\n        || c is >= '\\u202A' and <= '\\u202E'\n        || c is >= '\\u2066' and <= '\\u2069'",
+      "new": "",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    },
+    {
+      "id": "human-actor-normalization-omitted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "actor.Normalize(NormalizationForm.FormKC)",
+      "new": "actor",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    },
+    {
+      "id": "automatic-actor-format-spelling-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "Rune.GetUnicodeCategory(rune) == UnicodeCategory.Format",
+      "new": "Rune.GetUnicodeCategory(rune) == UnicodeCategory.Format && Rune.GetUnicodeCategory(rune) == UnicodeCategory.UppercaseLetter",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    },
+    {
+      "id": "automatic-actor-mongolian-fvs1-to-3-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "        || rune.Value is >= 0x180B and <= 0x180D",
+      "new": "",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-180b\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-180b\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-180c\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-180c\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-180d\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-180d\","
+      ]
+    },
+    {
+      "id": "automatic-actor-mongolian-fvs4-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "        || rune.Value == 0x180F",
+      "new": "",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-180f\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-180f\","
+      ]
+    },
+    {
+      "id": "automatic-actor-bmp-variation-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "        || rune.Value is >= 0xFE00 and <= 0xFE0F",
+      "new": "",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only\","
+      ]
+    },
+    {
+      "id": "automatic-actor-supplementary-variation-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "        || rune.Value is >= 0xE0100 and <= 0xE01EF",
+      "new": "",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-e0100\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-e0100\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-e01ef\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-e01ef\","
+      ]
+    },
+    {
+      "id": "automatic-actor-case-spelling-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "StringComparison.OrdinalIgnoreCase",
+      "new": "StringComparison.Ordinal",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    },
+    {
+      "id": "format-only-human-actor-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "reservedName.Length == 0",
+      "new": "reservedName.Length < 0",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    },
+    {
+      "id": "automatic-outcome-human-labelled",
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "old": "Actor = GateDecisionActor.AutomaticActor,",
+      "new": "Actor = \"human\",",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Legitimate_unicode_and_exact_length_boundary_round_trip_without_normalization"
+      ]
+    },
+    {
+      "id": "accepted-human-actor-bytes-normalized",
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "old": "            Actor = actor,",
+      "new": "            Actor = actor.Normalize(System.Text.NormalizationForm.FormKC),",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Legitimate_unicode_and_exact_length_boundary_round_trip_without_normalization"
+      ]
+    },
+    {
+      "id": "human-actor-validation-after-lock-cleanup",
+      "file": "src/Ashlar.Manifest/Admission/GateStore.cs",
+      "old": "        // Reject before lock acquisition: even orphan cleanup is a persistence side effect.\n        GateDecisionActor.Validate(actor);\n        if (!admit && string.IsNullOrWhiteSpace(reason))\n        {\n            throw new ArgumentException(\"A refusal requires a reason \u2014 it is recorded and fed back to the proposer.\", nameof(reason));\n        }\n\n        using var _ = await AcquireLockAsync(ct).ConfigureAwait(false);\n\n",
+      "new": "        // Reject before lock acquisition: even orphan cleanup is a persistence side effect.\n        if (!admit && string.IsNullOrWhiteSpace(reason))\n        {\n            throw new ArgumentException(\"A refusal requires a reason \u2014 it is recorded and fed back to the proposer.\", nameof(reason));\n        }\n\n        using var _ = await AcquireLockAsync(ct).ConfigureAwait(false);\n        GateDecisionActor.Validate(actor);\n\n",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence",
+        "Invalid_actor_is_rejected_even_when_the_store_lock_is_held"
+      ]
+    },
+    {
+      "id": "automatic-actor-hidden-whitespace-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "visible.ToString().Trim()",
+      "new": "visible.ToString()",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    },
+    {
+      "id": "478-cli-list-summary-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"  {Clay(\"!\")} {Safe(r.Proposal.Id),-12} {Safe(r.Proposal.Summary)}\");",
+      "new": "Console.WriteLine($\"  {Clay(\"!\")} {Safe(r.Proposal.Id),-12} {r.Proposal.Summary}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.List_historical_held_fields_are_safe_without_rewriting_evidence",
+      "expected_failures": [
+        "List_historical_held_fields_are_safe_without_rewriting_evidence"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-list-proposer-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"    {Dim($\"by {Safe(r.Proposal.ProposedBy)} \u00b7 {r.Proposal.ProposedAt:HH:mm 'UTC'} \u00b7 {Signature(r)} \u00b7 {Safe(r.Reason)}\")}\");",
+      "new": "Console.WriteLine($\"    {Dim($\"by {r.Proposal.ProposedBy} \u00b7 {r.Proposal.ProposedAt:HH:mm 'UTC'} \u00b7 {Signature(r)} \u00b7 {Safe(r.Reason)}\")}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.List_historical_held_fields_are_safe_without_rewriting_evidence",
+      "expected_failures": [
+        "List_historical_held_fields_are_safe_without_rewriting_evidence"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-list-reason-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"    {Dim($\"by {Safe(r.Proposal.ProposedBy)} \u00b7 {r.Proposal.ProposedAt:HH:mm 'UTC'} \u00b7 {Signature(r)} \u00b7 {Safe(r.Reason)}\")}\");",
+      "new": "Console.WriteLine($\"    {Dim($\"by {Safe(r.Proposal.ProposedBy)} \u00b7 {r.Proposal.ProposedAt:HH:mm 'UTC'} \u00b7 {Signature(r)} \u00b7 {r.Reason}\")}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.List_historical_held_fields_are_safe_without_rewriting_evidence",
+      "expected_failures": [
+        "List_historical_held_fields_are_safe_without_rewriting_evidence"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-summary-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"  {Safe(r.Proposal.Summary)}\");",
+      "new": "Console.WriteLine($\"  {r.Proposal.Summary}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-kind-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"  {Dim($\"{Safe(r.Proposal.Id)} \u00b7 kind {Safe(r.Proposal.Kind)} \u00b7 by {Safe(r.Proposal.ProposedBy)} \u00b7 {r.Proposal.ProposedAt:u}\")}\");",
+      "new": "Console.WriteLine($\"  {Dim($\"{Safe(r.Proposal.Id)} \u00b7 kind {r.Proposal.Kind} \u00b7 by {Safe(r.Proposal.ProposedBy)} \u00b7 {r.Proposal.ProposedAt:u}\")}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-proposer-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"  {Dim($\"{Safe(r.Proposal.Id)} \u00b7 kind {Safe(r.Proposal.Kind)} \u00b7 by {Safe(r.Proposal.ProposedBy)} \u00b7 {r.Proposal.ProposedAt:u}\")}\");",
+      "new": "Console.WriteLine($\"  {Dim($\"{Safe(r.Proposal.Id)} \u00b7 kind {Safe(r.Proposal.Kind)} \u00b7 by {r.Proposal.ProposedBy} \u00b7 {r.Proposal.ProposedAt:u}\")}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-course-name-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"  {glyph} {Safe(c.Name),-12} {Dim(Safe(c.Detail))}\");",
+      "new": "Console.WriteLine($\"  {glyph} {c.Name,-12} {Dim(Safe(c.Detail))}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-course-detail-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"  {glyph} {Safe(c.Name),-12} {Dim(Safe(c.Detail))}\");",
+      "new": "Console.WriteLine($\"  {glyph} {Safe(c.Name),-12} {Dim(c.Detail)}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-held-reason-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "ProposalState.Held => Clay($\"! HELD \u2014 {Safe(r.Reason)}\"),",
+      "new": "ProposalState.Held => Clay($\"! HELD \u2014 {r.Reason}\"),",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-admitted-actor-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "ProposalState.Admitted => Gold($\"\u2713 ADMITTED by {Safe(r.Actor)}\"),",
+      "new": "ProposalState.Admitted => Gold($\"\u2713 ADMITTED by {r.Actor}\"),",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-refused-actor-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "ProposalState.Refused => Dim($\"REFUSED by {Safe(r.Actor)}: {Safe(r.Reason)}\"),",
+      "new": "ProposalState.Refused => Dim($\"REFUSED by {r.Actor}: {Safe(r.Reason)}\"),",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-refused-reason-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "ProposalState.Refused => Dim($\"REFUSED by {Safe(r.Actor)}: {Safe(r.Reason)}\"),",
+      "new": "ProposalState.Refused => Dim($\"REFUSED by {Safe(r.Actor)}: {r.Reason}\"),",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-show-rejected-reason-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "_ => Bad($\"\u00d7 REJECTED \u2014 {Safe(r.Reason)}\"),",
+      "new": "_ => Bad($\"\u00d7 REJECTED \u2014 {r.Reason}\"),",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-admit-summary-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"  {Gold(\"\u2713 seated\")}  {Safe(decided.Proposal.Summary)}\");",
+      "new": "Console.WriteLine($\"  {Gold(\"\u2713 seated\")}  {decided.Proposal.Summary}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Human_decision_confirmation_escapes_fields_but_preserves_accepted_unicode_and_reason",
+      "expected_failures": [
+        "Human_decision_confirmation_escapes_fields_but_preserves_accepted_unicode_and_reason"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-refuse-summary-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"  {Clay(\"! refused\")}  {Safe(decided.Proposal.Summary)}\");",
+      "new": "Console.WriteLine($\"  {Clay(\"! refused\")}  {decided.Proposal.Summary}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Human_decision_confirmation_escapes_fields_but_preserves_accepted_unicode_and_reason",
+      "expected_failures": [
+        "Human_decision_confirmation_escapes_fields_but_preserves_accepted_unicode_and_reason"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-refuse-reason-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"  {Dim($\"reason recorded and fed back: {Safe(decided.Reason)}\")}\");",
+      "new": "Console.WriteLine($\"  {Dim($\"reason recorded and fed back: {decided.Reason}\")}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Human_decision_confirmation_escapes_fields_but_preserves_accepted_unicode_and_reason",
+      "expected_failures": [
+        "Human_decision_confirmation_escapes_fields_but_preserves_accepted_unicode_and_reason"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-gate-error-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "// pre-flighting claims). Their wording is the contract; pass it through.\n            Console.Error.WriteLine(Safe(ex.Message));",
+      "new": "// pre-flighting claims). Their wording is the contract; pass it through.\n            Console.Error.WriteLine(ex.Message);",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Gate_read_error_cannot_echo_a_terminal_control_from_the_requested_id",
+      "expected_failures": [
+        "Gate_read_error_cannot_echo_a_terminal_control_from_the_requested_id"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-diff-escape-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Console.WriteLine($\"    {Dim(Safe(line.TrimEnd('\\r')))}\");",
+      "new": "Console.WriteLine($\"    {Dim(line.TrimEnd('\\r'))}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Show_historical_fields_are_safe_and_signed_bytes_are_unchanged",
+      "expected_failures": [
+        "Show_historical_fields_are_safe_and_signed_bytes_are_unchanged"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-diff-total-budget-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "Math.Min(diff.Length, MaxDiffChars)",
+      "new": "diff.Length",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Historical_diff_preserves_its_lines_but_bounds_total_output",
+      "expected_failures": [
+        "Historical_diff_preserves_its_lines_but_bounds_total_output",
+        "total-characters"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-diff-line-limit-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "lines.Take(MaxDiffLines)",
+      "new": "lines.Take(int.MaxValue)",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Historical_diff_preserves_its_lines_but_bounds_total_output",
+      "expected_failures": [
+        "Historical_diff_preserves_its_lines_but_bounds_total_output",
+        "many-lines"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-field-length-limit-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/GatesCommand.cs",
+      "old": "private static string Safe(string? value) => UntrustedText.ForConsole(value);",
+      "new": "private static string Safe(string? value) => UntrustedText.ForConsole(value, int.MaxValue);",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.List_historical_held_fields_are_safe_without_rewriting_evidence",
+      "expected_failures": [
+        "List_historical_held_fields_are_safe_without_rewriting_evidence"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-pkg-export-gate-error-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "Console.Error.WriteLine(Safe(ex.Message));\n            return 1;\n        }\n    }\n\n    /// <summary>\n    /// The record and its files",
+      "new": "Console.Error.WriteLine(ex.Message);\n            return 1;\n        }\n    }\n\n    /// <summary>\n    /// The record and its files",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Historical_gate_read_error_is_safe_in_gate_and_package_commands",
+      "expected_failures": [
+        "Historical_gate_read_error_is_safe_in_gate_and_package_commands",
+        "export"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-pkg-share-gate-error-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/PkgCommand.cs",
+      "old": "Console.Error.WriteLine(Safe(ex.Message));\n            return 1;\n        }\n    }\n\n    // \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 pull (from a peer)",
+      "new": "Console.Error.WriteLine(ex.Message);\n            return 1;\n        }\n    }\n\n    // \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 pull (from a peer)",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.GateDecisionDisplaySecurityTests.Historical_gate_read_error_is_safe_in_gate_and_package_commands",
+      "expected_failures": [
+        "Historical_gate_read_error_is_safe_in_gate_and_package_commands",
+        "share"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-report-reason-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/ReportBackgroundAgentCommand.cs",
+      "old": "UntrustedText.ForConsole(reason, 100)",
+      "new": "Truncate(reason, 100)",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.ReportBackgroundAgentCommandTests.Human_report_defuses_historical_rejection_reason_without_changing_record",
+      "expected_failures": [
+        "Human_report_defuses_historical_rejection_reason_without_changing_record"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-report-gate-error-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/ReportBackgroundAgentCommand.cs",
+      "old": "stdout.WriteLine($\"  {UntrustedText.ForConsole(gates.Error)}\");",
+      "new": "stdout.WriteLine($\"  {gates.Error}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.ReportBackgroundAgentCommandTests.Human_report_defuses_historical_gate_error_while_json_preserves_its_data",
+      "expected_failures": [
+        "Human_report_defuses_historical_gate_error_while_json_preserves_its_data"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-report-json-value-rewrite",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/ReportBackgroundAgentCommand.cs",
+      "old": "? (object)new { error = gates.Error }",
+      "new": "? (object)new { error = UntrustedText.ForConsole(gates.Error) }",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.ReportBackgroundAgentCommandTests.Human_report_defuses_historical_gate_error_while_json_preserves_its_data",
+      "expected_failures": [
+        "Human_report_defuses_historical_gate_error_while_json_preserves_its_data"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "id": "478-cli-keys-gate-error-bypass",
+      "file": "application/src/Ashlar.CLI/Commands/KeysCommand.cs",
+      "old": "Console.Error.WriteLine($\"  the key is ready but signing could not be activated for {UntrustedText.ForConsole(project.FullName, UntrustedText.ComponentMaxChars)}: {UntrustedText.ForConsole(ex.Message)}\");",
+      "new": "Console.Error.WriteLine($\"  the key is ready but signing could not be activated for {UntrustedText.ForConsole(project.FullName, UntrustedText.ComponentMaxChars)}: {ex.Message}\");",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.KeysGateDisplaySecurityTests.Init_defuses_historical_gate_error_and_keeps_activation_remediation",
+      "expected_failures": [
+        "Init_defuses_historical_gate_error_and_keeps_activation_remediation"
+      ],
+      "group": "decision-display"
+    },
+    {
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "id": "normalization-capability-ignored-net8-0",
+      "old": "if (!NormalizationSupported)",
+      "new": "if (NormalizationSupported && !NormalizationSupported)",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionNormalizationProcessTests",
+      "expected_failures": [
+        "Invariant_globalization_refuses_all_human_decisions_before_persistence"
+      ]
+    },
+    {
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "id": "normalization-capability-ignored-net10-0",
+      "old": "if (!NormalizationSupported)",
+      "new": "if (NormalizationSupported && !NormalizationSupported)",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionNormalizationProcessTests",
+      "expected_failures": [
+        "Invariant_globalization_refuses_all_human_decisions_before_persistence"
+      ]
+    },
+    {
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "id": "normalization-error-actor-contract-lost",
+      "old": "throw new ArgumentException(\"A human decision actor must contain valid normalizable Unicode text.\", nameof(actor));",
+      "new": "throw;",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+      ]
+    }
+  ]
+}
