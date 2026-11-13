@@ -16,6 +16,9 @@ ledger append, migration, or client-local fallback operation.
 ## Contract
 
 One UTF-8 JSON object followed by newline, at most 65,536 bytes, one request per connection.
+Bytes already read after the first delimiter are refused. After one frame is returned, the
+service dispatches at most one request and closes the connection; later bytes are not processed.
+It does not wait for EOF or promise to detect data that has not arrived yet.
 All names are case-sensitive; unknown/duplicate fields, unsupported operations, non-string
 request values and invalid IDs are refused. IDs are nonzero UUIDs in D format.
 
@@ -68,8 +71,10 @@ Run only through the repository devtest container, for each net8.0 and net10.0:
 `bash scripts/test-in-container.sh --dirty --project tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj --framework net8.0 --filter FullyQualifiedName~GovernanceBrokerPrototype`
 
 No migration occurs. Reads and rejected requests must leave existing fixture record and
-activation-marker bytes intact. The service is serial, caps new records at 128, and bounds each connection to five
-seconds. This caps this prototype's ordinary write surface but is not a disk quota or
+activation-marker bytes intact. The service is serial, caps new records at 128, and supplies a
+five-second cooperative cancellation budget to connection I/O and dispatch. Synchronous signing,
+serialization and store verification are not forcibly interrupted, so this is not a hard wall-clock
+bound. This caps this prototype's ordinary write surface but is not a disk quota or
 rate-limit guarantee; pre-existing administrator-provisioned content and resource use
 need separate accounting. It has no production throughput, maintenance, crash-recovery, coordinated
 key rotation or full-writer migration design. A crash after commit can yield a lost response;

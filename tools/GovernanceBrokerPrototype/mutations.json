@@ -6,7 +6,7 @@
       "id": "broker-peer-authorization-net8.0",
       "file": "tools/GovernanceBrokerPrototype/Broker.cs",
       "old": "peerUid != workerUid",
-      "new": "peerUid == uint.MaxValue",
+      "new": "peerUid != workerUid && peerUid == uint.MaxValue",
       "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
       "framework": "net8.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
@@ -18,7 +18,7 @@
       "id": "broker-project-authorization-net8.0",
       "file": "tools/GovernanceBrokerPrototype/Broker.cs",
       "old": "!string.Equals(request.Project, project, StringComparison.Ordinal)",
-      "new": "request.Project.Length == 0",
+      "new": "!string.Equals(request.Project, project, StringComparison.Ordinal) && request.Project.Length == 0",
       "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
       "framework": "net8.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
@@ -42,7 +42,7 @@
       "id": "broker-server-clock-net8.0",
       "file": "tools/GovernanceBrokerPrototype/Broker.cs",
       "old": "var now = clock.GetUtcNow();",
-      "new": "var now = DateTimeOffset.UnixEpoch;",
+      "new": "var now = clock.GetUtcNow().AddDays(-1);",
       "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
       "framework": "net8.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
@@ -338,7 +338,7 @@
       "framework": "net8.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
       "expected_failures": [
-        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Missing_empty_or_extra_frames_are_refused"
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Empty_unterminated_or_coalesced_extra_frames_are_refused"
       ]
     },
     {
@@ -362,7 +362,7 @@
       "framework": "net8.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
       "expected_failures": [
-        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Missing_empty_or_extra_frames_are_refused"
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Empty_unterminated_or_coalesced_extra_frames_are_refused"
       ]
     },
     {
@@ -430,7 +430,7 @@
       "id": "broker-peer-authorization-net10.0",
       "file": "tools/GovernanceBrokerPrototype/Broker.cs",
       "old": "peerUid != workerUid",
-      "new": "peerUid == uint.MaxValue",
+      "new": "peerUid != workerUid && peerUid == uint.MaxValue",
       "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
       "framework": "net10.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
@@ -442,7 +442,7 @@
       "id": "broker-project-authorization-net10.0",
       "file": "tools/GovernanceBrokerPrototype/Broker.cs",
       "old": "!string.Equals(request.Project, project, StringComparison.Ordinal)",
-      "new": "request.Project.Length == 0",
+      "new": "!string.Equals(request.Project, project, StringComparison.Ordinal) && request.Project.Length == 0",
       "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
       "framework": "net10.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
@@ -466,7 +466,7 @@
       "id": "broker-server-clock-net10.0",
       "file": "tools/GovernanceBrokerPrototype/Broker.cs",
       "old": "var now = clock.GetUtcNow();",
-      "new": "var now = DateTimeOffset.UnixEpoch;",
+      "new": "var now = clock.GetUtcNow().AddDays(-1);",
       "project": "tools/GovernanceBrokerPrototype.Tests/GovernanceBrokerPrototype.Tests.csproj",
       "framework": "net10.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
@@ -762,7 +762,7 @@
       "framework": "net10.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
       "expected_failures": [
-        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Missing_empty_or_extra_frames_are_refused"
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Empty_unterminated_or_coalesced_extra_frames_are_refused"
       ]
     },
     {
@@ -786,7 +786,7 @@
       "framework": "net10.0",
       "filter": "FullyQualifiedName~GovernanceBrokerPrototype.Tests",
       "expected_failures": [
-        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Missing_empty_or_extra_frames_are_refused"
+        "GovernanceBrokerPrototype.Tests.BrokerFramingTests.Empty_unterminated_or_coalesced_extra_frames_are_refused"
       ]
     },
     {

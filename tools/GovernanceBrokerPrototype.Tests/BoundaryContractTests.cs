@@ -23,7 +23,7 @@ public sealed class BrokerFramingTests
     [InlineData("{}\ntrailing")]
     [InlineData("{}\n{}\n")]
     [InlineData("{}\n\n")]
-    public async Task Missing_empty_or_extra_frames_are_refused(string text)
+    public async Task Empty_unterminated_or_coalesced_extra_frames_are_refused(string text)
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(text));
         await Assert.ThrowsAsync<ArgumentException>(() => Program.ReadFrameAsync(stream, CancellationToken.None));
@@ -47,6 +47,12 @@ public sealed class BrokerFramingTests
         var bytes = Encoding.UTF8.GetBytes("{\"summary\":\"👩🏽‍💻\"}\n");
         using var stream = new OneByteStream(bytes);
         Assert.Equal(bytes[..^1], await Program.ReadFrameAsync(stream, CancellationToken.None));
+        // Later bytes are not part of the first frame. Main dispatches once and
+        // closes this connection; this helper cannot predict future stream data.
+        using var later = new OneByteStream(bytes.Concat(Encoding.UTF8.GetBytes("{}\n")).ToArray());
+        Assert.Equal(bytes[..^1], await Program.ReadFrameAsync(later, CancellationToken.None));
+        Assert.Equal((long)bytes.Length, later.Position);
+        Assert.True(later.Position < later.Length);
     }
 
     private sealed class OneByteStream(byte[] bytes) : MemoryStream(bytes)
