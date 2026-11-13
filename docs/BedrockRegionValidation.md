@@ -28,7 +28,7 @@ The loaded Core SDK was **4.0.102.11**, not the centrally declared 4.0.100.4; Be
 4.0.101.11. The observed mechanism demonstrates an environment-dependent null oracle, without
 retrospectively identifying the original runner's provider or claiming a base-SHA reproduction.
 
-[Retained artifact 14060250024](https://github.com/IanFrelinger/Ashlar/actions/runs/43468101149/artifacts/14060250024):
+Artifact `14060250024` is retained with the [reproduction run](https://github.com/IanFrelinger/Ashlar/actions/runs/43468101149):
 194,961 bytes; SHA256 `dea6aa4310d4ac0bbc526b6862e373fc7f5aa3854a8e465a6e431cd2b72674ce`.
 Its embedded evidence ZIP has SHA256 `25932661ba59de9a6ec0d037da47a0e29a815118c179d5e7e14a295bc0cfe26d`.
 An earlier diagnostic run at `02fd93dc` stopped on an assertion-message parser mismatch; it is not
