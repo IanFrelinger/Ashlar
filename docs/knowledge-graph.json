@@ -20,9 +20,9 @@
     "operator_facing_config_variables": 157,
     "operator_vars_missing_from_configuration_reference": 17,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 864,
-    "declared_facts": 5764,
-    "workflows": 70
+    "test_files_declaring_facts": 866,
+    "declared_facts": 5775,
+    "workflows": 71
   },
   "operator_vars_missing_from_configuration_reference": [
     "ASHLAR_KEY_DIR",
@@ -1810,7 +1810,8 @@
     {
       "name": "ASHLAR_MESH_DISCOVERY",
       "declared_in": [
-        "Ashlar.CLI"
+        "Ashlar.CLI",
+        "Ashlar.Tests.CLI"
       ],
       "test_only": false,
       "in_configuration_reference": false,
@@ -1922,7 +1923,8 @@
     {
       "name": "ASHLAR_MESH_SERVE_PORT",
       "declared_in": [
-        "Ashlar.CLI"
+        "Ashlar.CLI",
+        "Ashlar.Tests.CLI"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -3051,6 +3053,13 @@
       "project": "Ashlar.Tests.CLI",
       "namespace": "Ashlar.Tests.CLI.Tests.Commands",
       "declared_facts": 10,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "application/src/Ashlar.Tests.CLI/Tests/Commands/PublicNodeIdentityTests.cs",
+      "project": "Ashlar.Tests.CLI",
+      "namespace": "Ashlar.Tests.CLI.Tests.Commands",
+      "declared_facts": 2,
       "in_cert_gate_filter": false
     },
     {
@@ -8213,6 +8222,13 @@
       "in_cert_gate_filter": false
     },
     {
+      "file": "src/Ashlar.Tests.Kernel/Signing/OperatorPublicIdentityTests.cs",
+      "project": "Ashlar.Tests.Kernel",
+      "namespace": "Ashlar.Tests.Kernel.Signing",
+      "declared_facts": 9,
+      "in_cert_gate_filter": false
+    },
+    {
       "file": "src/Ashlar.Tests.Kernel/Signing/SignedGateStoreTests.cs",
       "project": "Ashlar.Tests.Kernel",
       "namespace": "Ashlar.Tests.Kernel.Signing",
@@ -9231,6 +9247,13 @@
       "triggers": [
         "push",
         "workflow_dispatch"
+      ]
+    },
+    {
+      "file": ".github/workflows/public-identity-regression.yml",
+      "name": "Public operator identity regressions",
+      "triggers": [
+        "pull_request"
       ]
     },
     {

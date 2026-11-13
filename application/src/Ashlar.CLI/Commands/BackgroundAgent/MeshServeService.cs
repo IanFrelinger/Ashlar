@@ -13,7 +13,6 @@ using Ashlar.CLI.Packaging;
 using Ashlar.Abstractions;
 using Ashlar.Abstractions.Security.Egress;
 using Ashlar.Infrastructure;
-using Ashlar.Manifest.Signing;
 
 namespace Ashlar.CLI.Commands.BackgroundAgent;
 
@@ -322,9 +321,8 @@ public sealed class MeshServeService : BackgroundService
 
         app.MapGet("/mesh/v1/hello", () =>
         {
-            string fingerprint;
-            try { fingerprint = OperatorKey.TryLoad()?.Fingerprint ?? "(unsigned)"; }
-            catch { fingerprint = "(unsigned)"; }
+            // A public announcement proves neither signing readiness nor peer authority.
+            var fingerprint = NodeHeartbeat.TryFingerprint() ?? "(unknown)";
             return Results.Json(new
             {
                 version = MeshWire.Version,

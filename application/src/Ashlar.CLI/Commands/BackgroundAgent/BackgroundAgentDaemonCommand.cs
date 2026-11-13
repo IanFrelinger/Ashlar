@@ -395,9 +395,8 @@ public sealed class BackgroundAgentDaemonCommand
         {
             name = Environment.MachineName;
         }
-        string? fingerprint = null;
-        try { fingerprint = Ashlar.Manifest.Signing.OperatorKey.TryLoad()?.Fingerprint; }
-        catch { /* corrupt key: announce nothing, still listen */ }
+        // Presence metadata does not require possession of the private signing key.
+        var fingerprint = NodeHeartbeat.TryFingerprint();
         int? servePort = int.TryParse(Environment.GetEnvironmentVariable("ASHLAR_MESH_SERVE_PORT"), out var sp) && sp is >= 1 and <= 65535
             ? sp : null;
 

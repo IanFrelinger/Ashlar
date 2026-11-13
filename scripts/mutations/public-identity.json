@@ -1,0 +1,252 @@
+{
+  "schema": 1,
+  "note": "Bounded public metadata migration mutations: eight core changes on net8.0 and net10.0, plus four CLI route/fallback changes on net10.0 (20 cases total). Complete focused green baselines include OperatorPublicIdentityTests and existing OperatorKeyTests on both kernel frameworks and PublicNodeIdentityTests on the CLI's sole supported framework. Cases use disposable files and in-memory handlers only; no service startup, network peer, OS identity/permission change, lock replacement or isolation claim. Definitions are not execution evidence.",
+  "mutations": [
+    {
+      "id": "public-metadata-private-loader-net8.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "return TryLoad(dir) is { } privateIdentity ? new OperatorPublicIdentity(privateIdentity.PublicKeyBase64) : null;",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_identity_does_not_depend_on_private_material",
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_metadata_does_not_parse_corrupt_private_trust_or_peer_files"
+      ]
+    },
+    {
+      "id": "public-metadata-unvalidated-key-net8.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "return new OperatorPublicIdentity(File.ReadAllText(Path.Combine(dir, \"operator.pub\")).Trim());",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Malformed_public_material_is_an_error_not_absence_or_a_trusted_key_fallback"
+      ]
+    },
+    {
+      "id": "public-metadata-read-error-as-absence-net8.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "if (!File.Exists(Path.Combine(dir, \"operator.pub\"))) return null;\n            return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Existing_public_path_read_failure_is_not_reported_as_absence"
+      ]
+    },
+    {
+      "id": "public-metadata-retained-fallback-net8.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "catch (FileNotFoundException)\n        {\n            return null;\n        }",
+      "new": "catch (FileNotFoundException)\n        {\n            var fallback = TrustedPublicKeysBase64(dir).FirstOrDefault();\n            return fallback is null ? null : new OperatorPublicIdentity(fallback);\n        }",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Missing_public_file_does_not_fall_back_to_private_retained_or_peer_material"
+      ]
+    },
+    {
+      "id": "public-metadata-creates-directory-net8.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "public static OperatorPublicIdentity? TryReadPublicIdentity(string? keyDir = null)\n    {\n        var dir = keyDir ?? ResolveKeyDir();",
+      "new": "public static OperatorPublicIdentity? TryReadPublicIdentity(string? keyDir = null)\n    {\n        var dir = keyDir ?? ResolveKeyDir();\n        Directory.CreateDirectory(dir);",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Missing_directory_returns_absent_without_creating_any_files"
+      ]
+    },
+    {
+      "id": "public-metadata-rewrites-file-net8.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "var identity = new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));\n            File.WriteAllText(Path.Combine(dir, \"operator.pub\"), identity.PublicKeyBase64);\n            return identity;",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Reading_trimmed_metadata_preserves_raw_public_file_and_all_other_bytes"
+      ]
+    },
+    {
+      "id": "public-metadata-wrong-fingerprint-net8.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorPublicIdentity.cs",
+      "old": "Fingerprint = OperatorKey.Fingerprint(Convert.FromBase64String(publicKeyBase64));",
+      "new": "Fingerprint = OperatorKey.Fingerprint(Convert.FromBase64String(publicKeyBase64)) + \"-mutated\";",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_identity_does_not_depend_on_private_material",
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_identity_tracks_current_key_without_changing_retained_trust_or_signatures"
+      ]
+    },
+    {
+      "id": "public-metadata-reads-trust-chain-net8.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "return new OperatorPublicIdentity(TrustedPublicKeysBase64(dir).Last());",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_metadata_does_not_parse_corrupt_private_trust_or_peer_files",
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_identity_tracks_current_key_without_changing_retained_trust_or_signatures"
+      ]
+    },
+    {
+      "id": "public-metadata-private-loader-net10.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "return TryLoad(dir) is { } privateIdentity ? new OperatorPublicIdentity(privateIdentity.PublicKeyBase64) : null;",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_identity_does_not_depend_on_private_material",
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_metadata_does_not_parse_corrupt_private_trust_or_peer_files"
+      ]
+    },
+    {
+      "id": "public-metadata-unvalidated-key-net10.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "return new OperatorPublicIdentity(File.ReadAllText(Path.Combine(dir, \"operator.pub\")).Trim());",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Malformed_public_material_is_an_error_not_absence_or_a_trusted_key_fallback"
+      ]
+    },
+    {
+      "id": "public-metadata-read-error-as-absence-net10.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "if (!File.Exists(Path.Combine(dir, \"operator.pub\"))) return null;\n            return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Existing_public_path_read_failure_is_not_reported_as_absence"
+      ]
+    },
+    {
+      "id": "public-metadata-retained-fallback-net10.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "catch (FileNotFoundException)\n        {\n            return null;\n        }",
+      "new": "catch (FileNotFoundException)\n        {\n            var fallback = TrustedPublicKeysBase64(dir).FirstOrDefault();\n            return fallback is null ? null : new OperatorPublicIdentity(fallback);\n        }",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Missing_public_file_does_not_fall_back_to_private_retained_or_peer_material"
+      ]
+    },
+    {
+      "id": "public-metadata-creates-directory-net10.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "public static OperatorPublicIdentity? TryReadPublicIdentity(string? keyDir = null)\n    {\n        var dir = keyDir ?? ResolveKeyDir();",
+      "new": "public static OperatorPublicIdentity? TryReadPublicIdentity(string? keyDir = null)\n    {\n        var dir = keyDir ?? ResolveKeyDir();\n        Directory.CreateDirectory(dir);",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Missing_directory_returns_absent_without_creating_any_files"
+      ]
+    },
+    {
+      "id": "public-metadata-rewrites-file-net10.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "var identity = new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));\n            File.WriteAllText(Path.Combine(dir, \"operator.pub\"), identity.PublicKeyBase64);\n            return identity;",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Reading_trimmed_metadata_preserves_raw_public_file_and_all_other_bytes"
+      ]
+    },
+    {
+      "id": "public-metadata-wrong-fingerprint-net10.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorPublicIdentity.cs",
+      "old": "Fingerprint = OperatorKey.Fingerprint(Convert.FromBase64String(publicKeyBase64));",
+      "new": "Fingerprint = OperatorKey.Fingerprint(Convert.FromBase64String(publicKeyBase64)) + \"-mutated\";",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_identity_does_not_depend_on_private_material",
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_identity_tracks_current_key_without_changing_retained_trust_or_signatures"
+      ]
+    },
+    {
+      "id": "public-metadata-reads-trust-chain-net10.0",
+      "file": "src/Ashlar.Manifest/Signing/OperatorKey.cs",
+      "old": "return new OperatorPublicIdentity(ReadPublicKeyFile(dir, Path.Combine(dir, \"operator.pub\")));",
+      "new": "return new OperatorPublicIdentity(TrustedPublicKeysBase64(dir).Last());",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests|FullyQualifiedName~Ashlar.Tests.Kernel.Signing.OperatorKeyTests",
+      "expected_failures": [
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_metadata_does_not_parse_corrupt_private_trust_or_peer_files",
+        "Ashlar.Tests.Kernel.Signing.OperatorPublicIdentityTests.Public_identity_tracks_current_key_without_changing_retained_trust_or_signatures"
+      ]
+    },
+    {
+      "id": "heartbeat-private-loader-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/NodeHeartbeat.cs",
+      "old": "return OperatorKey.TryReadPublicIdentity()?.Fingerprint;",
+      "new": "return OperatorKey.TryLoad()?.Fingerprint;",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.PublicNodeIdentityTests",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.PublicNodeIdentityTests.Consumer_reads_public_identity_without_private_material"
+      ]
+    },
+    {
+      "id": "discovery-private-loader-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/BackgroundAgentDaemonCommand.cs",
+      "old": "// Presence metadata does not require possession of the private signing key.\n        var fingerprint = NodeHeartbeat.TryFingerprint();",
+      "new": "// Presence metadata does not require possession of the private signing key.\n        var fingerprint = Ashlar.Manifest.Signing.OperatorKey.TryLoad()?.Fingerprint;",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.PublicNodeIdentityTests",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.PublicNodeIdentityTests.Consumer_reads_public_identity_without_private_material"
+      ]
+    },
+    {
+      "id": "hello-private-loader-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs",
+      "old": "var fingerprint = NodeHeartbeat.TryFingerprint() ?? \"(unknown)\";",
+      "new": "var fingerprint = Ashlar.Manifest.Signing.OperatorKey.TryLoad()?.Fingerprint ?? \"(unknown)\";",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.PublicNodeIdentityTests",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.PublicNodeIdentityTests.Consumer_reads_public_identity_without_private_material"
+      ]
+    },
+    {
+      "id": "hello-invented-unsigned-identity-net10.0",
+      "file": "application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs",
+      "old": "var fingerprint = NodeHeartbeat.TryFingerprint() ?? \"(unknown)\";",
+      "new": "var fingerprint = NodeHeartbeat.TryFingerprint() ?? \"(unsigned)\";",
+      "project": "application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~Ashlar.Tests.CLI.Tests.Commands.PublicNodeIdentityTests",
+      "expected_failures": [
+        "Ashlar.Tests.CLI.Tests.Commands.PublicNodeIdentityTests.Consumer_does_not_advertise_absent_or_invalid_public_identity"
+      ]
+    }
+  ]
+}

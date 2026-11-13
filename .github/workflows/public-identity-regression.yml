@@ -1,0 +1,164 @@
+name: Public operator identity regressions
+
+on:
+  pull_request:
+    paths:
+      - 'src/Ashlar.Manifest/Signing/**'
+      - 'src/Ashlar.Tests.Kernel/Signing/**'
+      - 'application/src/Ashlar.CLI/Commands/KeysCommand.cs'
+      - 'application/src/Ashlar.CLI/Commands/BackgroundAgent/NodeHeartbeat.cs'
+      - 'application/src/Ashlar.CLI/Commands/BackgroundAgent/BackgroundAgentDaemonCommand.cs'
+      - 'application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshDiscoveryService.cs'
+      - 'application/src/Ashlar.CLI/Commands/BackgroundAgent/MeshServeService.cs'
+      - 'application/src/Ashlar.Tests.CLI/Tests/Commands/PublicNodeIdentityTests.cs'
+      - 'scripts/public-identity-regression.sh'
+      - 'scripts/mutations/public-identity.json'
+      - 'scripts/run-spec007-mutation-batch.py'
+      - 'scripts/decode-spec007-mutation-evidence.py'
+      - 'scripts/test-in-container.sh'
+      - 'scripts/ensure-devtest-image.sh'
+      - '.docker/Dockerfile.devtest'
+      - 'src/Directory.Build.props'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - 'NuGet.Config'
+      - 'nuget.config'
+      - 'VERSION'
+      - '.github/workflows/public-identity-regression.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-identity-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  contracts-and-mutations:
+    name: Public identity contracts and mutation proofs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run focused green baselines and mutation proofs in devtest
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          mkdir -p "$RUNNER_TEMP/public-identity"
+          printf '%s\n' "$EXPECTED_SHA" > "$RUNNER_TEMP/public-identity/source-sha.txt"
+          bash scripts/test-in-container.sh --ref "$EXPECTED_SHA" -- \
+            "bash scripts/public-identity-regression.sh $EXPECTED_SHA" \
+            2>&1 | tee "$RUNNER_TEMP/public-identity/mutations.log"
+
+      - name: Decode and verify exact selections and retained evidence
+        if: always()
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/decode-spec007-mutation-evidence.py \
+            --log "$RUNNER_TEMP/public-identity/mutations.log" \
+            --output "$RUNNER_TEMP/public-identity/mutation-evidence" --repo .
+          python3 - "$RUNNER_TEMP/public-identity/mutation-evidence" "$EXPECTED_SHA" <<'PY'
+          from pathlib import Path
+          import hashlib
+          import importlib.util
+          import json
+          import sys
+          import xml.etree.ElementTree as ET
+
+          sys.dont_write_bytecode = True
+          evidence, expected_sha = Path(sys.argv[1]), sys.argv[2]
+          repo = Path.cwd()
+          spec = importlib.util.spec_from_file_location("mutation_runner", repo / "scripts/run-spec007-mutation-batch.py")
+          runner = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(runner)
+          manifest = json.loads((repo / "scripts/mutations/public-identity.json").read_text())
+          if json.loads((evidence / "manifest.json").read_text()) != manifest:
+              raise SystemExit("Retained manifest differs from exact-head source")
+          cases = runner.validate_cases(repo, manifest, None)
+          summary = json.loads((evidence / "summary.json").read_text())
+          records = summary.get("records", [])
+          if summary.get("ref") != expected_sha or summary.get("verdict") != "KILLED" or len(records) != len(cases):
+              raise SystemExit("Incomplete or unsuccessful same-SHA mutation batch")
+          required = {
+              ("src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj", "net8.0"): ("OperatorPublicIdentityTests", "OperatorKeyTests"),
+              ("src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj", "net10.0"): ("OperatorPublicIdentityTests", "OperatorKeyTests"),
+              ("application/src/Ashlar.Tests.CLI/Ashlar.Tests.CLI.csproj", "net10.0"): ("PublicNodeIdentityTests",),
+          }
+          baselines = {}
+          for index, (case, record) in enumerate(zip(cases, records)):
+              folder = evidence / f"{index:03d}-{case['id']}"
+              if record.get("case") != case or record.get("ref") != expected_sha or record.get("verdict") != "KILLED":
+                  raise SystemExit(f"{case['id']}: invalid verdict/source/case")
+              if not record.get("restored_clean") or not record.get("final_clean"):
+                  raise SystemExit(f"{case['id']}: source restoration was not clean")
+              original = (folder / "original.bin").read_bytes()
+              digest = hashlib.sha256(original).hexdigest()
+              if original != runner.source_path(repo, case["file"]).read_bytes() or digest != record.get("original_sha256") or digest != record.get("restored_sha256"):
+                  raise SystemExit(f"{case['id']}: restored bytes differ from source")
+              selection = (case["project"], case["framework"], case["filter"])
+              if selection not in baselines:
+                  baselines[selection] = folder / "baseline"
+              for phase, directory in (("baseline", baselines[selection]), ("red", folder / "red"), ("green", folder / "green")):
+                  process = json.loads((directory / "process.json").read_text())
+                  if process.get("timed_out") or process.get("interrupted"):
+                      raise SystemExit(f"{case['id']}: interrupted {phase}")
+                  counts = runner.read_result(directory / "result.trx", process["exit"], (directory / "console.log").read_text())
+                  if counts != record.get(phase) or counts["notExecuted"]:
+                      raise SystemExit(f"{case['id']}: invalid {phase} evidence")
+              if record["green"] != record["baseline"] or record["green"]["exit"] or record["red"]["exit"] != 1 or record["red"]["failed"] == 0 or record["red"]["total"] != record["baseline"]["total"]:
+                  raise SystemExit(f"{case['id']}: not assertion-red/restored-green")
+              identities = []
+              for directory in (baselines[selection], folder / "red", folder / "green"):
+                  rows = ET.parse(directory / "result.trx").getroot().findall("./{*}Results/{*}UnitTestResult")
+                  identities.append(sorted((row.get("testId"), row.get("testName")) for row in rows))
+              if identities[0] != identities[1] or identities[0] != identities[2]:
+                  raise SystemExit(f"{case['id']}: test identities changed across phases")
+              expected = case.get("expected_failures", [])
+              if not expected or not all(any(fragment in name for name in record["red"]["failures"]) for fragment in expected):
+                  raise SystemExit(f"{case['id']}: intended assertions did not fail")
+          observed = set()
+          baseline_cases = 0
+          for (project, framework, test_filter), directory in baselines.items():
+              key = (project, framework)
+              if key not in required or key in observed:
+                  raise SystemExit("Unexpected or duplicate baseline project/framework")
+              observed.add(key)
+              rows = ET.parse(directory / "result.trx").getroot().findall("./{*}Results/{*}UnitTestResult")
+              for name in required[key]:
+                  matching = [row for row in rows if f".{name}." in row.get("testName", "")]
+                  minimum = {"OperatorPublicIdentityTests": 14, "PublicNodeIdentityTests": 24}.get(name, 1)
+                  if len(matching) < minimum:
+                      raise SystemExit(f"{project}/{framework}: incomplete baseline class {name}")
+              baseline_cases += len(rows)
+          if observed != set(required):
+              raise SystemExit("Missing Kernel net8/net10 or CLI net10 baseline")
+          report = {"source_sha": expected_sha, "verdict": "KILLED", "mutation_cases": len(cases),
+                    "baseline_selections": len(baselines), "baseline_executions": baseline_cases,
+                    "scope": "Public metadata application contracts only; no services, peers or OS isolation tests"}
+          (evidence / "public-identity-verification.json").write_text(json.dumps(report, indent=2) + "\n")
+          print(json.dumps(report))
+          PY
+
+      - name: Upload exact-SHA baseline and mutation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-identity-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/public-identity
+          if-no-files-found: error
+          retention-days: 90
