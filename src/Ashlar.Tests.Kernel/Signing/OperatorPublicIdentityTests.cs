@@ -162,7 +162,7 @@ public sealed class OperatorPublicIdentityTests : IDisposable
 
         var read = () => OperatorKey.TryReadPublicIdentity(keyDir);
 
-        read.Should().Throw<Exception>().Where(ex => ex is IOException or UnauthorizedAccessException);
+        read.Should().Throw<Exception>().Where(ex => ex is IOException || ex is UnauthorizedAccessException);
         Directory.Exists(publicPath).Should().BeTrue();
         Snapshot().Should().BeEquivalentTo(before, options => options.WithStrictOrdering());
     }

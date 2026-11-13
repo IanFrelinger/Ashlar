@@ -23,7 +23,13 @@ public sealed class PublicNodeIdentityTests : IDisposable
     private readonly string root = Path.Combine(Path.GetTempPath(), "ashlar-public-node-" + Guid.NewGuid().ToString("N"));
     private string Keys => Path.Combine(root, "keys");
 
-    public PublicNodeIdentityTests() => Directory.CreateDirectory(Keys);
+    public PublicNodeIdentityTests()
+    {
+        Directory.CreateDirectory(Keys);
+        // Discovery registration already resolves/creates its state directory. Provision it
+        // before the byte/directory snapshot so this test isolates public-identity reads.
+        Directory.CreateDirectory(Path.Combine(root, "state"));
+    }
 
     public void Dispose() => Directory.Delete(root, recursive: true);
 
