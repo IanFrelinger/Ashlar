@@ -12,7 +12,7 @@ The #478 hardening uses these integrator defaults:
 
 If the runtime cannot perform Unicode normalization, including invariant globalization mode, human decisions fail closed before persistence. Automatic outcomes and historical reads remain available. Fresh-process tests exercise both modes on each supported Manifest runtime.
 
-Accepted labels are stored exactly as supplied. Ordinary Unicode, combining marks, CJK/Arabic names, emoji, ZWJ and ZWNJ remain supported. Validation runs before acquiring the store lock, sweeping orphan files, signing or persisting a decision.
+Accepted labels are stored exactly as supplied. Ordinary Unicode, combining marks, CJK/Arabic/Mongolian names, emoji, ZWJ and ZWNJ remain supported. Validation runs before acquiring the store lock, sweeping orphan files, signing or persisting a decision.
 
 ## Historical records and presentation
 

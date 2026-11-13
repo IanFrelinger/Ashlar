@@ -82,6 +82,8 @@ internal static class GateDecisionActor
 
     private static bool IsReservedNameIgnorable(Rune rune) =>
         Rune.GetUnicodeCategory(rune) == UnicodeCategory.Format
+        || rune.Value is >= 0x180B and <= 0x180D
+        || rune.Value == 0x180F
         || rune.Value is >= 0xFE00 and <= 0xFE0F
         || rune.Value is >= 0xE0100 and <= 0xE01EF;
 }

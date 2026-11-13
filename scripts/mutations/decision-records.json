@@ -101,15 +101,61 @@
       ]
     },
     {
-      "id": "automatic-actor-variation-spelling-accepted",
+      "id": "automatic-actor-mongolian-fvs1-to-3-accepted",
       "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
-      "old": "        || rune.Value is >= 0xFE00 and <= 0xFE0F\n        || rune.Value is >= 0xE0100 and <= 0xE01EF",
+      "old": "        || rune.Value is >= 0x180B and <= 0x180D",
       "new": "",
       "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
       "framework": "net8.0",
       "filter": "FullyQualifiedName~GateDecisionIdentityTests",
       "expected_failures": [
-        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence"
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-180b\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-180b\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-180c\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-180c\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-180d\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-180d\","
+      ]
+    },
+    {
+      "id": "automatic-actor-mongolian-fvs4-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "        || rune.Value == 0x180F",
+      "new": "",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-180f\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-180f\","
+      ]
+    },
+    {
+      "id": "automatic-actor-bmp-variation-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "        || rune.Value is >= 0xFE00 and <= 0xFE0F",
+      "new": "",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net8.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only\","
+      ]
+    },
+    {
+      "id": "automatic-actor-supplementary-variation-accepted",
+      "file": "src/Ashlar.Manifest/Admission/GateDecisionActor.cs",
+      "old": "        || rune.Value is >= 0xE0100 and <= 0xE01EF",
+      "new": "",
+      "project": "src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj",
+      "framework": "net10.0",
+      "filter": "FullyQualifiedName~GateDecisionIdentityTests",
+      "expected_failures": [
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-e0100\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-e0100\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"automatic-variation-e01ef\",",
+        "Invalid_human_actor_is_rejected_before_lock_cleanup_or_persistence(name: \"variation-only-e01ef\","
       ]
     },
     {

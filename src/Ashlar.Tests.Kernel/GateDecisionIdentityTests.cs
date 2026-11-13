@@ -45,6 +45,12 @@ public sealed class GateDecisionIdentityTests : IDisposable
             ("automatic-width", "ｇａｔｅ"), ("automatic-joiner", "g\u200Date"),
             ("automatic-nonjoiner", "g\u200Cate"), ("automatic-zero-width", "g\u200Bate"),
             ("automatic-bom", "\uFEFFgate"), ("automatic-variation", "gate\uFE0F"),
+            ("automatic-variation-180b", "g\u180Bate"), ("variation-only-180b", "\u180B"),
+            ("automatic-variation-180c", "g\u180Cate"), ("variation-only-180c", "\u180C"),
+            ("automatic-variation-180d", "g\u180Date"), ("variation-only-180d", "\u180D"),
+            ("automatic-variation-180f", "g\u180Fate"), ("variation-only-180f", "\u180F"),
+            ("automatic-variation-e0100", "g\U000E0100ate"), ("variation-only-e0100", "\U000E0100"),
+            ("automatic-variation-e01ef", "g\U000E01EFate"), ("variation-only-e01ef", "\U000E01EF"),
             ("leading-space", " human"), ("trailing-space", "human\u3000"),
             ("line-forgery", "human\r\nADMITTED by gate"), ("escape", "human\u001b[2J"),
             ("nul", "human\0"), ("tab", "human\tname"), ("delete", "human\u007f"),
@@ -118,6 +124,7 @@ public sealed class GateDecisionIdentityTests : IDisposable
         yield return ["Zoe\u0308"];
         yield return ["李明 / مریم\u200Cرضا"];
         yield return ["operator 👩\u200D💻"];
+        yield return ["Mongolian \u1820\u180B"];
         yield return [new string('a', 256)];
         yield return [new string('a', 254) + "😀"];
     }
