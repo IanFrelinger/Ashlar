@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Ashlar.Tools.GovernanceBrokerPrototype;
 using Xunit;
 
@@ -64,9 +65,17 @@ public sealed class BrokerFramingTests
 
 public sealed class BrokerConfigurationTests
 {
-    private const string Valid = """
-        {"project":"prototype-project","root":"/srv/ashlar-prototype","socketPath":"/run/ashlar-prototype/broker.sock","workerUid":12001}
-        """;
+    // Configuration helpers run in cross-platform readiness CI even though the
+    // service itself is Linux-only. These fixture paths are strings, not created files.
+    private static readonly string VolumeRoot = Path.GetPathRoot(AppContext.BaseDirectory)
+        ?? throw new InvalidOperationException("The test assembly must have an absolute path.");
+    private static readonly string Valid = JsonSerializer.Serialize(new
+    {
+        project = "prototype-project",
+        root = Path.Combine(VolumeRoot, "srv", "ashlar-prototype"),
+        socketPath = Path.Combine(VolumeRoot, "run", "ashlar-prototype", "broker.sock"),
+        workerUid = 12001,
+    });
 
     [Fact]
     public void Valid_config_requires_distinct_nonroot_identities()
@@ -130,13 +139,25 @@ public sealed class BrokerConfigurationTests
     [Fact]
     public void Socket_length_is_bounded()
     {
-        var config = BrokerConfiguration.Parse(Valid) with { SocketPath = "/" + new string('x', 101) };
+        var prefixBytes = Encoding.UTF8.GetByteCount(VolumeRoot);
+        Assert.InRange(prefixBytes, 1, 97);
+        var config = BrokerConfiguration.Parse(Valid) with
+        {
+            SocketPath = VolumeRoot + new string('x', 101 - prefixBytes),
+        };
+        Assert.Equal(101, Encoding.UTF8.GetByteCount(config.SocketPath));
         Assert.Throws<ArgumentException>(() => config.ValidateIdentity(11001));
-        // The socket limit counts UTF-8 bytes, preserving legitimate Unicode paths.
-        config = config with { SocketPath = "/" + new string('界', 33) };
-        config.ValidateIdentity(11001); // 100 UTF-8 bytes
-        config = config with { SocketPath = "/" + new string('界', 34) };
-        Assert.Throws<ArgumentException>(() => config.ValidateIdentity(11001)); // 103 bytes
+        // Keep the exact UTF-8 boundary after either a Unix or Windows volume root.
+        var remaining = 100 - prefixBytes;
+        config = config with
+        {
+            SocketPath = VolumeRoot + new string('界', remaining / 3) + new string('x', remaining % 3),
+        };
+        Assert.Equal(100, Encoding.UTF8.GetByteCount(config.SocketPath));
+        config.ValidateIdentity(11001);
+        config = config with { SocketPath = config.SocketPath + "界" };
+        Assert.Equal(103, Encoding.UTF8.GetByteCount(config.SocketPath));
+        Assert.Throws<ArgumentException>(() => config.ValidateIdentity(11001));
     }
 
     [Theory]
