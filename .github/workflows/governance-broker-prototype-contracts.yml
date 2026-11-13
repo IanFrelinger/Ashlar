@@ -1,0 +1,80 @@
+name: Governance broker prototype contracts
+
+on:
+  pull_request:
+    paths:
+      - 'tools/GovernanceBrokerPrototype/**'
+      - 'tools/GovernanceBrokerPrototype.Tests/**'
+      - 'src/Ashlar.Manifest/**'
+      - 'src/Ashlar.Abstractions/**'
+      - 'src/Directory.Build.props'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - 'NuGet.Config'
+      - 'nuget.config'
+      - 'VERSION'
+      - 'scripts/test-in-container.sh'
+      - 'scripts/ensure-devtest-image.sh'
+      - '.docker/Dockerfile.devtest'
+      - '.github/workflows/governance-broker-prototype-contracts.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: governance-broker-contracts-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  contracts:
+    name: Governance prototype net8/net10 contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate evidence parser negative controls
+        shell: bash
+        run: python3 tools/GovernanceBrokerPrototype/ci-evidence.py self-test
+
+      - name: Run ordinary contract tests in the devtest container
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          mkdir -p "$RUNNER_TEMP/governance-broker-contracts"
+          printf '%s\n' "$EXPECTED_SHA" > "$RUNNER_TEMP/governance-broker-contracts/source-sha.txt"
+          bash scripts/test-in-container.sh --ref "$EXPECTED_SHA" -- \
+            "bash tools/GovernanceBrokerPrototype/ci-contract-tests.sh $EXPECTED_SHA" \
+            2>&1 | tee "$RUNNER_TEMP/governance-broker-contracts/contracts.log"
+
+      - name: Decode and verify retained per-case evidence
+        if: always()
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 tools/GovernanceBrokerPrototype/ci-evidence.py decode \
+            --log "$RUNNER_TEMP/governance-broker-contracts/contracts.log" \
+            --output "$RUNNER_TEMP/governance-broker-contracts/decoded" \
+            --expected-sha "$EXPECTED_SHA"
+
+      - name: Upload exact-SHA contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-broker-contracts-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/governance-broker-contracts
+          if-no-files-found: error
+          retention-days: 90

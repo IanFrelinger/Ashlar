@@ -94,3 +94,23 @@ The inherited socket's reported pathname is checked against configuration, but i
 inode/permissions are not independently attested against the descriptor. Startup metadata
 checks rely on trusted owners not changing paths concurrently. No descriptor-relative
 filesystem confinement or mounted-filesystem attestation is claimed.
+
+## Nonpublishing PR contract CI
+
+The PR-only workflow `governance-broker-prototype-contracts.yml` uses an isolated Linux
+devtest container and the exact PR head to run only this prototype's contract suite,
+sequentially on net8.0 and net10.0. It has read-only repository permission and no publishing
+or service-installation step. Validation remains pending until that workflow actually runs.
+
+It retains per-case TRXs, the source SHA, command exit receipts, installed runtime inventory,
+test runtime configurations and a checked case ledger. The decoder rejects missing/failed/
+skipped results, duplicate execution IDs, wrong source/framework assets and fewer than the
+initial 141 authored cases per framework. The runtime inventory describes installed runtimes;
+it is not itself a test-host runtime observation. Patch-only roll-forward and retained target
+configuration constrain the selected family. Receipt-parser self-tests use synthetic XML and
+do not count as executions of the .NET cases.
+
+These are application and metadata-policy contracts, not an OS isolation test. The workflow
+does not start the service, create identities, change system security settings, replace locks
+or recreate the previously blocked harness. No isolation or production-readiness claim follows
+from green contract tests.
