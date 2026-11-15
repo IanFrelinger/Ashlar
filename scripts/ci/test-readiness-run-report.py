@@ -169,6 +169,36 @@ class ReadinessRunReportTests(unittest.TestCase):
         self.assertEqual(unexpected["unexpected_skips"], ["Linux — setup · discover · dry-run"])
         self.assertEqual(unexpected["verdict"], "failed")
 
+    def test_unexpanded_matrix_names_are_reported_as_expected_skips(self):
+        data = REPORT.render_report(
+            {
+                "jobs": [
+                    job("Changes — core paths touched?", "success"),
+                    job("${{ matrix.label }} — setup · discover · dry-run", "skipped"),
+                    job("${{ matrix.label }} (container) — setup · discover · dry-run", "skipped"),
+                    job("Docker CLI image — build · smoke · discover", "skipped"),
+                    job("Docker ${{ matrix.label }} — build · smoke", "skipped"),
+                ]
+            },
+            {"artifacts": []},
+            args(
+                run_heavy="false",
+                native_result="skipped",
+                container_result="skipped",
+                docker_cli_result="skipped",
+                docker_all_result="skipped",
+                verdict="not-verified",
+            ),
+        )
+
+        self.assertTrue(data["report_complete"])
+        self.assertEqual(data["verdict"], "not-verified")
+        self.assertEqual(
+            [item["role"] for item in data["jobs"]],
+            ["native-platform", "container-platform", "docker-cli-image", "docker-all-images"],
+        )
+        self.assertTrue(all(item["skip_reason"] for item in data["jobs"]))
+
     def test_variant_artifact_link_is_attached_to_the_matching_job(self):
         data = REPORT.render_report(
             {

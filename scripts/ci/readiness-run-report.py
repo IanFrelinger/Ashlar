@@ -42,10 +42,12 @@ def role_for(name):
     lowered = name.lower()
     if lowered.startswith("docker cli image"):
         return "docker-cli-image"
-    if lowered.startswith("docker "):
-        return "docker-all-images"
     if "(container)" in lowered:
         return "container-platform"
+    if lowered.startswith("${{ matrix.label }}"):
+        return "native-platform"
+    if lowered.startswith("docker "):
+        return "docker-all-images"
     if any(lowered.startswith(prefix) for prefix in PLATFORM_PREFIXES):
         return "native-platform"
     return None
