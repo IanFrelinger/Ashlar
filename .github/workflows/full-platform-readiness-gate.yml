@@ -825,6 +825,9 @@ jobs:
       lanes_ran: ${{ steps.summary.outputs.lanes_ran }}
       lanes_skipped: ${{ steps.summary.outputs.lanes_skipped }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Download all artifacts
         id: download-artifacts
         continue-on-error: true
