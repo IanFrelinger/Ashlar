@@ -227,11 +227,13 @@ class ReadinessRunReportTests(unittest.TestCase):
                 "jobs": [
                     job("Changes — core paths touched?", "success"),
                     job("Linux — setup · discover · dry-run", "success"),
+                    job("Docker api — build · smoke", "success"),
                 ]
             },
             {
                 "artifacts": [
-                    {"name": "readiness-Linux", "id": 88, "expired": False, "size_in_bytes": 100}
+                    {"name": "readiness-Linux", "id": 88, "expired": False, "size_in_bytes": 100},
+                    {"name": "readiness-api", "id": 89, "expired": False, "size_in_bytes": 200},
                 ]
             },
             args(),
@@ -240,6 +242,11 @@ class ReadinessRunReportTests(unittest.TestCase):
         self.assertEqual(
             data["jobs"][0]["artifacts"][0]["url"],
             "https://github.com/IanFrelinger/Ashlar/actions/runs/1234/artifacts/88",
+        )
+        self.assertEqual(data["jobs"][1]["artifacts"][0]["name"], "readiness-api")
+        self.assertEqual(
+            data["jobs"][1]["artifacts"][0]["url"],
+            "https://github.com/IanFrelinger/Ashlar/actions/runs/1234/artifacts/89",
         )
 
     def test_cli_writes_sha_bound_json_and_links_the_job_summary(self):

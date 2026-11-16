@@ -68,6 +68,7 @@ def expected_skip_reason(job, role, args):
 
 def artifact_matches(job_name, artifacts):
     normalized = job_name.lower().replace(" (container)", "").split(" —", 1)[0].strip()
+    normalized = normalized.removeprefix("docker ")
     matches = []
     for artifact in artifacts:
         name = artifact.get("name", "")
