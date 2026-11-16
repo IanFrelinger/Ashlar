@@ -87,6 +87,17 @@ def artifact_url(server_url, repository, run_id, artifact_id):
     )
 
 
+def check_total_count(payload, records, label, errors):
+    total_count = payload.get("total_count")
+    if type(total_count) is not int:
+        errors.append(f"The Actions {label} API response has no valid total_count.")
+    elif total_count != len(records):
+        errors.append(
+            f"The Actions {label} API response is incomplete: "
+            f"received {len(records)} of {total_count} records."
+        )
+
+
 def render_report(jobs_data, artifacts_data, args):
     jobs = jobs_data.get("jobs") if isinstance(jobs_data, dict) else None
     artifacts = artifacts_data.get("artifacts") if isinstance(artifacts_data, dict) else None
@@ -94,9 +105,13 @@ def render_report(jobs_data, artifacts_data, args):
     if not isinstance(jobs, list) or not jobs:
         jobs = []
         errors.append("The Actions jobs API returned no usable job records.")
+    elif isinstance(jobs_data, dict):
+        check_total_count(jobs_data, jobs, "jobs", errors)
     if not isinstance(artifacts, list):
         artifacts = []
         errors.append("The Actions artifacts API returned no usable artifact list.")
+    elif isinstance(artifacts_data, dict):
+        check_total_count(artifacts_data, artifacts, "artifacts", errors)
 
     changes_result = args.changes_result
     if not any((job.get("name") or "").startswith("Changes") for job in jobs):

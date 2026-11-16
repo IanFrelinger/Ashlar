@@ -121,7 +121,7 @@ done
 if [[ "$url" == *"/jobs?"* ]]; then
   cp "$READINESS_JOBS_FIXTURE" "$output"
 else
-  printf '{"artifacts":[]}\n' > "$output"
+  printf '{"total_count":0,"artifacts":[]}\n' > "$output"
 fi
 SH
 chmod +x "${TMP}/bin/curl"
@@ -163,7 +163,7 @@ for label in ("Ubuntu-Container", "Alpine-Container", "Debian-Container"):
 add("Docker CLI image — build · smoke · discover", cli)
 add("Docker ${{ matrix.label }} — build · smoke", dall)
 with open(path, "w", encoding="utf-8") as handle:
-    json.dump({"jobs": jobs}, handle)
+    json.dump({"total_count": len(jobs), "jobs": jobs}, handle)
 PY
   : > "${sum}"; : > "${outf}"; : > "${stdout}"
   local code verdict headline annotation count

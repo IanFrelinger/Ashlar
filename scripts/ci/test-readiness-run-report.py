@@ -47,6 +47,17 @@ def job(name, conclusion, steps=None, url=None):
     }
 
 
+def jobs_response(items, total_count=None):
+    return {"total_count": len(items) if total_count is None else total_count, "jobs": items}
+
+
+def artifacts_response(items, total_count=None):
+    return {
+        "total_count": len(items) if total_count is None else total_count,
+        "artifacts": items,
+    }
+
+
 class ReadinessRunReportTests(unittest.TestCase):
     def test_docker_prerequisites_are_checked_before_image_builds(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -67,8 +78,8 @@ class ReadinessRunReportTests(unittest.TestCase):
 
     def test_matrix_rows_use_actual_job_results_not_group_result(self):
         data = REPORT.render_report(
-            {
-                "jobs": [
+            jobs_response(
+                [
                     job("Changes — core paths touched?", "success"),
                     job("Linux — setup · discover · dry-run", "success"),
                     job("macOS — setup · discover · dry-run", "failure"),
@@ -77,8 +88,8 @@ class ReadinessRunReportTests(unittest.TestCase):
                     job("Docker quickstart — build · smoke", "failure"),
                     job("Docker agent-server — build · smoke", "success"),
                 ]
-            },
-            {"artifacts": []},
+            ),
+            artifacts_response([]),
             args(),
         )
 
@@ -95,8 +106,8 @@ class ReadinessRunReportTests(unittest.TestCase):
 
     def test_failure_and_timeout_name_the_step(self):
         data = REPORT.render_report(
-            {
-                "jobs": [
+            jobs_response(
+                [
                     job("Changes — core paths touched?", "success"),
                     job(
                         "Ubuntu-Container (container) — setup · discover · dry-run",
@@ -112,8 +123,8 @@ class ReadinessRunReportTests(unittest.TestCase):
                         [{"name": "Setup — restore dependencies", "conclusion": "failure"}],
                     ),
                 ]
-            },
-            {"artifacts": []},
+            ),
+            artifacts_response([]),
             args(),
         )
 
@@ -127,13 +138,13 @@ class ReadinessRunReportTests(unittest.TestCase):
 
     def test_failed_change_detection_explains_blocked_skips(self):
         data = REPORT.render_report(
-            {
-                "jobs": [
+            jobs_response(
+                [
                     job("Changes — core paths touched?", "failure"),
                     job("Linux — setup · discover · dry-run", "skipped"),
                 ]
-            },
-            {"artifacts": []},
+            ),
+            artifacts_response([]),
             args(changes_result="failure"),
         )
 
@@ -149,12 +160,12 @@ class ReadinessRunReportTests(unittest.TestCase):
         )
 
         data = REPORT.render_report(
-            {
-                "jobs": [
+            jobs_response(
+                [
                     job("Changes — core paths touched?", "success"),
                     job("Linux — setup · discover · dry-run", "success"),
                 ]
-            },
+            ),
             {"artifacts": None},
             args(),
         )
@@ -163,28 +174,64 @@ class ReadinessRunReportTests(unittest.TestCase):
         self.assertIn("The Actions artifacts API returned no usable artifact list.", data["report_errors"])
         self.assertEqual(data["verdict"], "failed")
 
+    def test_incomplete_or_unaccounted_api_pages_fail_closed(self):
+        complete_jobs = [
+            job("Changes — core paths touched?", "success"),
+            job("Linux — setup · discover · dry-run", "success"),
+        ]
+        incomplete = REPORT.render_report(
+            jobs_response(complete_jobs, total_count=3),
+            artifacts_response([], total_count=2),
+            args(),
+        )
+        self.assertFalse(incomplete["report_complete"])
+        self.assertIn(
+            "The Actions jobs API response is incomplete: received 2 of 3 records.",
+            incomplete["report_errors"],
+        )
+        self.assertIn(
+            "The Actions artifacts API response is incomplete: received 0 of 2 records.",
+            incomplete["report_errors"],
+        )
+        self.assertEqual(incomplete["verdict"], "failed")
+
+        missing_counts = REPORT.render_report(
+            {"jobs": complete_jobs},
+            {"artifacts": []},
+            args(),
+        )
+        self.assertFalse(missing_counts["report_complete"])
+        self.assertIn(
+            "The Actions jobs API response has no valid total_count.",
+            missing_counts["report_errors"],
+        )
+        self.assertIn(
+            "The Actions artifacts API response has no valid total_count.",
+            missing_counts["report_errors"],
+        )
+
     def test_conditional_skips_are_explicit_and_unexpected_skips_fail(self):
         expected = REPORT.render_report(
-            {
-                "jobs": [
+            jobs_response(
+                [
                     job("Changes — core paths touched?", "success"),
                     job("Docker ${{ matrix.label }} — build · smoke", "skipped"),
                 ]
-            },
-            {"artifacts": []},
+            ),
+            artifacts_response([]),
             args(docker_all_result="skipped"),
         )
         self.assertTrue(expected["report_complete"])
         self.assertIn("disabled for pull_request", expected["jobs"][0]["skip_reason"])
 
         unexpected = REPORT.render_report(
-            {
-                "jobs": [
+            jobs_response(
+                [
                     job("Changes — core paths touched?", "success"),
                     job("Linux — setup · discover · dry-run", "skipped"),
                 ]
-            },
-            {"artifacts": []},
+            ),
+            artifacts_response([]),
             args(native_result="skipped"),
         )
         self.assertFalse(unexpected["report_complete"])
@@ -193,16 +240,16 @@ class ReadinessRunReportTests(unittest.TestCase):
 
     def test_unexpanded_matrix_names_are_reported_as_expected_skips(self):
         data = REPORT.render_report(
-            {
-                "jobs": [
+            jobs_response(
+                [
                     job("Changes — core paths touched?", "success"),
                     job("${{ matrix.label }} — setup · discover · dry-run", "skipped"),
                     job("${{ matrix.label }} (container) — setup · discover · dry-run", "skipped"),
                     job("Docker CLI image — build · smoke · discover", "skipped"),
                     job("Docker ${{ matrix.label }} — build · smoke", "skipped"),
                 ]
-            },
-            {"artifacts": []},
+            ),
+            artifacts_response([]),
             args(
                 run_heavy="false",
                 native_result="skipped",
@@ -223,19 +270,19 @@ class ReadinessRunReportTests(unittest.TestCase):
 
     def test_variant_artifact_link_is_attached_to_the_matching_job(self):
         data = REPORT.render_report(
-            {
-                "jobs": [
+            jobs_response(
+                [
                     job("Changes — core paths touched?", "success"),
                     job("Linux — setup · discover · dry-run", "success"),
                     job("Docker api — build · smoke", "success"),
                 ]
-            },
-            {
-                "artifacts": [
+            ),
+            artifacts_response(
+                [
                     {"name": "readiness-Linux", "id": 88, "expired": False, "size_in_bytes": 100},
                     {"name": "readiness-api", "id": 89, "expired": False, "size_in_bytes": 200},
                 ]
-            },
+            ),
             args(),
         )
         self.assertEqual(data["jobs"][0]["artifacts"][0]["name"], "readiness-Linux")
@@ -259,6 +306,7 @@ class ReadinessRunReportTests(unittest.TestCase):
             jobs_path.write_text(
                 json.dumps(
                     {
+                        "total_count": 2,
                         "jobs": [
                             job("Changes — core paths touched?", "success"),
                             job(
@@ -271,7 +319,7 @@ class ReadinessRunReportTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            artifacts_path.write_text('{"artifacts":[]}', encoding="utf-8")
+            artifacts_path.write_text('{"total_count":0,"artifacts":[]}', encoding="utf-8")
             code = REPORT.main(
                 [
                     "--jobs", str(jobs_path),
