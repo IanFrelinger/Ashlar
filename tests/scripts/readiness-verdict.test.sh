@@ -23,6 +23,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WF="${ROOT}/.github/workflows/full-platform-readiness-gate.yml"
+cd "${ROOT}"
 
 # PROBE the interpreter, do not merely locate it. On Windows `command -v python3` finds an App
 # Execution Alias stub that exists, is executable, and exits 49 telling you to visit the Microsoft
@@ -40,7 +41,7 @@ if [[ -z "${PY_BIN}" ]]; then
 fi
 
 # Bump when you add an assertion; the check at the bottom says why.
-EXPECTED_ASSERTIONS=18
+EXPECTED_ASSERTIONS=24
 
 PASS=0
 FAIL=0
@@ -60,6 +61,8 @@ m = re.search(
     r"      - name: Summarize results\n"
     r"        id: summary\n"
     r"        shell: bash\n"
+    r"        env:\n"
+    r"          GH_TOKEN: \$\{\{ github.token \}\}\n"
     r"        run: \|\n"
     r"(.*?)(?=\n      - name: |\n  [a-z-]+:\n|\Z)",
     text, re.S)
@@ -75,6 +78,8 @@ for expr, var in {
     "${{ needs.container-platform.result }}": "$CONTAINER",
     "${{ needs.docker-cli-image.result }}": "$DOCKER_CLI",
     "${{ needs.docker-all-images.result }}": "$DOCKER_ALL",
+    "${{ runner.temp }}": "$RUNNER_TEMP",
+    "${{ steps.download-artifacts.outcome }}": "$ARTIFACT_DOWNLOAD_RESULT",
 }.items():
     body = body.replace(expr, var)
 left = re.findall(r"\$\{\{[^}]*\}\}", body)
@@ -98,6 +103,29 @@ if [[ "${EXTRACT_RC}" -ne 0 ]]; then
 fi
 ok "the step text can be extracted from the workflow and fully de-templated"
 
+# The summary step reads actual job and artifact records from the Actions API. Keep this workflow
+# test offline while still exercising that real reporting code against the same group outcomes.
+mkdir -p "${TMP}/bin"
+cat > "${TMP}/bin/curl" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+output=""
+url=""
+while (($#)); do
+  case "$1" in
+    -o) output="$2"; shift 2 ;;
+    http*) url="$1"; shift ;;
+    *) shift ;;
+  esac
+done
+if [[ "$url" == *"/jobs?"* ]]; then
+  cp "$READINESS_JOBS_FIXTURE" "$output"
+else
+  printf '{"total_count":0,"artifacts":[]}\n' > "$output"
+fi
+SH
+chmod +x "${TMP}/bin/curl"
+
 # The verdict annotation: the ONLY copy of the verdict readable from outside the run (job outputs
 # stay inside it; the step summary is not exposed by the Checks API). GitHub turns this workflow
 # command into an annotation titled "Readiness verdict" on the check run, and
@@ -108,12 +136,53 @@ ANNOTATION_PREFIX="::notice title=Readiness verdict::"
 # <annotation> is the one verdict annotation line the step printed, or "COUNT=<n>" when it printed
 # some other number of them - zero and two are both wrong, and must not look like the right line.
 run_case() {
-  local changes="$1" heavy="$2" native="$3" container="$4" cli="$5" dall="$6"
+  local changes="$1" heavy="$2" native="$3" container="$4" cli="$5" dall="$6" mutation="${7:-}"
   local sum="${TMP}/summary.md" outf="${TMP}/output.txt" stdout="${TMP}/stdout.txt"
+  local jobs="${TMP}/jobs.json" runner_temp="${TMP}/runner-temp"
+  mkdir -p "${runner_temp}"
+  "${PY_BIN}" - "${jobs}" "${changes}" "${native}" "${container}" "${cli}" "${dall}" "${mutation}" <<'PY'
+import json, sys
+path, changes, native, container, cli, dall, mutation = sys.argv[1:]
+jobs = []
+def add(name, result):
+    jobs.append({
+        "name": name, "conclusion": result, "status": "completed",
+        "html_url": "https://github.com/IanFrelinger/Ashlar/actions/runs/1/job/2",
+        "steps": [{"name": "Setup fixture", "conclusion": "failure"}] if result == "failure"
+                 else [{"name": "Setup fixture", "conclusion": "success"}],
+    })
+add("Changes — core paths touched?", changes)
+for label in ("Linux", "macOS", "Windows"):
+    result = "skipped" if native == "skipped" else (
+        ("failure" if native == "failure" and label == "Linux" else
+         ("cancelled" if native == "cancelled" and label == "Linux" else "success")))
+    add(f"{label} — setup · discover · dry-run", result)
+for label in ("Ubuntu-Container", "Alpine-Container", "Debian-Container"):
+    add(f"{label} (container) — setup · discover · dry-run",
+        "skipped" if container == "skipped" else "success")
+add("Docker CLI image — build · smoke · discover", cli)
+if dall == "skipped":
+    add("Docker ${{ matrix.label }} — build · smoke", dall)
+else:
+    for label in ("api", "quickstart", "agent-server"):
+        add(f"Docker {label} — build · smoke", dall)
+if mutation == "missing":
+    jobs = [job for job in jobs if not job["name"].startswith("macOS ")]
+elif mutation == "contradiction":
+    next(job for job in jobs if job["name"].startswith("Linux "))["conclusion"] = "failure"
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump({"total_count": len(jobs), "jobs": jobs}, handle)
+PY
   : > "${sum}"; : > "${outf}"; : > "${stdout}"
   local code verdict headline annotation count
   CHANGES_RESULT="${changes}" RUN_HEAVY="${heavy}" NATIVE="${native}" \
   CONTAINER="${container}" DOCKER_CLI="${cli}" DOCKER_ALL="${dall}" \
+  PATH="${TMP}/bin:${PATH}" READINESS_JOBS_FIXTURE="${jobs}" \
+  RUNNER_TEMP="${runner_temp}" ARTIFACT_DOWNLOAD_RESULT=success \
+  GH_TOKEN=fixture GITHUB_API_URL=https://api.github.com \
+  GITHUB_REPOSITORY=IanFrelinger/Ashlar GITHUB_SERVER_URL=https://github.com \
+  GITHUB_RUN_ID=1 GITHUB_SHA=fedcba9876543210fedcba9876543210fedcba98 \
+  GITHUB_EVENT_NAME=pull_request \
   GITHUB_STEP_SUMMARY="${sum}" GITHUB_OUTPUT="${outf}" \
     bash "${TMP}/step.sh" >"${stdout}" 2>&1
   code=$?
@@ -153,8 +222,8 @@ echo "== a green tick means different things, and the verdict has to say which =
 expect "all four lane groups succeeded" verified 0 4 0 \
   "$(run_case success true success success success success)"
 
-expect "some lanes ran, some were skipped" partial 0 2 2 \
-  "$(run_case success true success success skipped skipped)"
+expect "some lanes ran, one conditional group was skipped" partial 0 3 1 \
+  "$(run_case success true success success success skipped)"
 
 expect "every lane was skipped" not-verified 0 0 4 \
   "$(run_case success false skipped skipped skipped skipped)"
@@ -170,6 +239,31 @@ expect "one lane was cancelled" failed 1 3 0 \
 # cannot be trusted and the gate must go red rather than report not-verified.
 expect "the change detector itself failed" failed 1 0 4 \
   "$(run_case failure false skipped skipped skipped skipped)"
+
+expect "a successful group is missing a matrix job" failed 1 4 0 \
+  "$(run_case success true success success success success missing)"
+
+echo "== API validation must finalize the summary before it is rendered =="
+GOT="$(run_case success true success success success success missing)"
+HEADLINE="${GOT##*|}"
+if [[ "${HEADLINE}" == *"FAILED — detailed per-job reporting"* ]]; then
+  ok "an API-rejected run reports the detailed-report failure headline"
+else
+  bad "an API-rejected run reports the detailed-report failure headline" "headline was: ${HEADLINE}"
+fi
+
+SUMMARY_VERDICT="$(grep -F 'Verdict:' "${TMP}/summary.md" | tail -1)"
+SUMMARY_VERDICT_COUNT="$(grep -cF 'Verdict:' "${TMP}/summary.md")"
+if [[ "${SUMMARY_VERDICT}" == 'Verdict: `failed` (4 lane group(s) ran, 0 skipped).' \
+      && "${SUMMARY_VERDICT_COUNT}" == "1" ]]; then
+  ok "an API-rejected run reports the finalized failed verdict in the summary"
+else
+  bad "an API-rejected run reports the finalized failed verdict in the summary" \
+    "verdict was: ${SUMMARY_VERDICT} (${SUMMARY_VERDICT_COUNT} lines)"
+fi
+
+expect "a failed job contradicts a successful group" failed 1 4 0 \
+  "$(run_case success true success success success success contradiction)"
 
 echo "== the regression this file exists to prevent =="
 GOT="$(run_case success false skipped skipped skipped skipped)"
