@@ -1,0 +1,43 @@
+name: Ashlar handoff shadow
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  log-handoff:
+    if: >-
+      ${{ github.repository_id == '1031633230' &&
+          !github.event.issue.pull_request &&
+          github.event.issue.number == 929 &&
+          github.event.sender.id == 16062048 &&
+          github.event.comment.user.id == 16062048 &&
+          github.event.sender.type == 'User' &&
+          !github.event.comment.performed_via_github_app &&
+          github.event.comment.body == '/ashlar-handoff-test' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Log matching event IDs only
+        shell: bash
+        run: |
+          jq -er '
+            select(
+              .action == "created" and
+              .repository.id == 1031633230 and
+              .issue.number == 929 and
+              (.issue | has("pull_request") | not) and
+              .sender.id == 16062048 and .sender.type == "User" and
+              .comment.user.id == 16062048 and .comment.user.type == "User" and
+              .comment.performed_via_github_app == null and
+              .comment.body == "/ashlar-handoff-test" and
+              (.comment.id | type == "number" and . > 0 and . == floor)
+            ) |
+            "issue=\(.issue.number) comment=\(.comment.id)"
+          ' "$GITHUB_EVENT_PATH" || {
+            status=$?
+            if [[ "$status" == 4 ]]; then exit 0; fi
+            exit "$status"
+          }
