@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Hermetic readiness setup, identity and failure-reporting tests; no Docker or host dotnet."""
 import json
+import http.server
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 
 import yaml
@@ -260,6 +263,48 @@ if mode=='wrong-os' and sys.argv[1]=='run':sys.exit(3)
             self.assertIn("COPY scripts/ci/install-readiness-packages.sh", source)
             self.assertIn("RUN sh /tmp/install-readiness-packages.sh", source)
             self.assertIn("RUN sh scripts/ci/check-readiness-container.sh " + distro, source)
+
+    def test_dotnet_installer_download_retries_partial_transfers_and_fails_closed(self):
+        payload = b"#!/bin/sh\nexit 0\n"
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.server.attempts += 1
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload[:4] if self.server.attempts <= self.server.failures else payload)
+                self.close_connection = True
+
+            def log_message(self, *_args):
+                pass
+
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            for dockerfile in ("Dockerfile.test-caching", "Dockerfile.test-caching-debian"):
+                source = (ROOT / ".docker" / dockerfile).read_text()
+                download = next(line.removeprefix("RUN ").split(" &&", 1)[0]
+                                for line in source.splitlines() if line.startswith("RUN curl "))
+                for failures, expected_status, attempts in ((1, 0, 2), (10, 18, 3)):
+                    with self.subTest(dockerfile=dockerfile, failures=failures):
+                        server.attempts, server.failures = 0, failures
+                        output = self.directory / f"{dockerfile}-{failures}"
+                        command = shlex.split(download)
+                        command[command.index("https://dot.net/v1/dotnet-install.sh")] = (
+                            f"http://127.0.0.1:{server.server_port}/installer"
+                        )
+                        command[command.index("-o") + 1] = str(output)
+                        result = subprocess.run(command, capture_output=True, text=True, timeout=15)
+                        self.assertEqual(result.returncode, expected_status, result.stderr)
+                        self.assertEqual(server.attempts, attempts)
+                        if result.returncode == 0:
+                            self.assertEqual(output.read_bytes(), payload)
+        finally:
+            server.shutdown()
+            thread.join()
+            server.server_close()
 
 
 if __name__ == "__main__":
