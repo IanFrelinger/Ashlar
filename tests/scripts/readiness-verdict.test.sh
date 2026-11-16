@@ -41,7 +41,7 @@ if [[ -z "${PY_BIN}" ]]; then
 fi
 
 # Bump when you add an assertion; the check at the bottom says why.
-EXPECTED_ASSERTIONS=22
+EXPECTED_ASSERTIONS=24
 
 PASS=0
 FAIL=0
@@ -242,6 +242,25 @@ expect "the change detector itself failed" failed 1 0 4 \
 
 expect "a successful group is missing a matrix job" failed 1 4 0 \
   "$(run_case success true success success success success missing)"
+
+echo "== API validation must finalize the summary before it is rendered =="
+GOT="$(run_case success true success success success success missing)"
+HEADLINE="${GOT##*|}"
+if [[ "${HEADLINE}" == *"FAILED — detailed per-job reporting"* ]]; then
+  ok "an API-rejected run reports the detailed-report failure headline"
+else
+  bad "an API-rejected run reports the detailed-report failure headline" "headline was: ${HEADLINE}"
+fi
+
+SUMMARY_VERDICT="$(grep -F 'Verdict:' "${TMP}/summary.md" | tail -1)"
+SUMMARY_VERDICT_COUNT="$(grep -cF 'Verdict:' "${TMP}/summary.md")"
+if [[ "${SUMMARY_VERDICT}" == 'Verdict: `failed` (4 lane group(s) ran, 0 skipped).' \
+      && "${SUMMARY_VERDICT_COUNT}" == "1" ]]; then
+  ok "an API-rejected run reports the finalized failed verdict in the summary"
+else
+  bad "an API-rejected run reports the finalized failed verdict in the summary" \
+    "verdict was: ${SUMMARY_VERDICT} (${SUMMARY_VERDICT_COUNT} lines)"
+fi
 
 expect "a failed job contradicts a successful group" failed 1 4 0 \
   "$(run_case success true success success success success contradiction)"
