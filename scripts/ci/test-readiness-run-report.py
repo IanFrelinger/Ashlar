@@ -141,6 +141,22 @@ class ReadinessRunReportTests(unittest.TestCase):
         self.assertEqual(data["jobs"][0]["skip_reason"], "Blocked: the change-detection job did not succeed.")
         self.assertEqual(data["verdict"], "failed")
 
+    def test_artifact_api_failure_makes_the_report_incomplete(self):
+        data = REPORT.render_report(
+            {
+                "jobs": [
+                    job("Changes — core paths touched?", "success"),
+                    job("Linux — setup · discover · dry-run", "success"),
+                ]
+            },
+            {"artifacts": None},
+            args(),
+        )
+
+        self.assertFalse(data["report_complete"])
+        self.assertIn("The Actions artifacts API returned no usable artifact list.", data["report_errors"])
+        self.assertEqual(data["verdict"], "failed")
+
     def test_conditional_skips_are_explicit_and_unexpected_skips_fail(self):
         expected = REPORT.render_report(
             {

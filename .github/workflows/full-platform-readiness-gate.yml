@@ -909,7 +909,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" \
             -o "$api_dir/artifacts.json"; then
-            echo '{"artifacts":[]}' > "$api_dir/artifacts.json"
+            echo '{"artifacts":null}' > "$api_dir/artifacts.json"
           fi
 
           if ! python3 scripts/ci/readiness-run-report.py \
