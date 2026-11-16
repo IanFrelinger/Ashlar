@@ -142,6 +142,12 @@ class ReadinessRunReportTests(unittest.TestCase):
         self.assertEqual(data["verdict"], "failed")
 
     def test_artifact_api_failure_makes_the_report_incomplete(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn(
+            'echo \'{"artifacts":null}\' > "$api_dir/artifacts.json"',
+            workflow,
+        )
+
         data = REPORT.render_report(
             {
                 "jobs": [
