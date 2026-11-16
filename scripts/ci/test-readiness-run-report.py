@@ -47,7 +47,26 @@ def job(name, conclusion, steps=None, url=None):
     }
 
 
-def jobs_response(items, total_count=None):
+def jobs_response(items, total_count=None, complete=True):
+    items = list(items)
+    if complete:
+        changes_failed = any(
+            item["name"].startswith("Changes") and item["conclusion"] != "success"
+            for item in items
+        )
+        for role, variants in REPORT.EXPECTED_VARIANTS.items():
+            present = [item for item in items if REPORT.role_for(item["name"]) == role]
+            if any("${{ matrix.label }}" in item["name"] for item in present):
+                continue
+            result = "skipped" if changes_failed else "success"
+            if present and all(item["conclusion"] == "skipped" for item in present):
+                result = "skipped"
+            if not present and role == "docker-all-images":
+                items.append(job("Docker ${{ matrix.label }} — build · smoke", "skipped"))
+                continue
+            names = {item["name"].split(" —", 1)[0] for item in present}
+            for variant in sorted(variants - names):
+                items.append(job(f"{variant} — fixture", result))
     return {"total_count": len(items) if total_count is None else total_count, "jobs": items}
 
 
@@ -59,6 +78,21 @@ def artifacts_response(items, total_count=None):
 
 
 class ReadinessRunReportTests(unittest.TestCase):
+    def test_expected_variants_follow_workflow_matrices(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        for role, prefix, suffix in (
+            ("native-platform", "", ""),
+            ("container-platform", "", " (container)"),
+            ("docker-all-images", "Docker ", ""),
+        ):
+            match = re.search(
+                rf"(?ms)^  {role}:\n(.*?)(?=^  [a-z][a-z-]*:\n|\Z)",
+                workflow,
+            )
+            self.assertIsNotNone(match, f"workflow job {role} was not found")
+            labels = re.findall(r"^\s+label: ([^\s]+)\s*$", match.group(1), re.M)
+            self.assertEqual(REPORT.EXPECTED_VARIANTS[role], {f"{prefix}{label}{suffix}" for label in labels})
+
     def test_docker_prerequisites_are_checked_before_image_builds(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         for job_name, build_step in (
@@ -145,7 +179,11 @@ class ReadinessRunReportTests(unittest.TestCase):
                 ]
             ),
             artifacts_response([]),
-            args(changes_result="failure"),
+            args(
+                changes_result="failure", native_result="skipped",
+                container_result="skipped", docker_cli_result="skipped",
+                docker_all_result="skipped", verdict="failed",
+            ),
         )
 
         self.assertTrue(data["report_complete"])
@@ -180,13 +218,13 @@ class ReadinessRunReportTests(unittest.TestCase):
             job("Linux — setup · discover · dry-run", "success"),
         ]
         incomplete = REPORT.render_report(
-            jobs_response(complete_jobs, total_count=3),
+            jobs_response(complete_jobs, total_count=999),
             artifacts_response([], total_count=2),
             args(),
         )
         self.assertFalse(incomplete["report_complete"])
         self.assertIn(
-            "The Actions jobs API response is incomplete: received 2 of 3 records.",
+            f"The Actions jobs API response is incomplete: received {len(jobs_response(complete_jobs)['jobs'])} of 999 records.",
             incomplete["report_errors"],
         )
         self.assertIn(
@@ -196,7 +234,7 @@ class ReadinessRunReportTests(unittest.TestCase):
         self.assertEqual(incomplete["verdict"], "failed")
 
         missing_counts = REPORT.render_report(
-            {"jobs": complete_jobs},
+            {"jobs": jobs_response(complete_jobs)["jobs"]},
             {"artifacts": []},
             args(),
         )
@@ -235,7 +273,7 @@ class ReadinessRunReportTests(unittest.TestCase):
             args(native_result="skipped"),
         )
         self.assertFalse(unexpected["report_complete"])
-        self.assertEqual(unexpected["unexpected_skips"], ["Linux — setup · discover · dry-run"])
+        self.assertIn("Linux — setup · discover · dry-run", unexpected["unexpected_skips"])
         self.assertEqual(unexpected["verdict"], "failed")
 
     def test_unexpanded_matrix_names_are_reported_as_expected_skips(self):
@@ -305,9 +343,8 @@ class ReadinessRunReportTests(unittest.TestCase):
             output_path = root / "readiness.json"
             jobs_path.write_text(
                 json.dumps(
-                    {
-                        "total_count": 2,
-                        "jobs": [
+                    jobs_response(
+                        [
                             job("Changes — core paths touched?", "success"),
                             job(
                                 "Linux — setup · discover · dry-run",
@@ -315,7 +352,7 @@ class ReadinessRunReportTests(unittest.TestCase):
                                 [{"name": "Setup — restore dependencies", "conclusion": "failure"}],
                             ),
                         ]
-                    }
+                    )
                 ),
                 encoding="utf-8",
             )
@@ -349,6 +386,62 @@ class ReadinessRunReportTests(unittest.TestCase):
             self.assertEqual(data["verdict"], "failed")
             self.assertIn("Setup — restore dependencies", summary)
             self.assertIn("https://github.com/IanFrelinger/Ashlar/actions/runs/1234/job/", summary)
+
+    def test_missing_group_and_successful_matrix_variant_fail_closed(self):
+        complete = jobs_response([job("Changes — core paths touched?", "success")])
+        for missing in ("Linux", "Docker CLI image"):
+            jobs = [
+                item for item in complete["jobs"]
+                if item["name"].split(" —", 1)[0] != missing
+            ]
+            with self.subTest(missing=missing):
+                data = REPORT.render_report(jobs_response(jobs, complete=False), artifacts_response([]), args())
+                self.assertFalse(data["report_complete"])
+                self.assertEqual(data["verdict"], "failed")
+                self.assertTrue(any(missing in error or "docker-cli-image" in error for error in data["report_errors"]))
+
+    def test_unsupported_conclusion_and_contradictory_failure_fail_closed(self):
+        for conclusion in ("neutral", "startup_failure", "failure"):
+            with self.subTest(conclusion=conclusion):
+                data = REPORT.render_report(
+                    jobs_response([
+                        job("Changes — core paths touched?", "success"),
+                        job("Linux — setup · discover · dry-run", conclusion),
+                    ]),
+                    artifacts_response([]),
+                    args(verdict="verified"),
+                )
+                self.assertFalse(data["report_complete"])
+                self.assertEqual(data["verdict"], "failed")
+
+        skipped_group = REPORT.render_report(
+            jobs_response([
+                job("Changes — core paths touched?", "success"),
+                job("Linux — setup · discover · dry-run", "success"),
+            ]),
+            artifacts_response([]),
+            args(native_result="skipped"),
+        )
+        self.assertFalse(skipped_group["report_complete"])
+        self.assertTrue(any("skipped workflow group" in error for error in skipped_group["report_errors"]))
+
+    def test_change_detector_and_verdict_must_match_workflow_results(self):
+        mismatched_changes = REPORT.render_report(
+            jobs_response([job("Changes — core paths touched?", "success")]),
+            artifacts_response([]),
+            args(changes_result="failure", verdict="failed"),
+        )
+        self.assertFalse(mismatched_changes["report_complete"])
+        self.assertTrue(any("change-detection job does not match" in error for error in mismatched_changes["report_errors"]))
+
+        mismatched_verdict = REPORT.render_report(
+            jobs_response([job("Changes — core paths touched?", "success")]),
+            artifacts_response([]),
+            args(native_result="failure", verdict="verified"),
+        )
+        self.assertFalse(mismatched_verdict["report_complete"])
+        self.assertTrue(any("contradict the supplied verdict" in error for error in mismatched_verdict["report_errors"]))
+        self.assertTrue(any("has no failed or cancelled job evidence" in error for error in mismatched_verdict["report_errors"]))
 
 
 if __name__ == "__main__":

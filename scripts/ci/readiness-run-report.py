@@ -9,7 +9,14 @@ from urllib.parse import quote
 
 
 FAILURE_CONCLUSIONS = {"failure", "timed_out", "cancelled", "action_required"}
+TERMINAL_CONCLUSIONS = FAILURE_CONCLUSIONS | {"success", "skipped"}
 PLATFORM_PREFIXES = ("linux ", "macos ", "windows ", "ubuntu-", "alpine-", "debian-")
+EXPECTED_VARIANTS = {
+    "native-platform": {"Linux", "macOS", "Windows"},
+    "container-platform": {"Ubuntu-Container (container)", "Alpine-Container (container)", "Debian-Container (container)"},
+    "docker-cli-image": {"Docker CLI image"},
+    "docker-all-images": {"Docker api", "Docker quickstart", "Docker agent-server"},
+}
 
 
 def load_json(path, default):
@@ -114,12 +121,21 @@ def render_report(jobs_data, artifacts_data, args):
         check_total_count(artifacts_data, artifacts, "artifacts", errors)
 
     changes_result = args.changes_result
-    if not any((job.get("name") or "").startswith("Changes") for job in jobs):
+    changes_jobs = [job for job in jobs if (job.get("name") or "").startswith("Changes")]
+    if not changes_jobs:
         errors.append("The change-detection job is missing from the Actions jobs response.")
+    elif len(changes_jobs) != 1 or classify_job(changes_jobs[0]) != changes_result:
+        errors.append("The change-detection job does not match its workflow result.")
 
     summarized_jobs = []
     unexpected_skips = []
     failed_jobs = []
+    group_results = {
+        "native-platform": args.native_result,
+        "container-platform": args.container_result,
+        "docker-cli-image": args.docker_cli_result,
+        "docker-all-images": args.docker_all_result,
+    }
     for job in jobs:
         name = job.get("name") or "Unnamed job"
         role = role_for(name)
@@ -128,13 +144,17 @@ def render_report(jobs_data, artifacts_data, args):
         result = classify_job(job)
         failed_step_name, failed_step_result = failure_step(job)
         skip_reason = expected_skip_reason(job, role, args)
+        if group_results[role] == "skipped" and result != "skipped":
+            errors.append(f"Readiness job contradicts its skipped workflow group: {name} ({result}).")
         if result == "skipped" and skip_reason is None:
             skip_reason = "Unexpected skip: inspect the job and its dependency results."
             unexpected_skips.append(name)
         if result in FAILURE_CONCLUSIONS:
             failed_jobs.append(name)
-        if result in {"queued", "in_progress", "unknown"}:
-            errors.append(f"Readiness job did not reach a conclusion: {name} ({result}).")
+            if group_results[role] in {"success", "skipped"} or args.verdict != "failed":
+                errors.append(f"Readiness job failure contradicts the workflow result: {name} ({result}).")
+        if result not in TERMINAL_CONCLUSIONS:
+            errors.append(f"Readiness job has an unsupported or incomplete conclusion: {name} ({result}).")
 
         matched_artifacts = []
         for item in artifact_matches(name, artifacts):
@@ -172,8 +192,24 @@ def render_report(jobs_data, artifacts_data, args):
             }
         )
 
-    if not summarized_jobs:
-        errors.append("No native, container, or Docker readiness jobs were found.")
+    for role, expected in EXPECTED_VARIANTS.items():
+        group_jobs = [job for job in summarized_jobs if job["role"] == role]
+        if not group_jobs:
+            errors.append(f"Readiness group is missing from the Actions jobs response: {role}.")
+        elif group_results[role] == "success":
+            actual = {job["name"].split(" —", 1)[0] for job in group_jobs}
+            missing = expected - actual
+            if missing:
+                errors.append(f"Successful readiness group {role} is missing variants: {', '.join(sorted(missing))}.")
+        elif group_results[role] in {"failure", "cancelled"} and not any(
+            job["result"] in FAILURE_CONCLUSIONS for job in group_jobs
+        ):
+            errors.append(f"Failed readiness group {role} has no failed or cancelled job evidence.")
+    if args.verdict != "failed" and (
+        changes_result != "success"
+        or any(result in {"failure", "cancelled"} for result in group_results.values())
+    ):
+        errors.append("Readiness workflow results contradict the supplied verdict.")
 
     report_complete = not errors and not unexpected_skips
     effective_verdict = (

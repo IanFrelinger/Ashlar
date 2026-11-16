@@ -41,7 +41,7 @@ if [[ -z "${PY_BIN}" ]]; then
 fi
 
 # Bump when you add an assertion; the check at the bottom says why.
-EXPECTED_ASSERTIONS=18
+EXPECTED_ASSERTIONS=22
 
 PASS=0
 FAIL=0
@@ -136,13 +136,13 @@ ANNOTATION_PREFIX="::notice title=Readiness verdict::"
 # <annotation> is the one verdict annotation line the step printed, or "COUNT=<n>" when it printed
 # some other number of them - zero and two are both wrong, and must not look like the right line.
 run_case() {
-  local changes="$1" heavy="$2" native="$3" container="$4" cli="$5" dall="$6"
+  local changes="$1" heavy="$2" native="$3" container="$4" cli="$5" dall="$6" mutation="${7:-}"
   local sum="${TMP}/summary.md" outf="${TMP}/output.txt" stdout="${TMP}/stdout.txt"
   local jobs="${TMP}/jobs.json" runner_temp="${TMP}/runner-temp"
   mkdir -p "${runner_temp}"
-  "${PY_BIN}" - "${jobs}" "${changes}" "${native}" "${container}" "${cli}" "${dall}" <<'PY'
+  "${PY_BIN}" - "${jobs}" "${changes}" "${native}" "${container}" "${cli}" "${dall}" "${mutation}" <<'PY'
 import json, sys
-path, changes, native, container, cli, dall = sys.argv[1:]
+path, changes, native, container, cli, dall, mutation = sys.argv[1:]
 jobs = []
 def add(name, result):
     jobs.append({
@@ -161,7 +161,15 @@ for label in ("Ubuntu-Container", "Alpine-Container", "Debian-Container"):
     add(f"{label} (container) — setup · discover · dry-run",
         "skipped" if container == "skipped" else "success")
 add("Docker CLI image — build · smoke · discover", cli)
-add("Docker ${{ matrix.label }} — build · smoke", dall)
+if dall == "skipped":
+    add("Docker ${{ matrix.label }} — build · smoke", dall)
+else:
+    for label in ("api", "quickstart", "agent-server"):
+        add(f"Docker {label} — build · smoke", dall)
+if mutation == "missing":
+    jobs = [job for job in jobs if not job["name"].startswith("macOS ")]
+elif mutation == "contradiction":
+    next(job for job in jobs if job["name"].startswith("Linux "))["conclusion"] = "failure"
 with open(path, "w", encoding="utf-8") as handle:
     json.dump({"total_count": len(jobs), "jobs": jobs}, handle)
 PY
@@ -231,6 +239,12 @@ expect "one lane was cancelled" failed 1 3 0 \
 # cannot be trusted and the gate must go red rather than report not-verified.
 expect "the change detector itself failed" failed 1 0 4 \
   "$(run_case failure false skipped skipped skipped skipped)"
+
+expect "a successful group is missing a matrix job" failed 1 4 0 \
+  "$(run_case success true success success success success missing)"
+
+expect "a failed job contradicts a successful group" failed 1 4 0 \
+  "$(run_case success true success success success success contradiction)"
 
 echo "== the regression this file exists to prevent =="
 GOT="$(run_case success false skipped skipped skipped skipped)"
