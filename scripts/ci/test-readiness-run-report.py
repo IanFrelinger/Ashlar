@@ -389,7 +389,7 @@ class ReadinessRunReportTests(unittest.TestCase):
 
     def test_missing_group_and_successful_matrix_variant_fail_closed(self):
         complete = jobs_response([job("Changes — core paths touched?", "success")])
-        for missing in ("Linux", "Docker CLI image"):
+        for missing in ("Linux", "Docker CLI image", "Docker ${{ matrix.label }}"):
             jobs = [
                 item for item in complete["jobs"]
                 if item["name"].split(" —", 1)[0] != missing
@@ -398,7 +398,12 @@ class ReadinessRunReportTests(unittest.TestCase):
                 data = REPORT.render_report(jobs_response(jobs, complete=False), artifacts_response([]), args())
                 self.assertFalse(data["report_complete"])
                 self.assertEqual(data["verdict"], "failed")
-                self.assertTrue(any(missing in error or "docker-cli-image" in error for error in data["report_errors"]))
+                self.assertTrue(
+                    any(
+                        missing in error or "docker-cli-image" in error or "docker-all-images" in error
+                        for error in data["report_errors"]
+                    )
+                )
 
     def test_unsupported_conclusion_and_contradictory_failure_fail_closed(self):
         for conclusion in ("neutral", "startup_failure", "failure"):
