@@ -9027,6 +9027,13 @@
       ]
     },
     {
+      "file": ".github/workflows/governance-broker-prototype-contracts.yml",
+      "name": "Governance broker prototype contracts",
+      "triggers": [
+        "pull_request"
+      ]
+    },
+    {
       "file": ".github/workflows/grpc-transport-gate.yml",
       "name": "gRPC transport gate",
       "triggers": [

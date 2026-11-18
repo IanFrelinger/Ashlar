@@ -152,6 +152,8 @@ on:
       - "src/Ashlar.Compat/**"
       - "samples/templates/brick/**"
       - "samples/physical-atom-cert/**"
+      - "tools/GovernanceBrokerPrototype/**"
+      - "tools/GovernanceBrokerPrototype.Tests/**"
       - "tools/InputSafetyProbe/**"
   # Merge queue. A required check that does not run on `merge_group` never reports, and the
   # queue waits on it forever - so this is deliberately unfiltered, exactly like the
@@ -315,6 +317,8 @@ jobs:
             "src/Ashlar.Compat/**"
             "samples/templates/brick/**"
             "samples/physical-atom-cert/**"
+            "tools/GovernanceBrokerPrototype/**"
+            "tools/GovernanceBrokerPrototype.Tests/**"
             "tools/InputSafetyProbe/**"
           )
 
