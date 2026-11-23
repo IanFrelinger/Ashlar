@@ -27,4 +27,11 @@ public sealed record MeshTaskState(
     string? LeaseToken,
     string? LeaseOwnerPeerId,
     DateTimeOffset? LeaseExpiresUtc,
-    string? CheckpointHandle);
+    string? CheckpointHandle)
+{
+    /// <summary>Maximum inline result size; larger artifacts use the existing result-handle path.</summary>
+    public const int MaxResultPayloadBytes = 256 * 1024;
+
+    /// <summary>Worker-produced bytes committed atomically with successful leased completion.</summary>
+    public byte[]? ResultPayload { get; init; }
+}

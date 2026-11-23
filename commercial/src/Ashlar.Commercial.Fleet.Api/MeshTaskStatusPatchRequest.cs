@@ -19,4 +19,5 @@ public sealed record MeshTaskStatusPatchRequest(
     string? CorrelationId = null,
     string? ResultSummary = null,
     string? ResultHandle = null,
-    string? LeaseToken = null);
+    string? LeaseToken = null,
+    byte[]? ResultPayload = null);

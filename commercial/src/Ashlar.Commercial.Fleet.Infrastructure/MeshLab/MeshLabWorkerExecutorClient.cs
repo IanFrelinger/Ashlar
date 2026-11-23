@@ -105,14 +105,33 @@ public sealed class MeshLabWorkerExecutorClient
         if (!await PatchStatusAsync(director, task.TaskId, runningBody, apiKey, cancellationToken).ConfigureAwait(false))
             return false;
 
+        byte[]? resultPayload = null;
         if (opts.ExecuteBrickOnAssignedPeer)
-            await TryExecuteBrickOnAssignedPeerAsync(task.AssignedApiBaseUrl!, apiKey, cancellationToken).ConfigureAwait(false);
+        {
+            try
+            {
+                resultPayload = await ExecuteBrickOnAssignedPeerAsync(task.AssignedApiBaseUrl!, apiKey, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested &&
+                ex is HttpRequestException or TaskCanceledException or JsonException or InvalidDataException or FormatException)
+            {
+                _logger.LogWarning(ex, "mesh-lab-worker-executor: brick execution failed for task {TaskId}", task.TaskId);
+                return await PatchStatusAsync(director, task.TaskId, new
+                {
+                    status = (int)MeshTaskStatus.Failed,
+                    leaseToken = task.LeaseToken,
+                    resultSummary = "mesh-lab-worker-executor-failed",
+                    reason = "mesh-lab-worker-executor-execution-failed",
+                }, apiKey, cancellationToken).ConfigureAwait(false);
+            }
+        }
 
         var doneBody = new
         {
             status = (int)MeshTaskStatus.Succeeded,
             leaseToken = task.LeaseToken,
             resultSummary = opts.ResultSummary,
+            resultPayload,
             reason = "mesh-lab-worker-executor-succeeded",
         };
         return await PatchStatusAsync(director, task.TaskId, doneBody, apiKey, cancellationToken).ConfigureAwait(false);
@@ -143,51 +162,58 @@ public sealed class MeshLabWorkerExecutorClient
         return true;
     }
 
-    private async Task TryExecuteBrickOnAssignedPeerAsync(
+    private async Task<byte[]> ExecuteBrickOnAssignedPeerAsync(
         string assignedApiBaseUrl,
         string apiKey,
         CancellationToken cancellationToken)
     {
-        var baseUrl = assignedApiBaseUrl.TrimEnd('/') + "/";
+        // Matches the director's inline result limit. Do not send worker-local paths to the director.
+        const int maxPayloadBytes = 256 * 1024;
         var peer = _httpClientFactory.CreateClient(HttpClientName);
-        peer.BaseAddress = new Uri(baseUrl);
+        peer.BaseAddress = new Uri(assignedApiBaseUrl.TrimEnd('/') + "/");
         peer.DefaultRequestHeaders.TryAddWithoutValidation("X-Ashlar-Api-Key", apiKey);
 
-        try
-        {
-            using var catalogResponse = await peer.GetAsync("api/bricks", cancellationToken).ConfigureAwait(false);
-            if (!catalogResponse.IsSuccessStatusCode)
-                return;
+        using var catalogResponse = await peer.GetAsync("api/bricks", cancellationToken).ConfigureAwait(false);
+        catalogResponse.EnsureSuccessStatusCode();
+        await using var catalogStream = await catalogResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var catalog = await JsonDocument.ParseAsync(catalogStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var brickId = TryReadFirstBrickId(catalog.RootElement);
+        if (string.IsNullOrWhiteSpace(brickId))
+            throw new InvalidDataException("Assigned peer has no executable brick.");
 
-            await using var catalogStream = await catalogResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            using var doc = await JsonDocument.ParseAsync(catalogStream, cancellationToken: cancellationToken).ConfigureAwait(false);
-            var brickId = TryReadFirstBrickId(doc.RootElement);
-            if (string.IsNullOrWhiteSpace(brickId))
-                return;
-
-            var executeBody = new
-            {
-                brickId,
-                implementation = "Deterministic",
-                input = new Dictionary<string, object?>(),
-            };
-            using var executeResponse = await peer.PostAsJsonAsync(
-                    $"api/bricks/{Uri.EscapeDataString(brickId)}/execute",
-                    executeBody,
-                    cancellationToken)
-                .ConfigureAwait(false);
-            if (!executeResponse.IsSuccessStatusCode)
-            {
-                _logger.LogDebug(
-                    "mesh-lab-worker-executor: brick execute on {BaseUrl} returned {StatusCode}",
-                    baseUrl,
-                    (int)executeResponse.StatusCode);
-            }
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"api/bricks/{Uri.EscapeDataString(brickId)}/execute")
         {
-            _logger.LogDebug(ex, "mesh-lab-worker-executor: brick execute skipped on {BaseUrl}", baseUrl);
+            Content = JsonContent.Create(new { brickId, implementation = "Deterministic", input = new Dictionary<string, object?>() })
+        };
+        using var response = await peer.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        // Bound the JSON envelope as well as the decoded binary payload (base64 expands the bytes).
+        await response.Content.LoadIntoBufferAsync(2 * maxPayloadBytes).ConfigureAwait(false);
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True ||
+            !root.TryGetProperty("output", out var output) || output.ValueKind != JsonValueKind.Object ||
+            (output.TryGetProperty("success", out var outputSuccess) && outputSuccess.ValueKind == JsonValueKind.False))
+            throw new InvalidDataException("Assigned peer did not return successful brick output.");
+
+        byte[] payload;
+        if (output.TryGetProperty("payload", out var binary) && binary.ValueKind == JsonValueKind.Object &&
+            binary.TryGetProperty("__type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "bytes")
+        {
+            if (!binary.TryGetProperty("base64", out var encoded) || encoded.ValueKind != JsonValueKind.String)
+                throw new InvalidDataException("Brick binary payload is missing base64 bytes.");
+            payload = Convert.FromBase64String(encoded.GetString()!);
         }
+        else
+        {
+            // Bricks without a binary payload still return their actual structured output.
+            payload = System.Text.Encoding.UTF8.GetBytes(output.GetRawText());
+        }
+        if (payload.Length > maxPayloadBytes)
+            throw new InvalidDataException("Brick result exceeds the 256 KiB inline result limit.");
+        return payload;
     }
 
     private static string? TryReadFirstBrickId(JsonElement root)

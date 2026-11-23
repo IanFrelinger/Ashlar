@@ -151,6 +151,7 @@ public sealed class MeshTaskExecutionService
     /// <param name="resultSummary">Optional result summary for a terminal transition.</param>
     /// <param name="resultHandle">Optional result handle for a terminal transition.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="resultPayload">Optional bounded bytes for successful completion under the current lease.</param>
     /// <returns>Ok plus the stored state, or an error code.</returns>
     /// <remarks>
     /// <para>This moved out of <c>CommercialFleetEndpoints.PatchMeshTaskStatusAsync</c> so the
@@ -192,8 +193,13 @@ public sealed class MeshTaskExecutionService
         string? correlationId,
         string? resultSummary,
         string? resultHandle,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        byte[]? resultPayload = null)
     {
+        if (resultPayload is not null &&
+            (status != MeshTaskStatus.Succeeded || resultPayload.Length > MeshTaskState.MaxResultPayloadBytes))
+            return (false, await _tasks.GetAsync(taskId, cancellationToken).ConfigureAwait(false), "result.invalid_payload");
+
         var result = await _tasks.UpdateAsync(
             taskId,
             current =>
@@ -225,6 +231,11 @@ public sealed class MeshTaskExecutionService
                     return null;
                 }
 
+                // Inline results belong to a worker lease, including the zero-byte result.
+                // Keep the existing no-token operator status path unchanged when no payload is supplied.
+                if (resultPayload is not null && !HoldsLease(current, leaseToken))
+                    return null;
+
                 var corr = correlationId ?? current.CorrelationId;
                 return status switch
                 {
@@ -240,7 +251,11 @@ public sealed class MeshTaskExecutionService
                         PlacementReason = reason ?? current.PlacementReason,
                         CorrelationId = corr,
                         ResultSummary = resultSummary ?? current.ResultSummary,
-                        ResultHandle = resultHandle ?? current.ResultHandle,
+                        ResultHandle = resultPayload is not null ? null : resultHandle ?? current.ResultHandle,
+                        // A metadata-only update of an already completed task keeps its bytes.
+                        // A new attempt or explicit file handle must not inherit an older payload.
+                        ResultPayload = resultPayload is null && current.Status == MeshTaskStatus.Succeeded && resultHandle is null
+                            ? current.ResultPayload : resultPayload?.ToArray(),
                         AssignedPeerId = null,
                         AssignedApiBaseUrl = null,
                         LeaseToken = null,
@@ -250,6 +265,7 @@ public sealed class MeshTaskExecutionService
                     MeshTaskStatus.Failed => current with
                     {
                         Status = MeshTaskStatus.Failed,
+                        ResultPayload = null,
                         PlacementReason = reason ?? current.PlacementReason,
                         CorrelationId = corr,
                         ResultSummary = resultSummary ?? current.ResultSummary,
@@ -263,6 +279,7 @@ public sealed class MeshTaskExecutionService
                     MeshTaskStatus.Pending => current with
                     {
                         Status = MeshTaskStatus.Pending,
+                        ResultPayload = null,
                         AssignedPeerId = null,
                         AssignedApiBaseUrl = null,
                         PlacementReason = reason,
