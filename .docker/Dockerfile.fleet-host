@@ -16,6 +16,11 @@ COPY --from=build /app/publish ./
 # root-owned and read-only for the non-root user below.
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASHLAR_STATE_DIR=/data/state \
+    Ashlar__PatternStorePath=/data/state/ashlar-patterns.db \
+    ASHLAR_FORGE_ROOT=/data/state/runtime-studio/forge \
+    ASHLAR_OBJECTIVES_ROOT=/data/state/runtime-studio/objectives \
+    ASHLAR_OBSERVATIONS_PATH=/data/state/runtime-studio/observations.jsonl \
+    ASHLAR_CYCLE_EVENTS_PATH=/data/state/runtime-studio/cycles.jsonl \
     ASHLAR_DAILIES_PATH=/data/dailies
 RUN mkdir -p /data/state /data/dailies && chown -R app:app /data
 EXPOSE 8080
