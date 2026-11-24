@@ -10,6 +10,12 @@ RUN dotnet publish commercial/src/Ashlar.Commercial.Fleet.Host/Ashlar.Commercial
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish ./
+# Keep shipped policy definitions read-only to the application user.
+COPY --from=build /src/config/trust-packs/ ./config/trust-packs/
+# Docker seeds this selection only when provisioning an empty /data volume.
+# An existing volume with a missing pointer must fail startup, never fall back.
+# Bind mounts must be explicitly provisioned by the operator before startup.
+COPY --from=build /src/config/trust-packs/active-pack.json /data/state/active-trust-policy-pack.json
 
 # Runtime state (LiteDB stores, snapshots) and dailies live under /data so they survive container
 # recreation when a volume is mounted there (docs/DEPLOYMENT.md, "Runtime state"). /app stays
@@ -21,6 +27,9 @@ ENV ASPNETCORE_URLS=http://+:8080 \
     ASHLAR_OBJECTIVES_ROOT=/data/state/runtime-studio/objectives \
     ASHLAR_OBSERVATIONS_PATH=/data/state/runtime-studio/observations.jsonl \
     ASHLAR_CYCLE_EVENTS_PATH=/data/state/runtime-studio/cycles.jsonl \
+    ASHLAR_TRUST_POLICY_PACKS_PATH=/app/config/trust-packs \
+    ASHLAR_ACTIVE_TRUST_POLICY_PACK_PATH=/data/state/active-trust-policy-pack.json \
+    ASHLAR_TRUST_POLICY_REQUIRE_ACTIVE=true \
     ASHLAR_DAILIES_PATH=/data/dailies
 RUN mkdir -p /data/state /data/dailies && chown -R app:app /data
 EXPOSE 8080
