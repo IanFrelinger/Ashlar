@@ -6,6 +6,6 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj" />
+    <ProjectReference Include="../../../src/Ashlar.AI.Pipeline/Ashlar.AI.Pipeline.csproj" />
   </ItemGroup>
 </Project>

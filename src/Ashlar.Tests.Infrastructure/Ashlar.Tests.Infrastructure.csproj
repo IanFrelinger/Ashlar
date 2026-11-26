@@ -166,15 +166,15 @@
 
   <!-- AWS default-region state is process-wide, so the certification cases use a child host. -->
   <ItemGroup>
-    <ProjectReference Include="../../tools/BedrockRegionProbe/BedrockRegionProbe.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../samples/probes/BedrockRegionProbe/BedrockRegionProbe.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <Target Name="CopyBedrockRegionProbe" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
     <ItemGroup>
       <!-- Literal roots keep the readiness build-input closure auditable. -->
-      <BedrockRegionProbeFiles Include="../../tools/BedrockRegionProbe/bin/Debug/net8.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Debug|net8.0'" />
-      <BedrockRegionProbeFiles Include="../../tools/BedrockRegionProbe/bin/Debug/net10.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Debug|net10.0'" />
-      <BedrockRegionProbeFiles Include="../../tools/BedrockRegionProbe/bin/Release/net8.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Release|net8.0'" />
-      <BedrockRegionProbeFiles Include="../../tools/BedrockRegionProbe/bin/Release/net10.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Release|net10.0'" />
+      <BedrockRegionProbeFiles Include="../../samples/probes/BedrockRegionProbe/bin/Debug/net8.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Debug|net8.0'" />
+      <BedrockRegionProbeFiles Include="../../samples/probes/BedrockRegionProbe/bin/Debug/net10.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Debug|net10.0'" />
+      <BedrockRegionProbeFiles Include="../../samples/probes/BedrockRegionProbe/bin/Release/net8.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Release|net8.0'" />
+      <BedrockRegionProbeFiles Include="../../samples/probes/BedrockRegionProbe/bin/Release/net10.0/**/*" Condition="'$(Configuration)|$(TargetFramework)' == 'Release|net10.0'" />
     </ItemGroup>
     <Copy SourceFiles="@(BedrockRegionProbeFiles)"
           DestinationFiles="@(BedrockRegionProbeFiles->'$(OutDir)BedrockRegionProbe/%(RecursiveDir)%(Filename)%(Extension)')" />

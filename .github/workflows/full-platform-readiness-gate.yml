@@ -155,7 +155,7 @@ on:
       - "samples/templates/brick/**"
       - "samples/physical-atom-cert/**"
       - "tools/InputSafetyProbe/**"
-      - "tools/BedrockRegionProbe/**"
+      - "samples/probes/BedrockRegionProbe/**"
   # Merge queue. A required check that does not run on `merge_group` never reports, and the
   # queue waits on it forever - so this is deliberately unfiltered, exactly like the
   # `pull_request` trigger above.
@@ -321,7 +321,7 @@ jobs:
             "samples/templates/brick/**"
             "samples/physical-atom-cert/**"
             "tools/InputSafetyProbe/**"
-            "tools/BedrockRegionProbe/**"
+            "samples/probes/BedrockRegionProbe/**"
           )
 
           if [[ -z "${BASE_SHA:-}" || -z "${HEAD_SHA:-}" ]]; then
