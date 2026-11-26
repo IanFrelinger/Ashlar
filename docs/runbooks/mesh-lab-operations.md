@@ -14,6 +14,29 @@ make mesh-lab-down
 
 One-shot (CI parity): `make mesh-lab-e2e-workers`, `make mesh-lab-e2e-deep`, `make mesh-lab-e2e-stress` (includes post-stress director checks).
 
+## Fleet director policy state
+
+The Fleet host image keeps policy definitions under `/app/config/trust-packs` read-only
+and the active selection at `/data/state/active-trust-policy-pack.json`. A fresh,
+empty Docker named volume is seeded from the image with the shipped `internal-only`
+selection. This is initial provisioning, not a runtime fallback. Apply the intended
+policy explicitly before admitting workloads; the positive fixture gate uses
+`strict-enterprise`.
+
+Existing volumes are not reseeded when an active selection is missing. Bind mounts,
+volumes created with `nocopy`, and custom active-selection paths must be provisioned
+explicitly before starting the host. The selection must identify a shipped policy ID
+and exactly match its version, and be writable by the container's application user.
+Do not replace a missing selection with the shipped default during upgrade or recovery.
+
+With `ASHLAR_TRUST_POLICY_REQUIRE_ACTIVE=true` (the Fleet image default), missing,
+unreadable, malformed, unknown-ID and version-mismatched selections prevent startup.
+For recovery, stop the host, restore the operator-approved selection from backup or
+explicitly provision the intended selection, verify its ID/version against the bundled
+definitions, then restart and check `/api/trust/status`. A policy definition upgrade
+requires a deliberate selection-version migration; it must not silently apply new
+rules under an old version. Keep the named volume when recreating the container.
+
 ## Director vs local `instances.json`
 
 | Mechanism | Scope | Use when |

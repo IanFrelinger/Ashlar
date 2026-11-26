@@ -215,7 +215,7 @@ public sealed class MeshLabWorkerExecutorClientGapCoverageTests
     }
 
     [Fact]
-    public async Task TryProcessOneAssignedTaskAsync_still_succeeds_when_peer_catalog_is_empty()
+    public async Task TryProcessOneAssignedTaskAsync_reports_failure_when_peer_catalog_is_empty()
     {
         var patchCount = 0;
         var client = CreateClient(
@@ -234,6 +234,11 @@ public sealed class MeshLabWorkerExecutorClientGapCoverageTests
                     /// <summary>Json.</summary>
                     return Json(HttpStatusCode.OK, """{"bricks":[]}""");
 
+                if (patchCount == 1)
+                {
+                    using var terminal = JsonDocument.Parse(req.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+                    terminal.RootElement.GetProperty("status").GetInt32().Should().Be((int)MeshLabTaskStatus.Failed);
+                }
                 patchCount++;
                 /// <summary>Json.</summary>
                 return Json(HttpStatusCode.OK, "{}");

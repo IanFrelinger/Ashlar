@@ -284,7 +284,7 @@ All rows in this table are `Unscanned:Inbound`. Responses on inbound connections
 | EG-SRV-03 | A2A server: `src/Ashlar.Transport.A2A.Server/AshlarA2AAgentHandler.cs:76` | Local agent output, agent cards | Refuses AG and SW (`ValidateAshlarA2AServerOptions.cs:25`); exposure allowlist |
 | EG-SRV-04 | gRPC server: `AgentTransportServiceImpl.cs:177-190` | Agent output map | Barrier validation; AG/SW loopback-or-fail-boot in the shipped gRPC host. Responses remain unmediated. |
 | EG-SRV-05 | `commercial/src/Ashlar.Commercial.Fleet.Api/CommercialFleetEndpoints.cs:134`, `:455-465` (knowledge export) | Up to 10,000 adaptation records and observed patterns | API key; AG/SW loopback-or-fail-boot in Fleet.Host. |
-| EG-SRV-06 | `CommercialFleetEndpoints.cs:119`, `:482-500` (task result download) | Whatever file `ResultHandle` names | API key; AG/SW loopback-or-fail-boot in Fleet.Host. No path containment is visible. |
+| EG-SRV-06 | `CommercialFleetEndpoints.cs:119`, `:482-502` (task result download; `Results.File` at `:493` and `:501`) | Inline `ResultPayload` bytes for a succeeded task, or the director-local file named by `ResultHandle` | Both are authenticated inbound response paths under `Exempt:Inbound`, not new outbound requests. API key; AG/SW loopback-or-fail-boot in Fleet.Host. No path containment is visible for the `ResultHandle` file path. |
 
 ## 12. Dormant, contract-only and port-only
 
