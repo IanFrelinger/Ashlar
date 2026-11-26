@@ -16,12 +16,12 @@
     "projects": 62,
     "projects_shipped_to_nuget": 24,
     "projects_declaring_ispackable_true": 20,
-    "config_variables": 183,
-    "operator_facing_config_variables": 157,
-    "operator_vars_missing_from_configuration_reference": 17,
+    "config_variables": 184,
+    "operator_facing_config_variables": 158,
+    "operator_vars_missing_from_configuration_reference": 18,
     "operator_vars_absent_from_all_documentation": 0,
-    "test_files_declaring_facts": 864,
-    "declared_facts": 5764,
+    "test_files_declaring_facts": 865,
+    "declared_facts": 5770,
     "workflows": 71
   },
   "operator_vars_missing_from_configuration_reference": [
@@ -41,7 +41,8 @@
     "ASHLAR_MESH_SERVE_TLS_KEY",
     "ASHLAR_MESH_TAILNET",
     "ASHLAR_NODE_NAME",
-    "ASHLAR_TAILNET_PEER_PORT"
+    "ASHLAR_TAILNET_PEER_PORT",
+    "ASHLAR_TRUST_POLICY_REQUIRE_ACTIVE"
   ],
   "operator_vars_absent_from_all_documentation": [],
   "projects": [
@@ -1055,7 +1056,8 @@
     {
       "name": "ASHLAR_ACTIVE_TRUST_POLICY_PACK_PATH",
       "declared_in": [
-        "Ashlar.Infrastructure"
+        "Ashlar.Infrastructure",
+        "Ashlar.Tests.Infrastructure"
       ],
       "test_only": false,
       "in_configuration_reference": true,
@@ -2703,6 +2705,16 @@
       ],
       "test_only": false,
       "in_configuration_reference": true,
+      "in_any_document": true
+    },
+    {
+      "name": "ASHLAR_TRUST_POLICY_REQUIRE_ACTIVE",
+      "declared_in": [
+        "Ashlar.Infrastructure",
+        "Ashlar.Tests.Infrastructure"
+      ],
+      "test_only": false,
+      "in_configuration_reference": false,
       "in_any_document": true
     },
     {
@@ -7748,6 +7760,13 @@
       "project": "Ashlar.Tests.Infrastructure",
       "namespace": "Ashlar.Tests.Infrastructure.Tests.Trust",
       "declared_facts": 5,
+      "in_cert_gate_filter": false
+    },
+    {
+      "file": "src/Ashlar.Tests.Infrastructure/Tests/Trust/RequiredTrustPolicySelectionTests.cs",
+      "project": "Ashlar.Tests.Infrastructure",
+      "namespace": "Ashlar.Tests.Infrastructure.Tests.Trust",
+      "declared_facts": 6,
       "in_cert_gate_filter": false
     },
     {
