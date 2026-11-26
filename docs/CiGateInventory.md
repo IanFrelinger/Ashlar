@@ -163,6 +163,8 @@ The path-filtered `package-security-regression.yml` runs real package reads, mes
 
 The path-filtered `input-safety-regression.yml` runs the Kernel suite on net8.0 and net10.0 in the Linux devtest container, including fresh-process extreme YAML and disabled-locking probes and gate-lock cleanup ownership/failure tests, followed by assertion-level mutations. It checks the exact PR head and retains logs plus mutation TRX/restore evidence. This advisory lane does not certify arbitrary filesystems or same-user lock-file replacement.
 
+The path-filtered `bedrock-region-regression.yml` runs the eight isolated Bedrock region cases on net8.0 and net10.0 in the Linux devtest container at the exact PR head. The existing redirect mutation must fail all eight cases on each framework; baseline and byte-restored runs must pass all eight, with no skips. Logs, TRX, source hashes and clean-restoration evidence are retained. This advisory regression lane does not change required protection checks or contact AWS.
+
 ### Push-only (path-filtered) workflows
 
 All of these also accept `workflow_dispatch`. Branch filters are `master`, `main`, `cursor/**` unless noted.

@@ -1,0 +1,88 @@
+name: Bedrock region regressions
+
+on:
+  pull_request:
+    paths:
+      - 'src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs'
+      - 'src/Ashlar.Tests.Infrastructure/Tests/Certification/EgressRedirectHardeningTests.cs'
+      - 'src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj'
+      - 'samples/probes/BedrockRegionProbe/**'
+      - 'scripts/mutations/bedrock-region.json'
+      - 'scripts/run-spec007-mutation-batch.py'
+      - 'scripts/decode-spec007-mutation-evidence.py'
+      - 'scripts/test-in-container.sh'
+      - 'scripts/ensure-devtest-image.sh'
+      - '.docker/Dockerfile.devtest'
+      - 'samples/Directory.Build.props'
+      - 'src/Directory.Build.props'
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - '.github/workflows/bedrock-region-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bedrock-region-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-region-and-redirect:
+    name: Bedrock net8/net10 defaults and redirect mutation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Baseline, redirect mutation and restored cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/bedrock-region"
+          bash scripts/test-in-container.sh -- \
+            'python3 scripts/run-spec007-mutation-batch.py --manifest scripts/mutations/bedrock-region.json --archive-stdout' \
+            2>&1 | tee "${RUNNER_TEMP}/bedrock-region/mutations.log"
+
+      - name: Decode and verify exact-case evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/decode-spec007-mutation-evidence.py \
+            --log "${RUNNER_TEMP}/bedrock-region/mutations.log" \
+            --output "${RUNNER_TEMP}/bedrock-region/evidence" --repo .
+          python3 - "${RUNNER_TEMP}/bedrock-region/evidence/summary.json" <<'PYTHON'
+          import json, subprocess, sys
+          from pathlib import Path
+          summary = json.loads(Path(sys.argv[1]).read_text())
+          sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          assert summary["ref"] == sha and summary["verdict"] == "KILLED", summary
+          records = summary["records"]
+          assert len(records) == 2, records
+          assert {r["case"]["framework"] for r in records} == {"net8.0", "net10.0"}
+          for record in records:
+              assert record["ref"] == sha and record["verdict"] == "KILLED", record
+              assert record["restored_clean"] and record["final_clean"], record
+              assert record["original_sha256"] == record["restored_sha256"], record
+              for phase in ("baseline", "red", "green"):
+                  counts = record[phase]
+                  assert counts["total"] == counts["executed"] == 8, (phase, counts)
+                  assert counts["notExecuted"] == 0, (phase, counts)
+                  assert counts["passed"] == (0 if phase == "red" else 8), (phase, counts)
+                  assert counts["failed"] == (8 if phase == "red" else 0), (phase, counts)
+              print(f"PASS {record['case']['framework']}: 8 baseline passes, 8 intended failures, 8 restored passes; no skips; SHA {sha}")
+          PYTHON
+
+      - name: Upload exact-SHA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bedrock-region-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/bedrock-region
+          if-no-files-found: error

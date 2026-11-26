@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "note": "The existing m15 redirect mutation against all eight isolated region cases on both target frameworks. Baseline and restored runs must pass; every mutant case must fail.",
+  "mutations": [
+    {
+      "id": "bedrock-follows-net8.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = false }",
+      "new": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = true }",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "framework": "net8.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect"
+      ]
+    },
+    {
+      "id": "bedrock-follows-net10.0",
+      "file": "src/Ashlar.AI.Pipeline/Clients/AwsBedrockChatClientFactory.cs",
+      "old": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = false }",
+      "new": "new AmazonBedrockRuntimeConfig { AllowAutoRedirect = true }",
+      "filter": "FullyQualifiedName=Ashlar.Tests.Infrastructure.Tests.Certification.EgressRedirectHardeningTests.CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect",
+      "framework": "net10.0",
+      "project": "src/Ashlar.Tests.Infrastructure/Ashlar.Tests.Infrastructure.csproj",
+      "expected_failures": [
+        "CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect"
+      ]
+    }
+  ]
+}
