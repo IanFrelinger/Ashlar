@@ -846,6 +846,7 @@
         "Ashlar.Tests.Application",
         "Ashlar.Tests.Contracts",
         "Ashlar.Tools.Dev",
+        "BedrockRegionProbe",
         "VerifiedBrickConsumer"
       ]
     },

@@ -1,4 +1,7 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text.Json;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -109,19 +112,82 @@ public sealed class EgressRedirectHardeningTests
     }
 
     [Theory]
-    [InlineData("us-west-2", "us-west-2")]
-    [InlineData(" us-west-2 ", "us-west-2")]
-    [InlineData("", null)]
-    [InlineData(null, null)]
-    public void CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(string? region, string? expectedRegion)
+    [InlineData("us-west-2", "us-west-2", null)]
+    [InlineData(" us-west-2 ", "us-west-2", null)]
+    [InlineData("", null, null)]
+    [InlineData(null, null, null)]
+    [InlineData("us-west-2", "us-west-2", "eu-central-1")]
+    [InlineData(" us-west-2 ", "us-west-2", "eu-central-1")]
+    [InlineData("", "eu-central-1", "eu-central-1")]
+    [InlineData(null, "eu-central-1", "eu-central-1")]
+    public async Task CloudBedrock_TheRuntimeClientsConfigurationNeverFollowsARedirect(
+        string? region, string? expectedRegion, string? ambientRegion)
     {
-        var seam = typeof(Ashlar.AI.Pipeline.Clients.AwsBedrockChatClientFactory)
-            .GetMethod("RuntimeConfig", BindingFlags.NonPublic | BindingFlags.Static);
-        seam.Should().NotBeNull("the SDK-owned transport has a configuration seam without contacting AWS");
-        var config = (Amazon.BedrockRuntime.AmazonBedrockRuntimeConfig)seam!.Invoke(null, [region])!;
+        // AWS caches its default region. A fresh process per case also keeps parallel tests
+        // and the parent runner's environment unchanged.
+        var directory = Path.Combine(Path.GetTempPath(), "bedrock-region-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var profiles = Path.Combine(directory, "credentials");
+            var configFile = Path.Combine(directory, "config");
+            await File.WriteAllTextAsync(profiles, "");
+            await File.WriteAllTextAsync(configFile, "");
+            var probe = Path.Combine(AppContext.BaseDirectory, "BedrockRegionProbe", "BedrockRegionProbe.dll");
+            File.Exists(probe).Should().BeTrue("the matching framework's isolated AWS probe is built with these tests");
+            var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet")
+            {
+                WorkingDirectory = directory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+            foreach (var key in start.Environment.Keys
+                         .Where(key => key.StartsWith("AWS_", StringComparison.OrdinalIgnoreCase)).ToArray())
+                start.Environment.Remove(key);
+            start.Environment["AWS_SHARED_CREDENTIALS_FILE"] = profiles;
+            start.Environment["AWS_CONFIG_FILE"] = configFile;
+            start.Environment["AWS_PROFILE"] = "ashlar-region-probe";
+            start.Environment["AWS_EC2_METADATA_DISABLED"] = "true";
+            if (ambientRegion is not null)
+                start.Environment["AWS_REGION"] = ambientRegion;
+            foreach (var argument in new[] { probe, JsonSerializer.Serialize(region), profiles })
+                start.ArgumentList.Add(argument);
 
-        config.AllowAutoRedirect.Should().BeFalse();
-        config.RegionEndpoint?.SystemName.Should().Be(expectedRegion);
+            using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start AWS region probe.");
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+                throw new TimeoutException("The isolated AWS region probe did not exit within 30 seconds.");
+            }
+            var output = await stdout;
+            var errors = await stderr;
+            process.ExitCode.Should().Be(0, errors + output);
+            using var receipt = JsonDocument.Parse(output);
+            var result = receipt.RootElement;
+            result.GetProperty("defaultRegion").GetString().Should().Be(ambientRegion,
+                "the SDK default must be controlled, not inherited from a runner or user profile");
+            result.GetProperty("AllowAutoRedirect").GetBoolean().Should().BeFalse();
+            result.GetProperty("region").GetString().Should().Be(expectedRegion);
+            result.GetProperty("runtimeMajor").GetInt32().Should().Be(Environment.Version.Major,
+                "the probe must execute on the same runtime as its parent test");
+            var assembly = typeof(Ashlar.AI.Pipeline.Clients.AwsBedrockChatClientFactory).Assembly.Location;
+            result.GetProperty("factorySha256").GetString().Should().Be(
+                Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(assembly))),
+                "the probe must exercise the exact factory assembly under test");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]
