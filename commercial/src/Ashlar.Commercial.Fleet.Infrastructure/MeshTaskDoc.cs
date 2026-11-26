@@ -46,6 +46,8 @@ internal sealed class MeshTaskDoc
     public string? ResultSummary { get; set; }
     /// <summary>Result handle.</summary>
     public string? ResultHandle { get; set; }
+    /// <summary>Inline worker result, stored in the same transaction as terminal status.</summary>
+    public byte[]? ResultPayload { get; set; }
     /// <summary>Lease token.</summary>
     public string? LeaseToken { get; set; }
     /// <summary>Lease owner peer id.</summary>
@@ -78,6 +80,7 @@ internal sealed class MeshTaskDoc
         LastScheduleIdempotencyKey = t.LastScheduleIdempotencyKey,
         ResultSummary = t.ResultSummary,
         ResultHandle = t.ResultHandle,
+        ResultPayload = t.ResultPayload,
         LeaseToken = t.LeaseToken,
         LeaseOwnerPeerId = t.LeaseOwnerPeerId,
         LeaseExpiresUtc = t.LeaseExpiresUtc,
@@ -108,5 +111,5 @@ internal sealed class MeshTaskDoc
         LeaseToken,
         LeaseOwnerPeerId,
         LeaseExpiresUtc,
-        CheckpointHandle);
+        CheckpointHandle) { ResultPayload = ResultPayload };
 }

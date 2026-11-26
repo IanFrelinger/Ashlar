@@ -21,10 +21,12 @@ Request bodies for schedule/retry are optional JSON: **`{ "scheduleIdempotencyKe
 
 Task responses include Phase 6 lease fields when assigned: **`leaseToken`**, **`leaseOwnerPeerId`**, **`leaseExpiresUtc`**, **`checkpointHandle`** (see [MeshPhase6LeasesAndCheckpoints.md](MeshPhase6LeasesAndCheckpoints.md)).
 
-## Result handles (artifact pointers)
+## Results and artifact pointers
 
 - **`PATCH /api/mesh/tasks/{id}/status`** accepts optional **`resultSummary`** and **`resultHandle`** when moving to **Succeeded** or **Failed**. When the task is **Assigned** or **Running** and has a **`leaseToken`**, the body must include a matching **`leaseToken`** (otherwise **409 Conflict**).
 - **`GET /api/mesh/tasks/{id}/result`** — If **`resultHandle`** is an **absolute file path** on the **director host** and the file exists, streams it as `application/octet-stream`. This is a **convenience** for small artifacts; large blobs should use object storage outside Ashlar (Phase 3 scope).
+- Workers can instead include **`resultPayload`** (a JSON base64 string, at most **256 KiB** decoded) in a **Succeeded** status PATCH. This requires the current **`leaseToken`**, even for an otherwise authorized operator. Payload and terminal status are committed atomically in the task registry, including LiteDB; `/result` returns those bytes as `application/octet-stream` without a shared worker/director filesystem. Inline bytes are omitted from task-list/status responses.
+- The optional mesh-lab executor forwards a successful brick's binary `output.payload` bytes, or its serialized output object when there is no binary payload. HTTP, malformed-response, brick-failure, and oversized-result errors produce **Failed**, not a synthetic success summary. The executor's existing no-brick lifecycle-only mode remains available and does not create a payload. The two worker implementations use the same 256 KiB bound.
 
 ## What is still not done
 

@@ -91,7 +91,24 @@ public sealed class TrustPolicyPackRegistry : ITrustPolicyPackRegistry
     {
         Directory.CreateDirectory(_packsRootPath);
         _packs = LoadPacks(_packsRootPath);
-        _activePack = LoadStatus(_statePath);
+        // Required deployments provision the initial selection before startup. Never
+        // recover a missing pointer from a default: that could weaken a policy the
+        // operator previously selected after data loss or a mount/configuration error.
+        if (string.Equals(Environment.GetEnvironmentVariable("ASHLAR_TRUST_POLICY_REQUIRE_ACTIVE"),
+            "true", StringComparison.OrdinalIgnoreCase))
+        {
+            var active = ReadStatus(_statePath);
+            if (active is null || string.IsNullOrWhiteSpace(active.Id) ||
+                !_packs.TryGetValue(active.Id, out var definition) ||
+                string.IsNullOrWhiteSpace(active.Version) ||
+                !string.Equals(active.Version, definition.Version, StringComparison.Ordinal))
+                throw new InvalidOperationException("The active trust policy selection must identify an installed pack and its exact version.");
+            _activePack = active;
+        }
+        else
+        {
+            _activePack = LoadStatus(_statePath);
+        }
     }
 
     private static IReadOnlyDictionary<string, TrustPolicyPack> LoadPacks(string rootPath)
@@ -119,14 +136,16 @@ public sealed class TrustPolicyPackRegistry : ITrustPolicyPackRegistry
 
         try
         {
-            var text = File.ReadAllText(statePath);
-            return JsonSerializer.Deserialize<ActiveTrustPolicyPack>(text, ReadJsonOptions);
+            return ReadStatus(statePath);
         }
         catch (Exception)
         {
             return null;
         }
     }
+
+    private static ActiveTrustPolicyPack? ReadStatus(string statePath) =>
+        JsonSerializer.Deserialize<ActiveTrustPolicyPack>(File.ReadAllText(statePath), ReadJsonOptions);
 
     private static string ResolvePacksRootPath(string? configuredPath)
     {

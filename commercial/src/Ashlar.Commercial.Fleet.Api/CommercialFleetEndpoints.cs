@@ -118,7 +118,7 @@ public static class CommercialFleetEndpoints
 
         mesh.MapGet("/tasks/{taskId}/result", DownloadMeshTaskResultAsync)
             .WithName("DownloadMeshTaskResult")
-            .WithSummary("Phase 3: download result bytes when ResultHandle is a file path on this host")
+            .WithSummary("Download inline worker result bytes or a result file on this director")
             .Produces(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
@@ -489,6 +489,8 @@ public static class CommercialFleetEndpoints
         var t = await tasks.GetAsync(taskId, cancellationToken).ConfigureAwait(false);
         if (t is null)
             return Results.NotFound();
+        if (t.Status == MeshTaskStatus.Succeeded && t.ResultPayload is not null)
+            return Results.File(t.ResultPayload, contentType: "application/octet-stream", fileDownloadName: $"{t.TaskId}.bin");
         if (string.IsNullOrWhiteSpace(t.ResultHandle))
             return Results.BadRequest(new ProblemDetails { Title = "No result handle recorded for this task" });
 
@@ -549,6 +551,10 @@ public static class CommercialFleetEndpoints
         if (body is null || !Enum.IsDefined(typeof(MeshTaskStatus), body.Status))
             return Results.BadRequest(new ProblemDetails { Title = "Valid Status is required" });
 
+        if (body.ResultPayload is not null &&
+            (body.Status != MeshTaskStatus.Succeeded || body.ResultPayload.Length > MeshTaskState.MaxResultPayloadBytes))
+            return Results.BadRequest(new ProblemDetails { Title = "resultPayload requires Succeeded and must not exceed 256 KiB" });
+
         // The read, the lease comparison and the write used to live here, in that order, with the
         // database opened and closed between each of them. They now live in one transform the store
         // applies inside its write transaction; this method resolves the correlation id (which needs
@@ -562,7 +568,8 @@ public static class CommercialFleetEndpoints
             correlation,
             body.ResultSummary,
             body.ResultHandle,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            resultPayload: body.ResultPayload).ConfigureAwait(false);
 
         if (task is null)
             return Results.NotFound();
