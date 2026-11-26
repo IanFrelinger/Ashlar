@@ -135,6 +135,7 @@ rows here and in `ci/test-ownership.tsv`. The placement rule in
 | `src/Ashlar.Tests.Contracts/Ashlar.Tests.Contracts.csproj` | Contract tests |
 | `src/Ashlar.Tests.Kernel/Ashlar.Tests.Kernel.csproj` | Kernel integration tests |
 | `tools/InputSafetyProbe/InputSafetyProbe.csproj` | Fresh-process YAML and runtime locking regression host (not shipped) |
+| `tools/BedrockRegionProbe/BedrockRegionProbe.csproj` | Fresh-process AWS region and redirect certification host with isolated defaults (not shipped) |
 | `src/Ashlar.Tests.Transport/Ashlar.Tests.Transport.csproj` | gRPC transport tests |
 | `src/Ashlar.Tests.AI.Pipeline/Ashlar.Tests.AI.Pipeline.csproj` | MEAI pipeline tests |
 | `src/Ashlar.Analyzers.Tests/Ashlar.Analyzers.Tests.csproj` | Roslyn analyzer tests |
