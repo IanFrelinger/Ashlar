@@ -27,6 +27,7 @@
          which System.Text.Json 10 requires; the 10.0 TestHost adds it (same override pattern
          as Ashlar.Tests.Infrastructure's Mvc.Testing reference). -->
     <PackageReference Include="Microsoft.AspNetCore.TestHost" VersionOverride="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
