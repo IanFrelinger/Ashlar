@@ -38,6 +38,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="A2A" />
+    <PackageReference Include="A2A.AspNetCore" />
     <PackageReference Include="MediatR" />
     <!-- Local GGUF inference opt-in. Ashlar.Infrastructure marks this backend PrivateAssets=all so
          that no consumer inherits its four colliding CPU-variant native sets, which means every
@@ -62,6 +64,7 @@
     <PackageReference Include="LLamaSharp.Backend.Cpu" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <!-- OTLP export (traces + metrics), active only when OTEL_EXPORTER_OTLP_ENDPOINT is set. -->
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
